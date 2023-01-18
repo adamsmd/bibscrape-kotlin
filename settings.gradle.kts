@@ -8,4 +8,4 @@
  */
 
 rootProject.name = "bibscrape"
-include("app", "list", "utilities")
+include("app")
