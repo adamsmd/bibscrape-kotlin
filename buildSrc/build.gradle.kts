@@ -1,5 +1,6 @@
 plugins {
-  `kotlin-dsl`
+  kotlin("jvm") version "1.8.0"
+  // `kotlin-dsl`
 
   id("com.github.ben-manes.versions") version "0.42.0" // Adds: ./gradlew -p buildSrc dependencyUpdates
   id("io.gitlab.arturbosch.detekt").version("1.19.0") // Adds: ./gradlew -p buildSrc detekt

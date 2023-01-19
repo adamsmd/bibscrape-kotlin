@@ -1,5 +1,5 @@
 plugins {
-  kotlin("jvm")
+  kotlin("jvm") // version determined by buildSrc/build.gradle.kts
   application
 
   // Documentation
