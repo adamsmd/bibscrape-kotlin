@@ -7,9 +7,6 @@ import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.parameters.arguments.*
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
-
-import org.michaeldadams.bibscrape.utilities.StringUtils
-
 import com.github.ajalt.clikt.parameters.groups.provideDelegate
 import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import java.nio.file.Path
@@ -405,15 +402,8 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
 
   override fun run() {
-    val tokens = StringUtils.split(MessageUtils.getMessage())
-    val result = StringUtils.join(tokens)
-    println(result)
-    println(inputs.key)
-
     val driver = FirefoxDriver()
-
     driver.get("https://selenium.dev")
-
     driver.quit()
   }
 }
