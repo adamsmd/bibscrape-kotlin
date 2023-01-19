@@ -4,7 +4,7 @@
 package org.michaeldadams.bibscrape.main
 
 class MessageUtils {
-    companion object {
-        fun getMessage(): String = "Hello      World!"
-    }
+  companion object {
+    fun getMessage(): String = "Hello      World!"
+  }
 }

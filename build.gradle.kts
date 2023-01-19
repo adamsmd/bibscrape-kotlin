@@ -53,7 +53,7 @@ application {
 }
 
 // version = "0.1.0" // Uncomment to manually set the version
-//apply<GitVersionPlugin>()
+// apply<GitVersionPlugin>()
 
 // ////////////////////////////////////////////////////////////////
 // Code Formatting

@@ -2,7 +2,6 @@ package org.michaeldadams.bibscrape.main
 
 import org.openqa.selenium.firefox.FirefoxDriver
 
-import com.github.ajalt.clikt.completion.CompletionCommand
 import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.parameters.arguments.*
@@ -19,7 +18,8 @@ fun main(args: Array<String>): Unit = Main().main(args)
 
 class Inputs : OptionGroup(name = "INPUTS") {
 
-  val key: List<List<String>> by option("-k", "--key",
+  val key: List<List<String>> by option(
+    "-k", "--key",
     help = """
       Keys to use in the output BibTeX.
 
@@ -97,13 +97,15 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
       """
   ).flag("--no-config-dir")
 
-  val scrape: Boolean by option("-S", "--scrape",
+  val scrape: Boolean by option(
+    "-S", "--scrape",
     help = """
       Scrape BibTeX entries from publisher's pages.
       """
   ).flag("-/S", "--no-scrape", default = true)
 
-  val fix: Boolean by option("-F", "--fix",
+  val fix: Boolean by option(
+    "-F", "--fix",
     help = """
       Fix mistakes found in BibTeX entries.
       """
@@ -126,14 +128,16 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
     If only one type of ${name} is available, this option is ignored.
     """
 
-  val window: Boolean by option("-w", "--window",
+  val window: Boolean by option(
+    "-w", "--window",
     help = """
       Show the browser window while scraping.  This is useful for debugging or
       determining why BibScrape hangs on a particular publisher's page.
       """
   ).flag("--no-window")
 
-  val timeout: Double by option("-t", "--timeout",
+  val timeout: Double by option(
+    "-t", "--timeout",
     help = """
       Browser timeout in seconds for individual page loads.
       """
@@ -214,7 +218,7 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
 // #={Fields that should be omitted from the output if they are empty.}
 }
 
-class Main: CliktCommand(
+class Main : CliktCommand(
   printHelpOnEmptyArgs = true,
   help = """
     Collect BibTeX entries from the websites of academic publishers.
@@ -382,7 +386,7 @@ class Main: CliktCommand(
   // TODO: allow rename "Arguments" section
   // TODO: allow + ++ and list actions
   val arg: List<String> by argument(
-    help="""
+    help = """
       The publisher's pages to be scraped or a BibTeX files to be read and
       re-scraped or fixed.
 
@@ -411,6 +415,5 @@ class Main: CliktCommand(
     driver.get("https://selenium.dev")
 
     driver.quit()
-
   }
 }
