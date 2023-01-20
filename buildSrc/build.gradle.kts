@@ -14,9 +14,6 @@ repositories {
 
 dependencies {
   implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10")
-
-  // Git API (for `GitVersionsPlugin.kt`)
-  implementation("org.eclipse.jgit:org.eclipse.jgit:6.0.0.202111291000-r")
 }
 
 // ////////////////////////////////////////////////////////////////

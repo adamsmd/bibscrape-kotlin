@@ -1,4 +1,4 @@
-package org.michaeldadams.bibscrape.main
+package org.michaeldadams.bibscrape
 
 import org.openqa.selenium.firefox.FirefoxDriver
 
@@ -216,6 +216,7 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
 }
 
 class Main : CliktCommand(
+  name = "bibscrape",
   printHelpOnEmptyArgs = true,
   help = """
     Collect BibTeX entries from the websites of academic publishers.
@@ -376,6 +377,7 @@ class Main : CliktCommand(
   init {
     // TODO: Better placement of the default in the help text
     context { helpFormatter = CliktHelpFormatter(showDefaultValues = true) }
+    versionOption(BuildInformation.version)
   }
 
   // TODO: allow argument in option groups
