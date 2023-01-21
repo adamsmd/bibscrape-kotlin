@@ -10,6 +10,18 @@ import com.github.ajalt.clikt.parameters.types.*
 import com.github.ajalt.clikt.parameters.groups.provideDelegate
 import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import java.nio.file.Path
+import java.io.File
+import java.io.FileReader
+import java.io.OutputStreamWriter
+import org.bibsonomy.bibtex.parser.SimpleBibTeXParser
+import org.bibsonomy.model.util.BibTexUtils
+
+import org.jbibtex.BibTeXParser
+import org.jbibtex.BibTeXDatabase
+
+import bibtex.parser.BibtexParser
+import bibtex.dom.BibtexFile
+import bibtex.dom.BibtexEntry
 
 fun main(args: Array<String>): Unit = Main().main(args)
 
@@ -404,8 +416,84 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
 
   override fun run() {
-    val driver = FirefoxDriver()
-    driver.get("https://selenium.dev")
-    driver.quit()
+
+    for (filename in arg) {
+      val bibtexFile = BibtexFile();
+      val parser0 = BibtexParser(false)
+      parser0.parse(bibtexFile, FileReader(filename))
+      val entries0 = bibtexFile.getEntries().filterIsInstance<BibtexEntry>()
+
+      // val parser = SimpleBibTeXParser()
+      // parser.setTryParseAll(true)
+      // val entries1 = parser.parseBibTeXs(File(filename).readText())
+      // println(BibTexUtils.toBibtexString(entry))
+
+      val bibtexParser = object : BibTeXParser() {
+        override fun checkStringResolution(key: org.jbibtex.Key?, string: org.jbibtex.BibTeXString?) {}
+        override fun checkCrossReferenceResolution(key: org.jbibtex.Key?, entry: org.jbibtex.BibTeXEntry?) {}
+      }
+      val entries2 = try {
+        val database = bibtexParser.parseFully(FileReader(filename))
+        database.getEntries().values.toList()
+      } catch (e: Exception) {
+        e.printStackTrace()
+        listOf()
+      }
+      // for (e in entries1) {
+      //   println(BibTexUtils.toBibtexString(e))
+      // }
+      // if (entries0.size != entries2.size) {
+      //   println("$filename ${entries0.size} ${entries2.size}")
+      // }
+
+      // if (entries1.size != entries2.size) {
+      //   println("$filename ${entries1.size} ${entries2.size}")
+      // } else {
+        // for ((e1, e2) in entries1 zip entries2) {
+        //   // println(e1.getMonth())
+        //   // e2.getFields()
+        //   if (e1.getBibtexKey() != e2.getKey().getValue()) {
+        //     println("$filename ${e1.getBibtexKey()} ${e2.getKey()}")
+        //   }
+        // }
+      // }
+
+      // if (entries1.size != database.getEntries().values.size) {
+      //   println("${entries1.size} ${database.getEntries().values.size}")
+      // } else {
+      //   println("OK")
+      // }
+
+      // val bibtexFormatter = org.jbibtex.BibTeXFormatter();
+      // val writer = OutputStreamWriter(System.out)
+      // bibtexFormatter.format(database, writer);
+      // for (entry in database.getEntries().values) {
+      //   bibtexFormatter.format(entry, writer);
+      // }
+
+      val map0: Map<String, BibtexEntry> = (entries0.map { x -> Pair(x.getEntryKey(), x) }).toMap()
+      for (e2 in entries2) {
+        val e1 = map0.get(e2.key.toString())
+        if (e1 == null) {
+          println("ERROR $filename ${e2.key}")
+        } else {
+          if (e1.getEntryKey() != e2.getKey().toString()
+            || e1.getEntryType() != e2.getType().toString().toLowerCase()) {
+            println("KEYS $filename ${e1.getEntryKey()} ${e2.key} ${e1.getEntryType()} ${e2.getType().toString()}")
+          }
+          val f1 = e1.getFields()
+          val f2 = e2.getFields()
+          val k1 = f1.keys.map { it.toString() }.sorted()
+          val k2 = f2.keys.map { it.toString().lowercase() }.sorted()
+          if (k1 != k2) {
+            println("FIELDS $filename ${e2.key} ${k1} ${k2}")
+          }
+        }
+      }
+    }
+
+    // val driver = FirefoxDriver()
+    // driver.get("https://selenium.dev")
+    // driver.quit()
   }
 }

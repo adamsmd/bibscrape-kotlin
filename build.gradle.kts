@@ -1,33 +1,31 @@
-import org.eclipse.jgit.api.Git
+// NOTE: Groups with comment headers are sorted alphabetically by group name (TODO)
 
 plugins {
   kotlin("jvm") // version determined by buildSrc/build.gradle.kts
   application
 
-  // Documentation
-  id("org.jetbrains.dokka") version "1.7.20" // Adds: ./gradlew dokka{Gfm,Html,Javadoc,Jekyll}
-
-  // Code Formatting
-  id("com.diffplug.spotless") version "6.13.0"
-  // Subsumes:
-  // - id("org.jlleitschuh.gradle.ktlint") version "10.2.1" // Adds: ./gradlew ktlintCheck (requires disabling diktat)
-  // - id("com.ncorti.ktfmt.gradle") version "0.11.0"
-  // - id("org.cqfn.diktat.diktat-gradle-plugin") version "1.0.3" // Adds: ./gradlew diktatCheck
-
-  id("io.gitlab.arturbosch.detekt").version("1.22.0") // Adds: ./gradlew detekt
+  // Code Analysis
+  id("io.gitlab.arturbosch.detekt").version("1.22.0") // Tasks: detekt
 
   // Code Coverage
-  id("jacoco") // Adds: ./gradlew jacocoTestReport
-  id("org.jetbrains.kotlinx.kover") version "0.6.1" // Adds: ./gradlew koverMergedHtmlReport
+  id("jacoco") // Tasks: jacocoTestReport
+  id("org.jetbrains.kotlinx.kover") version "0.6.1" // Tasks: koverMergedHtmlReport
 
-  // Dependency Versions
-  // id("de.fayard.refreshVersions") version "0.51.0"
-  id("com.github.ben-manes.versions") version "0.44.0" // Adds: ./gradlew dependencyUpdates
+  // Code Style
+  // id("com.ncorti.ktfmt.gradle") version "0.11.0" // Tasks: ktfmtCheck (omitted because issues errors not warnings)
+  // id("org.cqfn.diktat.diktat-gradle-plugin") version "1.0.3" // Tasks: diktatCheck
+  id("org.jlleitschuh.gradle.ktlint") version "10.2.1" // Tasks: ktlintCheck (requires disabling diktat)
 
   // Dependency Licenses
-  id("com.github.jk1.dependency-license-report") version "2.1" // Adds: ./gradlew generateLicenseReport
+  id("com.github.jk1.dependency-license-report") version "2.1" // Tasks: generateLicenseReport
 
-  // Typesafe config
+  // Dependency Versions
+  id("com.github.ben-manes.versions") version "0.44.0" // Tasks: dependencyUpdates
+
+  // Documentation
+  id("org.jetbrains.dokka") version "1.7.20" // Tasks: dokka{Gfm,Html,Javadoc,Jekyll}
+
+  // Typesafe config (TODO)
 }
 
 repositories {
@@ -36,41 +34,54 @@ repositories {
 }
 
 dependencies {
-  // Testing
-  testImplementation(kotlin("test:1.8.0"))
-
-  // NOTE: These groups are sorted alphabetically
-
   // BibTeX
-  // $ wget -r -R html,dvi,ltx,pdf,ps.gz,ps.xz,sok,twx,db -R RCS -R idx -R toc -R 'bib*' -R 'filehdr-*' --continue ftp://ftp.math.utah.edu/pub/tex/bib/
+  // $ wget --recursive --timestamping --reject=html,dvi,ltx,pdf,ps.gz,ps.xz,sok,twx,db --reject='bib*' --reject='filehdr-*' --reject-regex='.*/(RCS|idx|toc)/.*' ftp://ftp.math.utah.edu/pub/tex/bib/
   implementation("org.bibsonomy:bibsonomy-bibtex-parser:3.9.4")
   implementation("org.jbibtex:jbibtex:1.0.20")
 
   // Command-line argument parsing
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
 
+  // ISBN
+  implementation("com.github.ladutsko:isbn-core:1.1.0")
+
   // Logging
   implementation("ch.qos.logback:logback-classic:1.2.6")
   implementation("io.github.microutils:kotlin-logging-jvm:2.1.21")
+
+  // Testing
+  testImplementation(kotlin("test:1.8.0"))
 
   // WebDriver
   implementation("org.seleniumhq.selenium:selenium-java:4.7.2")
 }
 
-tasks.test {
-  useJUnitPlatform()
-}
-
+// ////////////////////////////////////////////////////////////////
+// Main
 application {
   mainClass.set("org.michaeldadams.bibscrape.MainKt")
 }
 
 // ////////////////////////////////////////////////////////////////
+// Testing
+tasks.withType<Test> {
+  useJUnitPlatform()
+
+  this.testLogging {
+    this.showStandardStreams = true
+  }
+}
+
+// ////////////////////////////////////////////////////////////////
 // Version Information
 // Create a new version with: git tag -a v2023.01.01
-task("version") { println(project.version) }
+task("version") {
+  doLast {
+    println(project.version)
+  }
+}
 
-Git.open(project.rootDir).use { git ->
+org.eclipse.jgit.api.Git.open(project.rootDir).use { git ->
   val describe = git.describe().apply { setMatch("v*") }.call()
   val isClean = git.status().call().isClean
   project.version =
@@ -106,52 +117,49 @@ val generateBuildInfo by tasks.registering {
 }
 
 // ////////////////////////////////////////////////////////////////
+// Code Analysis
+detekt {
+  ignoreFailures = true
+  buildUponDefaultConfig = true
+  allRules = true
+}
+
+// ////////////////////////////////////////////////////////////////
 // Code Formatting
 
-// https://github.com/jlleitschuh/ktlint-gradle/blob/master/plugin/src/main/kotlin/org/jlleitschuh/gradle/ktlint/KtlintExtension.kt
-// ktlint {
-//   verbose.set(true)
-//   ignoreFailures.set(true)
-//   enableExperimentalRules.set(true)
-//   disabledRules.set(
-//     setOf(
-//       "experimental:argument-list-wrapping",
-//       "no-wildcard-imports",
-//     )
-//   )
-// }
+// TODO:
+// indentWithSpaces(2) // or spaces. Takes an integer argument if you don't like 4
+// trimTrailingWhitespace()
+// endWithNewline()
 
-// // https://github.com/analysis-dev/diktat/blob/master/diktat-gradle-plugin/src/main/kotlin/org/cqfn/diktat/plugin/gradle/DiktatExtension.kt
 // diktat {
 //   ignoreFailures = true
 // }
 
-// https://github.com/detekt/detekt/blob/main/detekt-gradle-plugin/src/main/kotlin/io/gitlab/arturbosch/detekt/extensions/DetektExtension.kt
-// detekt {
-//   ignoreFailures = true
-//   buildUponDefaultConfig = true
-//   allRules = true
-// }
+ktlint {
+  verbose.set(true)
+  ignoreFailures.set(true)
+  enableExperimentalRules.set(true)
+  disabledRules.set(
+    setOf(
+      "experimental:argument-list-wrapping",
+      "no-wildcard-imports",
+    )
+  )
+}
 
 // ////////////////////////////////////////////////////////////////
-// Generic Configuration
-
-tasks.withType<Test> {
-  // Use JUnit Platform for unit tests.
-  useJUnitPlatform()
-
-  this.testLogging {
-    this.showStandardStreams = true
+// Documentation
+tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
+  dokkaSourceSets {
+    named("main") {
+      includes.from("Module.md")
+    }
   }
 }
 
-// tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
-//   dokkaSourceSets {
-//     named("main") {
-//       includes.from("Module.md")
-//     }
-//   }
-// }
+// ////////////////////////////////////////////////////////////////
+// Task Dependencies
 
 // For why we have to fully qualify KotlinCompile see:
 // https://stackoverflow.com/questions/55456176/unresolved-reference-compilekotlin-in-build-gradle-kts
@@ -159,7 +167,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
   // Avoid the warning: 'compileJava' task (current target is 11) and
   // 'compileKotlin' task (current target is 1.8) jvm target compatibility should
   // be set to the same Java version.
-  // kotlinOptions { jvmTarget = project.java.targetCompatibility.toString() }
+  kotlinOptions { jvmTarget = project.java.targetCompatibility.toString() }
 
   dependsOn(generateBuildInfo)
 }
