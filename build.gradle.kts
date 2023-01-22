@@ -37,10 +37,12 @@ dependencies {
   // BibTeX
   // $ wget --recursive --timestamping --reject=html,dvi,ltx,pdf,ps.gz,ps.xz,sok,twx,db --reject='bib*' --reject='filehdr-*' --reject-regex='.*/(RCS|idx|toc)/.*' ftp://ftp.math.utah.edu/pub/tex/bib/
   implementation("org.bibsonomy:bibsonomy-bibtex-parser:3.9.4")
-  implementation("org.jbibtex:jbibtex:1.0.20")
 
   // Command-line argument parsing
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
+
+  // Date and Time Manipulation
+  implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
   // ISBN
   implementation("com.github.ladutsko:isbn-core:1.1.0")
