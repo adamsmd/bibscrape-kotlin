@@ -1,16 +1,14 @@
 package org.michaeldadams.bibscrape
 
-import bibtex.parser.BibtexParser
-import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexEntry
-import org.openqa.selenium.WebDriver
+import bibtex.dom.BibtexFile
+import bibtex.parser.BibtexParser
 import org.openqa.selenium.By
-import kotlin.text.toRegex
-import kotlin.math.roundToLong
-import java.time.Duration
-import kotlinx.datetime.Clock
+import org.openqa.selenium.WebDriver
 import java.io.StringReader
-import org.michaeldadams.bibscrape.Month
+import java.time.Duration
+import kotlin.math.roundToLong
+import kotlin.text.toRegex
 
 //@kotlin.time.ExperimentalTime
 object Scrape {
@@ -39,7 +37,7 @@ object Scrape {
     )
 
     for ((dom, function) in domainMap) {
-      if("\\b${Regex.escape(dom)}\$".toRegex().containsMatchIn(domain)) {
+      if ("\\b${Regex.escape(dom)}\$".toRegex().containsMatchIn(domain)) {
         return function(driver)
       }
     }
@@ -173,12 +171,12 @@ object Scrape {
       val issn = issns.first().getDomProperty("innerHTML")
       val pissn =
         """<span class="bold">ISSN:</span><span class="space">(.*?)</span>"""
-        .toRegex()
-        .find(issn)
+          .toRegex()
+          .find(issn)
       val eissn =
         """<span class="bold">EISSN:</span><span class="space">(.*?)</span>"""
-        .toRegex()
-        .find(issn)
+          .toRegex()
+          .find(issn)
       if (pissn != null && eissn != null) {
         entry.setField(
           "issn",
@@ -188,9 +186,9 @@ object Scrape {
     }
 
     //// Pages
-    if (entry.getFieldValue("articleno") != null
-      && entry.getFieldValue("numpages") != null
-      && entry.getFieldValue("pages") == null) {
+    if (entry.getFieldValue("articleno") != null &&
+      entry.getFieldValue("numpages") != null &&
+      entry.getFieldValue("pages") == null) {
       val articleno = entry.getFieldValue("articleno").toString()
       val numpages = entry.getFieldValue("numpages").toString()
       entry.setField("pages", entry.getOwnerFile().makeString("$articleno:1--$articleno:$numpages"))

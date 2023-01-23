@@ -5,7 +5,7 @@ plugins {
   application
 
   // Code Analysis
-  id("io.gitlab.arturbosch.detekt").version("1.22.0") // Tasks: detekt
+  // id("io.gitlab.arturbosch.detekt").version("1.22.0") // Tasks: detekt (disabled because too noisy)
 
   // Code Coverage
   id("jacoco") // Tasks: jacocoTestReport
@@ -112,7 +112,8 @@ val generateBuildInfo by tasks.registering {
       object BuildInformation {
         val version: String = "${project.version}"
       }
-      """.trimIndent().trimStart()
+
+    """.trimIndent().trimStart()
 
     generateSrc("BuildInformation.kt", code)
   }
@@ -120,11 +121,11 @@ val generateBuildInfo by tasks.registering {
 
 // ////////////////////////////////////////////////////////////////
 // Code Analysis
-detekt {
-  ignoreFailures = true
-  buildUponDefaultConfig = true
-  allRules = true
-}
+// detekt {
+//   ignoreFailures = true
+//   buildUponDefaultConfig = true
+//   allRules = true
+// }
 
 // ////////////////////////////////////////////////////////////////
 // Code Formatting

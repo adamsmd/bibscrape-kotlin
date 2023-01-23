@@ -1,16 +1,9 @@
 package org.michaeldadams.bibscrape
 
-import bibtex.parser.BibtexParser
-import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexEntry
-import bibtex.dom.BibtexString
-import org.openqa.selenium.WebDriver
 import org.openqa.selenium.By
+import org.openqa.selenium.WebDriver
 import kotlin.text.toRegex
-import kotlin.math.roundToLong
-import java.time.Duration
-import kotlinx.datetime.Clock
-import java.io.StringReader
 
 typealias HtmlMetaTable = Map<String, List<String>>
 
@@ -31,9 +24,9 @@ object HtmlMeta {
     val fieldsMap = fields.toMap()
     val values = mutableMapOf<String, String>()
     fun getFirst(vararg fields: String): String? =
-      fieldsMap.flatMap { meta.getOrDefault(it, listOf()) }.firstOrNull()
+      fields.flatMap { meta.getOrDefault(it, listOf()) }.firstOrNull()
 
-    fun set(field: String, value: String?): Unit {
+    fun set(field: String, value: String?) {
       if (value != null) { values.set(field, value) }
     }
     //   sub set(Str:D $field, $value where Any:U | Str:_ | BibScrape::BibTeX::Piece:_ --> Any:U) {
@@ -71,30 +64,36 @@ object HtmlMeta {
     //   } else {
     //     set( 'pages', %meta<pages>.head);
     //   }
-    
+
     set("volume", getFirst("citation_volume"))
     set("number", getFirst("citation_issue"))
-    
+
     // 'keywords' also contains keyword information
     if (meta.containsKey("citation_keywords")) {
-      set("keywords",
+      set(
+        "keywords",
         meta
           .getOrDefault("citation_keywords", listOf())
           .map {
             """^\s*;*""".toRegex().replace(
               """;*\s*$""".toRegex().replace(
-                it, ""), "")
-          }.joinToString("; "))
+                it,
+                ""
+              ),
+              ""
+            )
+          }.joinToString("; ")
+      )
     }
     //   set( 'keywords',
     //     %meta<citation_keywords>
     //     .map({ s/^ \s* ';'* //; s/ ';'* \s* $//; $_ })
     //     .join( '; ' ))
     //     if %meta<citation_keywords>:exists;
-    
+
     // 'rft_pub' also contains publisher information
     set("publisher", getFirst("citation_publisher", "dc.publisher", "st.publisher"))
-    
+
     // 'dc.date', 'rft_date', 'citation_online_date' also contain date information
     //   if %meta<citation_publication_date>:exists {
     //     if (%meta<citation_publication_date>.head ~~ /^ (\d\d\d\d) <[/-]> (\d\d) [ <[/-]> (\d\d) ]? $/) {
@@ -113,13 +112,15 @@ object HtmlMeta {
     //       set( 'month', str2month($month));
     //     }
     //   }
-    
+
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     for ((k, b) in listOf(
-        "citation_conference" to "booktitle",
-        "citation_journal_title" to "journal",
-        "citation_inbook_title" to "booktitle",
-        "citation_inbook_title" to "journal")) {
+      "citation_conference" to "booktitle",
+      "citation_journal_title" to "journal",
+      "citation_inbook_title" to "booktitle",
+      "citation_inbook_title" to "journal",
+    )
+    ) {
       if (meta.containsKey(k)) {
         set(b, getFirst(k))
         break
@@ -129,12 +130,12 @@ object HtmlMeta {
     // elsif %meta<citation_journal_title>:exists { set( 'journal', %meta<citation_journal_title>.head) }
     // elsif %meta<citation_inbook_title>:exists { set( 'booktitle', %meta<citation_inbook_title>.head) }
     // elsif %meta<st.title>:exists { set( 'journal', %meta<st.title>.head) }
-    
+
     // 'rft_id' and 'doi' also contain doi information
     //   if %meta<citation_doi>:exists { set( 'doi', %meta<citation_doi>.head )}
     //   elsif %meta<st.discriminator>:exists { set( 'doi', %meta<st.discriminator>.head) }
     //   elsif %meta<dc.identifier>:exists and %meta<dc.identifier>.head ~~ /^ 'doi:' (.+) $/ { set( 'doi', $1) }
-    
+
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
     if (meta.getOrDefault("citation_isbn", listOf()).size == 1) {
@@ -143,27 +144,27 @@ object HtmlMeta {
     //   if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
     //     set( 'isbn', %meta<citation_isbn>.head);
     //   }
-    
+
     // 'rft_issn' also contains ISSN information
     //   if %meta<st.printissn>:exists and %meta<st.onlineissn>:exists {
     //     set( 'issn', %meta<st.printissn>.head ~ ' (Print) ' ~ %meta<st.onlineissn>.head ~ ' (Online)');
     //   } elsif %meta<citation_issn>:exists and 1 == %meta<citation_issn>.elems {
     //     set( 'issn', %meta<citation_issn>.head);
     //   }
-    
+
     set("language", getFirst("citation_language", "dc.language"))
-    
+
     // 'dc.description' also contains abstract information
     //   for (%meta<description>, %meta<Description>).flat -> Array:_[Str:D] $d {
     //     set( 'abstract', $d.head) if $d.defined and $d !~~ /^ [ '' $ | '****' | 'IEEE Xplore' | 'IEEE Computer Society' ] /;
     //   }
-    
+
     if (meta.containsKey("citation_author_institution")) {
       set("affiliation", meta.get("citation_author_institution")!!.joinToString(" and "))
     }
     //   set( 'affiliation', %meta<citation_author_institution>.join( ' and ' ))
     //     if %meta<citation_author_institution>:exists;
-    
+
     // Copy results from values to entry
     for ((k, v) in values) {
       if (fieldsMap.getOrDefault(k, entry.getFieldValue(k) == null)) {
@@ -176,22 +177,22 @@ object HtmlMeta {
     //     }
     //   }
     // }
-    
+
     // ### Other fields
-    // 
+    //
     // Some fields that we are not using but could include the following.
     // (The numbers in front are how many tests could use that field.)
-    // 
+    //
     // # Article
     //     12 citation_author_email (unused: author e-mail)
-    // 
+    //
     // # URL (unused)
     //      4 citation_fulltext_html_url (good: url)
     //      7 citation_public_url (unused: page url)
     //     10 citation_springer_api_url (broken: url broken key)
     //     64 citation_abstract_html_url (good: url may dup)
     //     69 citation_pdf_url (good: url may dup)
-    // 
+    //
     // # Misc (unused)
     //      7 citation_section
     //      7 issue_cover_image
@@ -204,7 +205,7 @@ object HtmlMeta {
     //     25 rft_place (always "Cambridge")
     //        citation_fulltext_world_readable (always "")
     //      9 article_references (unused: textual version of reference)
-    // 
+    //
     // ### Non-citation related
     //      7 hw.ad-path
     //      8 st.platformapikey (unused: API key)
@@ -228,20 +229,20 @@ object HtmlMeta {
     // page:string:Article/Chapter View;
     // subPage:string:Abstract;
     // wgroup:string:ACM Publication Websites;
-    // 
+    //
     // issue:issue:doi\:10.1145/800125;
-    // 
+    //
     // groupTopic:topic:acm-pubtype>proceeding;
     // topic:topic:conference-collections>stoc;
     // csubtype:string:Conference Proceedings;
-    // 
+    //
     // article:article:doi\:10.1145/800125.804056;
-    // 
+    //
     // website:website:dl-site;
     // ctype:string:Book Content;
     // journal:journal:acmconferences;
     // pageGroup:string:Publication Pages
-    // 
+    //
     // dc.Format -> text/HTML
     // dc.Language -> EN
     // dc.Coverage -> world
@@ -255,6 +256,5 @@ object HtmlMeta {
     // BE Press tags (e.g., bepress_citation_title)
     // PRISM tags (e.g., prism.title)
     //  Dublin Core tags (e.g., DC.title)
-
   }
 }

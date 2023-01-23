@@ -3,15 +3,11 @@ package org.michaeldadams.bibscrape
 import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.parameters.arguments.*
+import com.github.ajalt.clikt.parameters.groups.OptionGroup
+import com.github.ajalt.clikt.parameters.groups.provideDelegate
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
-import com.github.ajalt.clikt.parameters.groups.provideDelegate
-import com.github.ajalt.clikt.parameters.groups.OptionGroup
 import org.openqa.selenium.firefox.FirefoxDriver
-import org.michaeldadams.bibscrape.Scrape
-import java.io.File
-import java.io.FileReader
-import java.io.OutputStreamWriter
 import java.nio.file.Path
 
 @kotlin.time.ExperimentalTime

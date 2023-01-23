@@ -10,9 +10,10 @@ object Month {
     "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
 
   val months = (
-    listOf("sept" to "sep")
-    + macroNames.map { it to it }
-    + longNames zip macroNames).toMap()
+    listOf("sept" to "sep") +
+      macroNames.map { it to it } +
+      longNames zip macroNames
+    ).toMap()
 
   private fun wrap(bibtexFile: BibtexFile, macro: String?): BibtexMacroReference? {
     if (macro == null) {
