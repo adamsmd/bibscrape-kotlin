@@ -1,5 +1,45 @@
 // NOTE: Groups with comment headers are sorted alphabetically by group name (TODO)
 
+// name = "bibscrape"
+// version = "2023.01.17"
+// description = "Collect BibTeX information from publisher pages"
+// readme = "README.md"
+// # requires-python = ">=3.0"
+// license = { file = "LICENSE" }
+// #license = {text = "AGPLv3+"}
+// authors = [
+//   { name = "Michael D. Adams" },
+// ]
+// keywords = [ "BibTeX", "LaTeX" ]
+// classifiers = [
+//   "Development Status :: 5 - Production/Stable",
+//   "Environment :: Console",
+//   "Intended Audience :: Science/Research",
+//   "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+//   "Programming Language :: Python :: 3",
+//   "Operating System :: MacOS",
+//   "Operating System :: Microsoft :: Windows",
+//   "Operating System :: OS Independent",
+//   "Operating System :: POSIX",
+//   "Programming Language :: Python :: 3.10",
+//   "Topic :: Internet :: WWW/HTTP",
+//   "Topic :: Scientific/Engineering",
+//   "Topic :: Text Processing",
+//   "Topic :: Utilities",
+// ]
+
+// [project.urls]
+// "Homepage" = "https://github.com/pypa/sampleproject"
+// "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+// "Bug Reports" = "https://github.com/pypa/sampleproject/issues"
+// # documentation = "https://readthedocs.org"
+// # repository = "https://github.com"
+// # changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
+// # Download-URL
+// # Bug Tracker, http://bitbucket.org/tarek/distribute/issues/
+// "Source" = "https://github.com/pypa/sampleproject/"
+// #   "source-url" : "git://github.com/adamsmd/BibScrape.git"
+
 plugins {
   kotlin("jvm") // version determined by buildSrc/build.gradle.kts
   application

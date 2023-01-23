@@ -1,7 +1,76 @@
 # TODO Items
 
+virtualenv --clear .venv
+. .venv/bin/activate
+pip install -e .
+
+
+pyproject-build
+
+## Templates
+
+https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+# Best Practices: https://github.com/dmyersturnbull/tyrannosaurus
+
+# GitHub Actions
+# Plugins for Websites? https://packaging.python.org/en/latest/guides/creating-and-discovering-plugins/
+
+# Twine to Upload to PyPI
+# pipenv?
+
+
+## CI/CD
+
+[![Python package][ci-badge]][ci-url]
+[![readthedocs build status][docs-badge]][docs-url]
+[![pre-commit][pre-commit-badge]][pre-commit-url]
+[![CodeQL][codeql-badge]][codeql-url]
+[![License: MIT][mit-badge]][mit-url]
+[![PyPI version][pypi-badge]][pypi-url]
+[![Github pages][gh-pages-badge]][gh-pages-url]
+
+[ci-badge]: https://github.com/kagemeka/python-project-template/actions/workflows/python-package.yml/badge.svg
+[ci-url]: https://github.com/kagemeka/python-project-template/actions/workflows/python-package.yml
+[docs-badge]: https://readthedocs.org/projects/python-project-templates/badge/?version=latest
+[docs-url]: https://python-project-templates.readthedocs.io
+[pre-commit-badge]: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white
+[pre-commit-url]: https://github.com/pre-commit/pre-commit
+[codeql-badge]: https://github.com/kagemeka/python-project-template/actions/workflows/codeql-analysis.yml/badge.svg
+[codeql-url]: https://github.com/kagemeka/python-project-template/actions/workflows/codeql-analysis.yml
+[mit-badge]: https://img.shields.io/badge/License-MIT-blue.svg
+[mit-url]: https://opensource.org/licenses/MIT
+[pypi-badge]: https://badge.fury.io/py/python-project-templates.svg
+[pypi-url]: https://badge.fury.io/py/python-project-templates
+[gh-pages-badge]: https://github.com/kagemeka/python-project-template/actions/workflows/pages/pages-build-deployment/badge.svg
+[gh-pages-url]: https://kagemeka.github.io/python-project-template
+
+for detail about badges, see
+* [GitHub documentation](https://docs.github.com/en/actions/monitoring-and-troubleshooting-workflows/adding-a-workflow-status-badge)
+* [readthedocs build badges](https://docs.readthedocs.io/en/stable/badges.html)
+
+normalize:
+
+    A boolean flag indicating if the version string should be normalized. Defaults to True. Setting this to False is equivalent to setting version_cls to setuptools_scm.version.NonNormalizedVersion
+
+    docker-compose
+    pre-commit
+
+
+## libraries
+
+doi
+month names
+bibtex
+ris
+
 ########
 ## Unsorted
+
+readthedocs?
+contributing file
+
+Python Doc Strings
 
 Testing for Kotlin
 Testing to Clikt
