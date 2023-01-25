@@ -12,11 +12,26 @@ import java.time.Duration
 import kotlin.math.roundToLong
 import kotlin.text.toRegex
 
+/** Scrapes BibTeX data for the specified [domains]. */
+interface Scraper {
+  /** The domains implemented by this scraper. */
+  val domains: List<String>
+
+  /** Scrapes the given [domain] assuming [driver] is already pointing at the
+   * correct page.
+   *
+   * @param driver the driver to use for scraping.
+   * @return the BibTeX entry that was scraped.
+   */
+  fun scrape(driver: WebDriver): BibtexEntry
+}
+
+fun WebElement.getInnerHtml(): String = this.getDomProperty("innerHTML")
+fun WebDriver.executeScript(s: String, e: WebElement) = (this as JavascriptExecutor).executeScript(s, e)
+
 /** Scraping functions for BibTeX data from publisher websites, but without
  * making much effort to format them nicely. */
 object Scrape {
-  fun WebDriver.executeScript(s: String, e: WebElement) =
-    (this as JavascriptExecutor).executeScript(s, e)
 
   /** Scrapes an arbitrary URL. */
   fun dispatch(driver: WebDriver, url: String): BibtexEntry {
@@ -28,55 +43,56 @@ object Scrape {
     if (domainMatchResult == null) { throw Error("TODO") }
     val domain = domainMatchResult.groupValues.get(1)
 
-    /* ktlint-disable no-multi-spaces */
-    val domainMap = mapOf(
-      "acm.org"             to ::scrapeAcm,
-      "arxiv.org"           to ::scrapeArxiv,
-      "cambridge.org"       to ::scrapeCambridge,
-      "computer.org"        to ::scrapeIeeeComputer,
-      "ieeexplore.ieee.org" to ::scrapeIeeeExplore,
-      "iospress.com"        to ::scrapeIosPress,
-      "jstor.org"           to ::scrapeJstor,
-      "oup.com"             to ::scrapeOxford,
-      "sciencedirect.com"   to ::scrapeScienceDirect,
-      "elsevier.com"        to ::scrapeElsevier,
-      "link.springer.com"   to ::scrapeSpringer,
+    val scrapers = listOf(
+      ScrapeAcm,
+      ScrapeArxiv,
+      ScrapeCambridge,
+      ScrapeIeeeComputer,
+      ScrapeIeeeExplore,
+      ScrapeIosPress,
+      ScrapeJstor,
+      ScrapeOxford,
+      ScrapeScienceDirect,
+      ScrapeSpringer,
     )
-    /* ktlint-enable no-multi-spaces */
-
-    for ((dom, function) in domainMap) {
-      if ("\\b${Regex.escape(dom)}\$".toRegex().containsMatchIn(domain)) {
-        return function(driver)
+    for (scraper in scrapers) {
+      for (d in scraper.domains) {
+        if ("\\b${Regex.escape(d)}\$".toRegex().containsMatchIn(domain)) {
+          return scraper.scrape(driver)
+        }
       }
     }
 
     throw Error("Unsupported domain: $domain")
   }
 
-  @Suppress("ClassOrdering")
-  private const val millisPerSecond = 1_000
+}
 
-  fun <T> await(driver: WebDriver, timeout: Double = 30.0, block: () -> T): T {
-    val oldWait = driver.manage().timeouts().implicitWaitTimeout
-    driver.manage().timeouts().implicitlyWait(Duration.ofMillis((millisPerSecond * timeout).roundToLong()))
-    val result = block()
-    driver.manage().timeouts().implicitlyWait(oldWait)
-    return result
-  }
+@Suppress("ClassOrdering", "WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
+private const val MILLIS_PER_SECOND = 1_000
 
-  // fun <T> await(driver: WebDriver, block: () -> T?, timeout: Double = 30.0, sleep: Double = 0.5): T {
-  //   val start = Clock.System.now()
-  //   while (true) {
-  //     try {
-  //       val result = block()
-  //       if (result != null) { return result }
-  //     } catch (e: Exception) {}
-  //     if ((Clock.System.now() - start) > timeout.seconds) {
-  //       throw Error("Timeout while waiting for the browser")
-  //     }
-  //     Thread.sleep((sleep * 1000.0).roundToLong())
-  //   }
-  // }
+/** Extends the driver's wait time while running a given block. */
+fun <T> await(driver: WebDriver, timeout: Double = 30.0, block: () -> T): T {
+  val oldWait = driver.manage().timeouts().implicitWaitTimeout
+  driver.manage().timeouts().implicitlyWait(Duration.ofMillis((MILLIS_PER_SECOND * timeout).roundToLong()))
+  val result = block()
+  driver.manage().timeouts().implicitlyWait(oldWait)
+  return result
+}
+
+// fun <T> await(driver: WebDriver, block: () -> T?, timeout: Double = 30.0, sleep: Double = 0.5): T {
+//   val start = Clock.System.now()
+//   while (true) {
+//     try {
+//       val result = block()
+//       if (result != null) { return result }
+//     } catch (e: Exception) {}
+//     if ((Clock.System.now() - start) > timeout.seconds) {
+//       throw Error("Timeout while waiting for the browser")
+//     }
+//     Thread.sleep((sleep * 1000.0).roundToLong())
+//   }
+// }
 // sub await(&block --> Any:D) is export {
 //   my Rat:D constant $timeout = 30.0;
 //   my Rat:D constant $sleep = 0.5;
@@ -93,18 +109,19 @@ object Scrape {
 //   }
 // }
 
-  /** Parses a string into its constituent BibTeX entries. */
-  fun parseBibtex(s: String): List<BibtexEntry> {
-    val bibtexFile = BibtexFile()
-    val parser = BibtexParser(false)
-    parser.parse(bibtexFile, StringReader(s))
-    return bibtexFile.getEntries().filterIsInstance<BibtexEntry>()
-  }
+/** Parses a string into its constituent BibTeX entries. */
+fun parseBibtex(s: String): List<BibtexEntry> {
+  val bibtexFile = BibtexFile()
+  val parser = BibtexParser(false)
+  parser.parse(bibtexFile, StringReader(s))
+  return bibtexFile.getEntries().filterIsInstance<BibtexEntry>()
+}
 
-  private fun WebElement.getInnerHtml(): String = this.getDomProperty("innerHTML")
+/** Scrapes the ACM Digital Library. */
+object ScrapeAcm : Scraper {
+  override val domains = listOf("acm.org")
 
-  /** Scrapes the ACM Digital Library. */
-  fun scrapeAcm(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // driver.manage().timeouts().implicitlyWait(Duration.ofMillis((1000 * 30.0).roundToLong()))
     // TODO: prevent loops on ACM
     if ("Association for Computing Machinery" !=
@@ -114,7 +131,7 @@ object Scrape {
         .findElements(By.className("issue-item__doi"))
         .mapNotNull { it.getAttribute("href") }
       // TODO: filter to non-acm links
-      if (urls.size > 0) { return dispatch(driver, urls.first()) }
+      if (urls.size > 0) { return Scrape.dispatch(driver, urls.first()) }
       else { TODO("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher") }
     }
 
@@ -227,9 +244,13 @@ object Scrape {
 
     return entry
   }
+}
 
-  /** Scrapes ArXiV. */
-  fun scrapeArxiv(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
+/** Scrapes the arXiv repository. */
+object ScrapeArxiv : Scraper {
+  override val domains = listOf("arxiv.org")
+
+  override fun scrape(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
     // format_bibtex_arxiv in
     // https://github.com/mattbierbaum/arxiv-bib-overlay/blob/master/src/ui/CiteModal.tsx
     // Ensure we are at the "abstract" page
@@ -328,9 +349,13 @@ object Scrape {
     //   # <arxiv:doi> 	A url for the resolved DOI to an external resource if present.
     TODO()
   }
+}
 
-  /** Scrapes Cambrigdge Press. */
-  fun scrapeCambridge(driver: WebDriver): BibtexEntry {
+/** Scrapes Cambridge University Press. */
+object ScrapeCambridge : Scraper {
+  override val domains = listOf("cambridge.org")
+
+  override fun scrape(driver: WebDriver): BibtexEntry {
     val m = "^https?://www.cambridge.org/core/services/aop-cambridge-core/content/view/('S'\\d+)\$"
       .toRegex()
       .matchEntire(driver.currentUrl)
@@ -381,9 +406,13 @@ object Scrape {
 
     TODO()
   }
+}
 
-  /** Scrapes IEEE Computer. */
-  fun scrapeIeeeComputer(driver: WebDriver): BibtexEntry {
+/** Scrapes IEEE Computer. */
+object ScrapeIeeeComputer : Scraper {
+  override val domains = listOf("computer.org")
+
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
     await(driver) { driver.findElement(By.cssSelector(".article-action-toolbar button")) }.click()
     // await({ $web-driver.find_element_by_css_selector( '.article-action-toolbar button' ) }).click;
@@ -426,9 +455,13 @@ object Scrape {
 
     TODO()
   }
+}
 
-  /** Scrapes IEEE Explore. */
-  fun scrapeIeeeExplore(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
+/** Scrapes IEEE Explore. */
+object ScrapeIeeeExplore : Scraper {
+  override val domains = listOf("ieeexplore.ieee.org")
+
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
     await(driver) { driver.findElement(By.tagName("xpl-cite-this-modal")) }.click()
     // await({ $web-driver.find_element_by_tag_name( 'xpl-cite-this-modal' ) }).click;
@@ -448,7 +481,7 @@ object Scrape {
     // html-meta-bibtex($entry, $meta);
 
     // // HTML body text
-    val body = driver.findElement(By.tagName("body")).getInnerHtml()
+    // val body = driver.findElement(By.tagName("body")).getInnerHtml()
     // my Str:D $body = $web-driver.find_element_by_tag_name( 'body' ).get_property( 'innerHTML' );
 
     // // Keywords
@@ -506,9 +539,13 @@ object Scrape {
 
     TODO()
   }
+}
 
-  /** Scrapes IOS Press. */
-  fun scrapeIosPress(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
+/** Scrapes IOS Press. */
+object ScrapeIosPress : Scraper {
+  override val domains = listOf("iospress.com")
+
+  override fun scrape(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
     // // RIS
     // await({ $web-driver.find_element_by_class_name( 'p13n-cite' ) }).click;
     // await({ $web-driver.find_element_by_class_name( 'btn-clear' ) }).click;
@@ -540,9 +577,13 @@ object Scrape {
 
     TODO()
   }
+}
 
-  /** Scrape JStor. */
-  fun scrapeJstor(driver: WebDriver): BibtexEntry {
+/** Scrape JStor. */
+object ScrapeJstor : Scraper {
+  override val domains = listOf("jstor.org")
+
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // // Remove overlay
     val overlays = driver.findElements(By.className("reveal-overlay"))
     // my #`(Inline::Python::PythonObject:D) @overlays = $web-driver.find_elements_by_class_name( 'reveal-overlay' );
@@ -598,9 +639,13 @@ object Scrape {
 
     TODO()
   }
+}
 
-  /** Scrape Oxford Publishing. */
-  fun scrapeOxford(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
+/** Scrape Oxford University Publishing. */
+object ScrapeOxford : Scraper {
+  override val domains = listOf("oup.com")
+
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // say "WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.";
 
     // // BibTeX
@@ -646,9 +691,13 @@ object Scrape {
 
     TODO()
   }
+}
 
-  /** Scrape Science Direct. */
-  fun scrapeScienceDirect(driver: WebDriver): BibtexEntry {
+/** Scrape Science Direct. */
+object ScrapeScienceDirect : Scraper {
+  override val domains = listOf("sciencedirect.com", "elsevier.com")
+
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
     // await({
     //   $web-driver.find_element_by_id( 'export-citation' ).click;
@@ -687,12 +736,13 @@ object Scrape {
 
     TODO()
   }
+}
 
-  /** Scrape Elsevier. */
-  fun scrapeElsevier(driver: WebDriver): BibtexEntry = scrapeScienceDirect(driver)
+/** Scrape Springer. */
+object ScrapeSpringer : Scraper {
+  override val domains = listOf("link.springer.com")
 
-  /** Scrape Springer. */
-  fun scrapeSpringer(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
     // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new();
     // Use the BibTeX download if it is available
