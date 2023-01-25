@@ -29,54 +29,15 @@ interface Scraper {
 fun WebElement.getInnerHtml(): String = this.getDomProperty("innerHTML")
 fun WebDriver.executeScript(s: String, e: WebElement) = (this as JavascriptExecutor).executeScript(s, e)
 
-/** Scraping functions for BibTeX data from publisher websites, but without
- * making much effort to format them nicely. */
-object Scrape {
-
-  /** Scrapes an arbitrary URL. */
-  fun dispatch(driver: WebDriver, url: String): BibtexEntry {
-    val newUrl = """^doi:(https?://(dx\.)?doi.org/)?""".toRegex().replace(url, "https://doi.org/")
-    driver.get(newUrl)
-
-    val domainMatchResult = """^[^/]*//([^/]*)/""".toRegex().find(driver.currentUrl)
-
-    if (domainMatchResult == null) { throw Error("TODO") }
-    val domain = domainMatchResult.groupValues.get(1)
-
-    val scrapers = listOf(
-      ScrapeAcm,
-      ScrapeArxiv,
-      ScrapeCambridge,
-      ScrapeIeeeComputer,
-      ScrapeIeeeExplore,
-      ScrapeIosPress,
-      ScrapeJstor,
-      ScrapeOxford,
-      ScrapeScienceDirect,
-      ScrapeSpringer,
-    )
-    for (scraper in scrapers) {
-      for (d in scraper.domains) {
-        if ("\\b${Regex.escape(d)}\$".toRegex().containsMatchIn(domain)) {
-          return scraper.scrape(driver)
-        }
-      }
-    }
-
-    throw Error("Unsupported domain: $domain")
-  }
-
-}
-
 @Suppress("ClassOrdering", "WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
 private const val MILLIS_PER_SECOND = 1_000
 
 /** Extends the driver's wait time while running a given block. */
-fun <T> await(driver: WebDriver, timeout: Double = 30.0, block: () -> T): T {
-  val oldWait = driver.manage().timeouts().implicitWaitTimeout
-  driver.manage().timeouts().implicitlyWait(Duration.ofMillis((MILLIS_PER_SECOND * timeout).roundToLong()))
+fun <T> WebDriver.await(timeout: Double = 30.0, block: () -> T): T {
+  val oldWait = this.manage().timeouts().implicitWaitTimeout
+  this.manage().timeouts().implicitlyWait(Duration.ofMillis((MILLIS_PER_SECOND * timeout).roundToLong()))
   val result = block()
-  driver.manage().timeouts().implicitlyWait(oldWait)
+  this.manage().timeouts().implicitlyWait(oldWait)
   return result
 }
 
@@ -117,6 +78,43 @@ fun parseBibtex(s: String): List<BibtexEntry> {
   return bibtexFile.getEntries().filterIsInstance<BibtexEntry>()
 }
 
+/** Scraping functions for BibTeX data from publisher websites, but without
+ * making much effort to format them nicely. */
+object Scrape {
+  /** Scrapes an arbitrary URL. */
+  fun dispatch(driver: WebDriver, url: String): BibtexEntry {
+    val newUrl = """^doi:(https?://(dx\.)?doi.org/)?""".toRegex().replace(url, "https://doi.org/")
+    driver.get(newUrl)
+
+    val domainMatchResult = """^[^/]*//([^/]*)/""".toRegex().find(driver.currentUrl)
+
+    if (domainMatchResult == null) { throw Error("TODO") }
+    val domain = domainMatchResult.groupValues.get(1)
+
+    val scrapers = listOf(
+      ScrapeAcm,
+      ScrapeArxiv,
+      ScrapeCambridge,
+      ScrapeIeeeComputer,
+      ScrapeIeeeExplore,
+      ScrapeIosPress,
+      ScrapeJstor,
+      ScrapeOxford,
+      ScrapeScienceDirect,
+      ScrapeSpringer,
+    )
+    for (scraper in scrapers) {
+      for (d in scraper.domains) {
+        if ("\\b${Regex.escape(d)}\$".toRegex().containsMatchIn(domain)) {
+          return scraper.scrape(driver)
+        }
+      }
+    }
+
+    throw Error("Unsupported domain: $domain")
+  }
+}
+
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : Scraper {
   override val domains = listOf("acm.org")
@@ -138,7 +136,7 @@ object ScrapeAcm : Scraper {
     // // BibTeX
     driver.findElement(By.cssSelector("""a[data-title="Export Citation"]""")).click()
     val entries: List<BibtexEntry> =
-      await(driver) { driver.findElements(By.cssSelector("#exportCitation .csl-right-inline")) }
+      driver.await { driver.findElements(By.cssSelector("#exportCitation .csl-right-inline")) }
         .flatMap { parseBibtex(it.text) }
         // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering
         // non-journal over journal
@@ -372,9 +370,9 @@ object ScrapeCambridge : Scraper {
     val meta = HtmlMeta.parse(driver)
 
     // // BibTeX
-    await(driver) { driver.findElement(By.className("export-citation-product")) }.click()
+    driver.await { driver.findElement(By.className("export-citation-product")) }.click()
     // await({ $web-driver.find_element_by_class_name( 'export-citation-product' ) }).click;
-    await(driver) { driver.findElement(By.cssSelector("[data-export-type=\"bibtex\"]")) }.click()
+    driver.await { driver.findElement(By.cssSelector("[data-export-type=\"bibtex\"]")) }.click()
     // await({ $web-driver.find_element_by_css_selector( '[data-export-type="bibtex"]' ) }).click;
     // val entry = parseBibtex(driver.readDownloads()).first()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
@@ -414,16 +412,16 @@ object ScrapeIeeeComputer : Scraper {
 
   override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
-    await(driver) { driver.findElement(By.cssSelector(".article-action-toolbar button")) }.click()
+    driver.await { driver.findElement(By.cssSelector(".article-action-toolbar button")) }.click()
     // await({ $web-driver.find_element_by_css_selector( '.article-action-toolbar button' ) }).click;
-    val bibtexLink = await(driver) { driver.findElement(By.linkText("BibTex")) }
+    val bibtexLink = driver.await { driver.findElement(By.linkText("BibTex")) }
     // my #`(Inline::Python::PythonObject:D) $bibtex-link =
     //           await({ $web-driver.find_element_by_link_text( 'BibTex' ) });
     driver.executeScript("arguments[0].removeAttribute(\"target\")", bibtexLink)
     // $web-driver.execute_script( 'arguments[0].removeAttribute("target")', $bibtex-link);
     driver.findElement(By.linkText("BibTex")).click()
     // $web-driver.find_element_by_link_text( 'BibTex' ).click;
-    var bibtexText = await(driver) { driver.findElement(By.tagName("pre")) }.getInnerHtml()
+    var bibtexText = driver.await { driver.findElement(By.tagName("pre")) }.getInnerHtml()
     // my Str:D $bibtex-text = await({ $web-driver.find_element_by_tag_name( 'pre' ) }).get_property( 'innerHTML' );
     // $bibtex-text ~~ s/ "\{," /\{key,/;
     // $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
@@ -463,13 +461,13 @@ object ScrapeIeeeExplore : Scraper {
 
   override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
-    await(driver) { driver.findElement(By.tagName("xpl-cite-this-modal")) }.click()
+    driver.await { driver.findElement(By.tagName("xpl-cite-this-modal")) }.click()
     // await({ $web-driver.find_element_by_tag_name( 'xpl-cite-this-modal' ) }).click;
-    await(driver) { driver.findElement(By.cssSelector("BibTeX")) }.click()
+    driver.await { driver.findElement(By.cssSelector("BibTeX")) }.click()
     // await({ $web-driver.find_element_by_link_text( 'BibTeX' ) }).click;
-    await(driver) { driver.findElement(By.cssSelector(".enable-abstract input")) }.click()
+    driver.await { driver.findElement(By.cssSelector(".enable-abstract input")) }.click()
     // await({ $web-driver.find_element_by_css_selector( '.enable-abstract input' ) }).click;
-    val text = await(driver) { driver.findElement(By.className("ris-text")) }.getInnerHtml()
+    val text = driver.await { driver.findElement(By.className("ris-text")) }.getInnerHtml()
     // my Str:D $text = await({ $web-driver.find_element_by_class_name( 'ris-text' ) }).get_property( 'innerHTML' );
     val entry = parseBibtex(text).first()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($text).items.head;
@@ -649,9 +647,9 @@ object ScrapeOxford : Scraper {
     // say "WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.";
 
     // // BibTeX
-    await(driver) { driver.findElement(By.className("js-cite-button")) }.click()
+    driver.await { driver.findElement(By.className("js-cite-button")) }.click()
     // await({ $web-driver.find_element_by_class_name( 'js-cite-button' ) }).click;
-    val selectElement = await(driver) { driver.findElement(By.id("selectFormat")) }
+    val selectElement = driver.await { driver.findElement(By.id("selectFormat")) }
     // my #`(Inline::Python::PythonObject:D) $select-element =
     //     await({ $web-driver.find_element_by_id( 'selectFormat' ) });
     // my #`(Inline::Python::PythonObject:D) $select = $web-driver.select($select-element);
