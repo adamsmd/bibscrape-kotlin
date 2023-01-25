@@ -1,10 +1,13 @@
 package org.michaeldadams.bibscrape
 
+import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexMacroReference
+import bibtex.parser.BibtexParser
+import java.io.StringReader
 
-/** Month handling functions for BibTeX. */
-object Month {
+/** BibTeX utility functions. */
+object Bibtex {
   private val longNames =
     "january february march april may june july august september october november december".split(" ")
   private val macroNames =
@@ -15,6 +18,18 @@ object Month {
       macroNames.map { it to it } +
       longNames zip macroNames
     ).toMap()
+
+  /** Parses a [string] into its constituent BibTeX entries.
+   *
+   * @param string the string to parse
+   * @return the entries that were succesfully parsed
+   */
+  fun parse(string: String): List<BibtexEntry> {
+    val bibtexFile = BibtexFile()
+    val parser = BibtexParser(false) // false => don't throw parse exceptions
+    parser.parse(bibtexFile, StringReader(string))
+    return bibtexFile.getEntries().filterIsInstance<BibtexEntry>()
+  }
 
   private fun wrap(bibtexFile: BibtexFile, macro: String?): BibtexMacroReference? {
     if (macro == null) {
