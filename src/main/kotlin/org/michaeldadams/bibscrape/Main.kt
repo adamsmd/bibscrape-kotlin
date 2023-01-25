@@ -183,8 +183,6 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
   ).default("-")
 
   // TODO: verbose flag
-  // TODO: version flag?
-  // TODO: help flag includes '-?' and '-h'?
 
   private fun mediaHelpString(name: String): String = """
     Whether to use print or online ${name}s.
@@ -394,6 +392,7 @@ class Main : CliktCommand(
     context { helpFormatter = CliktHelpFormatter(showDefaultValues = true) }
     versionOption(BuildInformation.version)
     completionOption(help = "Generate an autocomplete script for the given shell")
+    // TODO: -? => help
   }
 
   // TODO: allow argument in option groups
