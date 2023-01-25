@@ -20,7 +20,7 @@ object Scrape {
     val domainMatchResult = """^[^/]*//([^/]*)/""".toRegex().find(driver.currentUrl)
 
     if (domainMatchResult == null) { throw Error("TODO") }
-    val domain = domainMatchResult.groupValues.get(1)
+    val domain = domainMatchResult.groupValues[1]
 
     val scrapers = listOf(
       ScrapeAcm,

@@ -14,7 +14,7 @@ object ScrapeAcm : Scraper {
     // driver.manage().timeouts().implicitlyWait(Duration.ofMillis((1000 * 30.0).roundToLong()))
     // TODO: prevent loops on ACM
     if ("Association for Computing Machinery" !=
-      driver.findElement(By.className("publisher__name")).getInnerHtml()
+      driver.findElement(By.className("publisher__name")).innerHtml
     ) {
       val urls = driver
         .findElements(By.className("issue-item__doi"))
@@ -42,9 +42,9 @@ object ScrapeAcm : Scraper {
     val abstract = driver
       .findElements(By.cssSelector(".abstractSection.abstractInFull"))
       .last()
-      .getInnerHtml()
+      .innerHtml
     if (abstract != "<p>No abstract available.</p>") {
-      entry.setField("abstract", entry.getOwnerFile().makeString(abstract))
+      entry.setField("abstract", entry.ownerFile.makeString(abstract))
     }
 
     // // Author
@@ -52,11 +52,11 @@ object ScrapeAcm : Scraper {
       .findElements(By.cssSelector(".citation .author-name"))
       .map { it.getAttribute("title") }
       .joinToString(" and ")
-    entry.setField("author", entry.getOwnerFile().makeString(author))
+    entry.setField("author", entry.ownerFile.makeString(author))
 
     // // Title
-    val title = driver.findElement(By.cssSelector(".citation__title")).getInnerHtml()
-    entry.setField("title", entry.getOwnerFile().makeString(title))
+    val title = driver.findElement(By.cssSelector(".citation__title")).innerHtml
+    entry.setField("title", entry.ownerFile.makeString(title))
 
     // // Month
     //
@@ -64,36 +64,36 @@ object ScrapeAcm : Scraper {
     // This is a best effort at picking the right month among these inconsistent results.
     if (entry.getFieldValue("issue_date") != null) {
       val month = entry.getFieldValue("issue_date").toString().split("\\s+").first()
-      if (Bibtex.str2month(entry.getOwnerFile(), month) != null) {
-        entry.setField("month", entry.getOwnerFile().makeString(month))
+      if (Bibtex.str2month(entry.ownerFile, month) != null) {
+        entry.setField("month", entry.ownerFile.makeString(month))
       }
     } else if (entry.getFieldValue("month") != null) {
       val month = driver
         .findElement(By.cssSelector(".book-meta + .cover-date"))
-        .getInnerHtml()
+        .innerHtml
         .split("\\s+")
         .first()
-      entry.setField("month", entry.getOwnerFile().makeString(month))
+      entry.setField("month", entry.ownerFile.makeString(month))
     }
 
     // // Keywords
     val keywords = driver
       .findElements(By.cssSelector(".tags-widget__content a"))
-      .map { it.getInnerHtml() }
+      .map { it.innerHtml }
       // ACM is inconsistent about the order in which these are returned.
       // We sort them so that we are deterministic.
       .sorted()
     if (keywords.size > 0) {
-      entry.setField("keywords", entry.getOwnerFile().makeString(keywords.joinToString("; ")))
+      entry.setField("keywords", entry.ownerFile.makeString(keywords.joinToString("; ")))
     }
 
     // // Journal
-    if (entry.getEntryType() == "article") {
+    if (entry.entryType == "article") {
       val journal = driver
         .findElements(By.cssSelector("meta[name=\"citation_journal_title\"]"))
         .map { it.getAttribute("content") }
       if (journal.size > 0) {
-        entry.setField("journal", entry.getOwnerFile().makeString(journal.first()))
+        entry.setField("journal", entry.ownerFile.makeString(journal.first()))
       }
     }
 
@@ -102,7 +102,7 @@ object ScrapeAcm : Scraper {
         .findElements(By.className("cover-image__details"))
         .sortedBy({ it.findElements(By.className("journal-meta")).size > 0 })
     if (issns.size > 0) {
-      val issn = issns.first().getInnerHtml()
+      val issn = issns.first().innerHtml
       val pissn =
         """<span class="bold">ISSN:</span><span class="space">(.*?)</span>"""
           .toRegex()
@@ -114,8 +114,8 @@ object ScrapeAcm : Scraper {
       if (pissn != null && eissn != null) {
         entry.setField(
           "issn",
-          entry.getOwnerFile().makeString(
-            "${pissn.groupValues.get(1)} (Print) ${eissn.groupValues.get(1)} (Online)"
+          entry.ownerFile.makeString(
+            "${pissn.groupValues[1]} (Print) ${eissn.groupValues[1]} (Online)"
           )
         )
       }
@@ -128,7 +128,7 @@ object ScrapeAcm : Scraper {
     ) {
       val articleno = entry.getFieldValue("articleno").toString()
       val numpages = entry.getFieldValue("numpages").toString()
-      entry.setField("pages", entry.getOwnerFile().makeString("$articleno:1--$articleno:$numpages"))
+      entry.setField("pages", entry.ownerFile.makeString("$articleno:1--$articleno:$numpages"))
     }
 
     return entry
@@ -139,16 +139,22 @@ object ScrapeAcm : Scraper {
 object ScrapeArxiv : Scraper {
   override val domains = listOf("arxiv.org")
 
-  override fun scrape(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // format_bibtex_arxiv in
     // https://github.com/mattbierbaum/arxiv-bib-overlay/blob/master/src/ui/CiteModal.tsx
     // Ensure we are at the "abstract" page
+    val urlRegex = "://arxiv.org/([^/]+)/(.*)$".toRegex()
+    val urlMatch = urlRegex.find(driver.currentUrl)!!
+    if (urlMatch.groupValues[1] != "abs") {
+      driver.get("https://arxiv.org/abs/${urlMatch.groupValues[2]}")
+    }
     // $web-driver%<current_url> ~~ / '://arxiv.org/' (<-[/]>+) '/' (.*) $/;
     // if $0 ne 'abs' {
     //   $web-driver.get("https://arxiv.org/abs/$1");
     // }
 
     // Id
+    val id = urlRegex.find(driver.currentUrl)!!.groupValues[1]
     // $web-driver%<current_url> ~~ / '://arxiv.org/' (<-[/]>+) '/' (.*) $/;
     // my Str:D $id = $1.Str;
 
@@ -249,7 +255,7 @@ object ScrapeCambridge : Scraper {
       .toRegex()
       .matchEntire(driver.currentUrl)
     if (m != null) {
-      driver.get("https://doi.org/10.1017/${m.groups[1]}")
+      driver.get("https://doi.org/10.1017/${m.groupValues[1]}")
     }
 
     // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box
@@ -300,7 +306,7 @@ object ScrapeIeeeComputer : Scraper {
     val bibtexLink = driver.awaitFindElement(By.linkText("BibTex"))
     driver.executeScript("arguments[0].removeAttribute(\"target\")", bibtexLink)
     driver.findElement(By.linkText("BibTex")).click()
-    var bibtexText = driver.awaitFindElement(By.tagName("pre")).getInnerHtml()
+    var bibtexText = driver.awaitFindElement(By.tagName("pre")).innerHtml
     // $bibtex-text ~~ s/ "\{," /\{key,/;
     // $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
     val entry = Bibtex.parse(bibtexText).first()
@@ -339,7 +345,7 @@ object ScrapeIeeeExplore : Scraper {
     driver.awaitFindElement(By.tagName("xpl-cite-this-modal")).click()
     driver.awaitFindElement(By.linkText("BibTeX")).click()
     driver.awaitFindElement(By.cssSelector(".enable-abstract input")).click()
-    val text = driver.awaitFindElement(By.className("ris-text")).getInnerHtml()
+    val text = driver.awaitFindElement(By.className("ris-text")).innerHtml
     val entry = Bibtex.parse(text).first()
 
     // // HTML Meta
@@ -347,7 +353,7 @@ object ScrapeIeeeExplore : Scraper {
     HtmlMeta.bibtex(entry, meta)
 
     // // HTML body text
-    val body = driver.findElement(By.tagName("body")).getInnerHtml()
+    val body = driver.findElement(By.tagName("body")).innerHtml
 
     // // Keywords
     // my Str:D $keywords = $entry.fields<keywords>.simple-str;
@@ -414,11 +420,13 @@ object ScrapeIosPress : Scraper {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
     // await({ $web-driver.find_element_by_class_name( 'p13n-cite' ) }).click;
+    driver.awaitFindElement(By.className("btn-clear")).click()
     // await({ $web-driver.find_element_by_class_name( 'btn-clear' ) }).click;
     // my BibScrape::Ris::Ris:D $ris = ris-parse($web-driver.read-downloads());
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-of-ris($ris);
 
     // // HTML Meta
+    val meta = HtmlMeta.parse(driver)
     // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     // html-meta-bibtex($entry, $meta);
 
@@ -452,9 +460,7 @@ object ScrapeJstor : Scraper {
   override fun scrape(driver: WebDriver): BibtexEntry {
     // // Remove overlay
     val overlays = driver.findElements(By.className("reveal-overlay"))
-    // my #`(Inline::Python::PythonObject:D) @overlays = $web-driver.find_elements_by_class_name( 'reveal-overlay' );
     overlays.forEach { driver.executeScript("arguments[0].removeAttribute(\"style\")", it) }
-    // @overlays.map({ $web-driver.execute_script( 'arguments[0].removeAttribute("style")', $_) });
 
     // // BibTeX
     // Note that on-campus is different than off-campus
@@ -512,14 +518,11 @@ object ScrapeOxford : Scraper {
   override val domains = listOf("oup.com")
 
   override fun scrape(driver: WebDriver): BibtexEntry {
-    // say "WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.";
+    // TODO: say "WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.";
 
     // // BibTeX
     driver.awaitFindElement(By.className("js-cite-button")).click()
-    // await({ $web-driver.find_element_by_class_name( 'js-cite-button' ) }).click;
     val selectElement = driver.awaitFindElement(By.id("selectFormat"))
-    // my #`(Inline::Python::PythonObject:D) $select-element =
-    //     await({ $web-driver.find_element_by_id( 'selectFormat' ) });
     // my #`(Inline::Python::PythonObject:D) $select = $web-driver.select($select-element);
     // await({
     //   $select.select_by_visible_text( '.bibtex (BibTex)' );
@@ -533,17 +536,14 @@ object ScrapeOxford : Scraper {
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     // html-meta-bibtex($entry, $meta, :month, :year);
 
     // // Title
-    val title = driver.findElement(By.className("article-title-main")).getInnerHtml()
-    // my Str:D $title = $web-driver.find_element_by_class_name( 'article-title-main' ).get_property( 'innerHTML' );
+    val title = driver.findElement(By.className("article-title-main")).innerHtml
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Abstract
-    val abstract = driver.findElement(By.className("abstract")).getInnerHtml()
-    // my Str:D $abstract = $web-driver.find_element_by_class_name( 'abstract' ).get_property( 'innerHTML' );
+    val abstract = driver.findElement(By.className("abstract")).innerHtml
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
 
     // // ISSN
@@ -565,6 +565,10 @@ object ScrapeScienceDirect : Scraper {
 
   override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
+    driver.await {
+      it.findElement(By.id("export-citation")).click()
+      it.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
+    }
     // await({
     //   $web-driver.find_element_by_id( 'export-citation' ).click;
     //   $web-driver.find_element_by_css_selector( 'button[aria-label="bibtex"]' ).click;
@@ -574,12 +578,10 @@ object ScrapeScienceDirect : Scraper {
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     // html-meta-bibtex($entry, $meta, :number);
 
     // // Title
-    val title = driver.findElement(By.className("title-text")).getInnerHtml()
-    // my Str:D $title = $web-driver.find_element_by_class_name( 'title-text' ).get_property( 'innerHTML' );
+    val title = driver.findElement(By.className("title-text")).innerHtml
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Keywords
@@ -626,7 +628,6 @@ object ScrapeSpringer : Scraper {
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     // $entry.type = html-meta-type($meta);
     // html-meta-bibtex($entry, $meta, :publisher);
 

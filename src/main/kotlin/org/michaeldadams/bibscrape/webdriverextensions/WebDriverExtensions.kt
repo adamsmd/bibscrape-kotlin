@@ -8,11 +8,9 @@ import org.openqa.selenium.WebElement
 import java.time.Duration
 import kotlin.math.roundToLong
 
-/** Gets the `innerHTML` property of a [WebElement].
- *
- * @return the value of the `innerHTML` property
- */
-fun WebElement.getInnerHtml(): String = this.getDomProperty("innerHTML")
+/** The `innerHTML` property of a [WebElement]. */
+val WebElement.innerHtml: String
+  get() = this.getDomProperty("innerHTML")
 
 /** Executes a given [script].
  *

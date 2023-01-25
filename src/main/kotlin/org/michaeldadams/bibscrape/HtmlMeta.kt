@@ -35,7 +35,7 @@ object HtmlMeta {
     val values: MutableMap<String, String> = mutableMapOf()
     val fieldsMap = fields.toMap()
     fun getFirst(vararg fields: String): String? =
-      fields.flatMap { meta.getOrDefault(it, listOf()) }.firstOrNull()
+      fields.flatMap { meta.getOrDefault(it, emptyList()) }.firstOrNull()
 
     fun set(field: String, value: String?) {
       if (value != null) { values.set(field, value) }
@@ -84,7 +84,7 @@ object HtmlMeta {
       set(
         "keywords",
         meta
-          .getOrDefault("citation_keywords", listOf())
+          .getOrDefault("citation_keywords", emptyList())
           .map {
             """^\s*;*""".toRegex().replace(
               """;*\s*$""".toRegex().replace(
@@ -150,7 +150,7 @@ object HtmlMeta {
 
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
-    if (meta.getOrDefault("citation_isbn", listOf()).size == 1) {
+    if (meta.getOrDefault("citation_isbn", emptyList()).size == 1) {
       set("isbn", getFirst("citation_isbn"))
     }
     //   if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
@@ -181,7 +181,7 @@ object HtmlMeta {
     // Copy results from values to entry
     for ((k, v) in values) {
       if (fieldsMap.getOrDefault(k, entry.getFieldValue(k) == null)) {
-        entry.setField(k, entry.getOwnerFile().makeString(v)) // TODO: BibtexPersonList
+        entry.setField(k, entry.ownerFile.makeString(v)) // TODO: BibtexPersonList
       }
     }
     //   for %values.kv -> Str:D $key, BibScrape::BibTeX::Value:D $value {

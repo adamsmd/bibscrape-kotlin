@@ -28,7 +28,7 @@ object Bibtex {
     val bibtexFile = BibtexFile()
     val parser = BibtexParser(false) // false => don't throw parse exceptions
     parser.parse(bibtexFile, StringReader(string))
-    return bibtexFile.getEntries().filterIsInstance<BibtexEntry>()
+    return bibtexFile.entries.filterIsInstance<BibtexEntry>()
   }
 
   private fun wrap(bibtexFile: BibtexFile, macro: String?): BibtexMacroReference? {
@@ -52,7 +52,7 @@ object Bibtex {
    * @return a [BibtexMacroReference] for the given month or [null] if parsing failed
    */
   fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
-    val month: String? = months.get(string.lowercase())
+    val month: String? = months[string.lowercase()]
     if (month == null) {
       return null
     } else {

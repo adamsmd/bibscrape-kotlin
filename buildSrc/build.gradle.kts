@@ -25,7 +25,7 @@ ktlint {
   verbose.set(true)
   ignoreFailures.set(true)
   enableExperimentalRules.set(true)
-  disabledRules.set(setOf())
+  disabledRules.set(emptySet())
 }
 
 // // https://github.com/analysis-dev/diktat/blob/master/diktat-gradle-plugin/src/main/kotlin/org/cqfn/diktat/plugin/gradle/DiktatExtension.kt
