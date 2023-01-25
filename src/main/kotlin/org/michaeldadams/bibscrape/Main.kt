@@ -15,18 +15,18 @@ import java.nio.file.Path
 /** Runs the main entry point of the application. */
 fun main(args: Array<String>) { Main().main(args) }
 
+// The following enum values are lower case because their names are used by the CLI
 /** What type of ISBN or ISSN media type to prefer. */
-@Suppress("EnumNaming")
+@Suppress("EnumNaming", "ENUM_VALUE")
 enum class MediaType { print, online, both } // ktlint-disable experimental:enum-entry-name-case
 
 /** What type of ISBN to prefer. */
-@Suppress("EnumNaming")
+@Suppress("EnumNaming", "ENUM_VALUE")
 enum class IsbnType { isbn13, isbn10, preserve } // ktlint-disable experimental:enum-entry-name-case
 
 /** Option group controlling configuration inputs. */
-@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class Inputs : OptionGroup(name = "INPUTS") {
-
   val key: List<List<String>> by option(
     "-k",
     "--key",
@@ -94,9 +94,8 @@ class Inputs : OptionGroup(name = "INPUTS") {
 }
 
 /** Option group controlling what major modes of work is actually done. */
-@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class OperatingModes : OptionGroup(name = "OPERATING MODES") {
-
   val init: Boolean by option(
     help = """
       Create default names and nouns files in the user-configuration directory.
@@ -127,7 +126,7 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
 }
 
 /** Option group controlling miscellaneous general settings. */
-@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
   val window: Boolean by option(
     "-w",
@@ -138,7 +137,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).flag("--no-window")
 
-  @Suppress("MagicNumber")
+  @Suppress("MagicNumber", "MAGIC_NUMBER")
   val timeout: Double by option(
     "-t",
     "--timeout",
@@ -182,15 +181,9 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).default("-")
 
-// # Haven't found any use for this yet, but leaving it here in case we ever do
-// #  Bool:D :v(:$verbose) = False,
-// ##={Print verbose output.}
-
-// Bool:D :V(:$version) = False,
-// #={Print version information.}
-
-// Bool:D :h(:$help) = False,
-// #={Print this usage message.}
+  // TODO: verbose flag
+  // TODO: version flag?
+  // TODO: help flag includes '-?' and '-h'?
 
   private fun mediaHelpString(name: String): String = """
     Whether to use print or online ${name}s.
@@ -206,38 +199,37 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
 }
 
 /** Option group controlling BibTeX fields. */
-@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
+  // Str:D :f(:@field) = Array[Str:D](<
+  //   key author editor affiliation title
+  //   howpublished booktitle journal volume number series
+  //   type school institution location conference_date
+  //   chapter pages articleno numpages
+  //   edition day month year issue_date
+  //   organization publisher address
+  //   language isbn issn doi url eprint archiveprefix primaryclass
+  //   bib_scrape_url
+  //   note annote keywords abstract>)
+  //   but Sep[','],
+  // #={The order that fields should placed in the output.}
 
-// Str:D :f(:@field) = Array[Str:D](<
-//   key author editor affiliation title
-//   howpublished booktitle journal volume number series
-//   type school institution location conference_date
-//   chapter pages articleno numpages
-//   edition day month year issue_date
-//   organization publisher address
-//   language isbn issn doi url eprint archiveprefix primaryclass
-//   bib_scrape_url
-//   note annote keywords abstract>)
-//   but Sep[','],
-// #={The order that fields should placed in the output.}
+  // Str:D :@no-encode = Array[Str:D](<doi url eprint bib_scrape_url>) but Sep[','],
+  // #={Fields that should not be LaTeX encoded.}
 
-// Str:D :@no-encode = Array[Str:D](<doi url eprint bib_scrape_url>) but Sep[','],
-// #={Fields that should not be LaTeX encoded.}
+  // Str:D :@no-collapse = Array[Str:D](< >) but Sep[','],
+  // #={Fields that should not have multiple successive whitespaces collapsed into a
+  // single whitespace.}
 
-// Str:D :@no-collapse = Array[Str:D](< >) but Sep[','],
-// #={Fields that should not have multiple successive whitespaces collapsed into a
-// single whitespace.}
+  // Str:D :o(:@omit) = Array[Str:D](< >) but Sep[','],
+  // #={Fields that should be omitted from the output.}
 
-// Str:D :o(:@omit) = Array[Str:D](< >) but Sep[','],
-// #={Fields that should be omitted from the output.}
-
-// Str:D :@omit-empty = Array[Str:D](<abstract issn doi keywords>) but Sep[','],
-// #={Fields that should be omitted from the output if they are empty.}
+  // Str:D :@omit-empty = Array[Str:D](<abstract issn doi keywords>) but Sep[','],
+  // #={Fields that should be omitted from the output if they are empty.}
 }
 
 /** The main application. */
-@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class Main : CliktCommand(
   name = "bibscrape",
   printHelpOnEmptyArgs = true,
@@ -396,7 +388,6 @@ class Main : CliktCommand(
     Matching is case insensitive.
     """
 ) {
-
   init {
     // TODO: Better placement of the default in the help text
     context { helpFormatter = CliktHelpFormatter(showDefaultValues = true) }
@@ -422,6 +413,7 @@ class Main : CliktCommand(
       """
   ).multiple()
 
+  // Option groups
   val inputs by Inputs()
   val operatingModes by OperatingModes()
   val generalOptions by GeneralOptions()

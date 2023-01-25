@@ -10,8 +10,8 @@ object Month {
   private val macroNames =
     "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
 
-  private val months = (
-    listOf("sept" to "sep") +
+  private val months =
+    (listOf("sept" to "sep") +
       macroNames.map { it to it } +
       longNames zip macroNames
     ).toMap()
@@ -24,11 +24,11 @@ object Month {
     }
   }
 
-// sub num2month(Str:D $num --> BibScrape::BibTeX::Piece:D) is export {
-//   $num ~~ m/^ \d+ $/
-//     ?? wrap(@macro-names[$num-1])
-//     !! die "Invalid month number: $num"
-// }
+  // sub num2month(Str:D $num --> BibScrape::BibTeX::Piece:D) is export {
+  //   $num ~~ m/^ \d+ $/
+  //     ?? wrap(@macro-names[$num-1])
+  //     !! die "Invalid month number: $num"
+  // }
 
   /** Converts a string containing a month to the BibTeX macro for that month if it exists. */
   fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
