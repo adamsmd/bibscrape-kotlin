@@ -16,6 +16,8 @@ ris
 ########
 ## Unsorted
 
+Pre-commit hook: gradle build
+
 readthedocs?
 contributing file
 

@@ -63,7 +63,7 @@ plugins {
   // Documentation
   id("org.jetbrains.dokka") version "1.7.20" // Tasks: dokka{Gfm,Html,Javadoc,Jekyll}
 
-  // Typesafe config (TODO)
+  // TODO: Typesafe config
 }
 
 repositories {
@@ -79,9 +79,6 @@ dependencies {
 
   // Command-line argument parsing
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
-
-  // Date and Time Manipulation
-  implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
   // ISBN
   implementation("com.github.ladutsko:isbn-core:1.1.0")
@@ -120,12 +117,15 @@ tasks.withType<Test> {
 // ////////////////////////////////////////////////////////////////
 // Version Information
 // Create a new version with: git tag -a v2023.01.01
+
+// Print the version
 task("version") {
   doLast {
     println(project.version)
   }
 }
 
+// Set the version based on Git tags
 org.eclipse.jgit.api.Git.open(project.rootDir).use { git ->
   val describe = git.describe().apply { setMatch("v*") }.call()
   val isClean = git.status().call().isClean
@@ -135,6 +135,7 @@ org.eclipse.jgit.api.Git.open(project.rootDir).use { git ->
       .plus(if (isClean) { "" } else { "-dirty" })
 }
 
+// Helper function for generating code
 fun generateSrc(fileName: String, code: String) {
   val generatedSrcDir = File(buildDir, "generated/main/kotlin")
   generatedSrcDir.mkdirs()
@@ -143,6 +144,7 @@ fun generateSrc(fileName: String, code: String) {
   file.writeText(code)
 }
 
+// Generate BuildInformation class containing the version
 val generateBuildInfo by tasks.registering {
   doLast {
     // TODO: avoid running when unchanged
@@ -160,6 +162,14 @@ val generateBuildInfo by tasks.registering {
 
     generateSrc("BuildInformation.kt", code)
   }
+}
+
+// Make compilation dependant on code generation
+
+// For why we have to fully qualify KotlinCompile see:
+// https://stackoverflow.com/questions/55456176/unresolved-reference-compilekotlin-in-build-gradle-kts
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+  dependsOn(generateBuildInfo)
 }
 
 // ////////////////////////////////////////////////////////////////
@@ -181,12 +191,6 @@ ktlint {
   verbose.set(true)
   ignoreFailures.set(true)
   enableExperimentalRules.set(true)
-//   disabledRules.set(
-//     setOf(
-//       "experimental:argument-list-wrapping",
-//       "no-wildcard-imports",
-//     )
-//   )
 }
 
 // ////////////////////////////////////////////////////////////////
@@ -209,6 +213,4 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
   // 'compileKotlin' task (current target is 1.8) jvm target compatibility should
   // be set to the same Java version.
   kotlinOptions { jvmTarget = project.java.targetCompatibility.toString() }
-
-  dependsOn(generateBuildInfo)
 }

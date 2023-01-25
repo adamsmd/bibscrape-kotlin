@@ -30,7 +30,12 @@ object Month {
   //     !! die "Invalid month number: $num"
   // }
 
-  /** Converts a string containing a month to the BibTeX macro for that month if it exists. */
+  /** Converts a string containing a month to the BibTeX macro for that month if it exists.
+   *
+   * @param bibtexFile the [BibTexFile] to use as the factory for the [BibtexMacroReference]
+   * @param string the [String] to parse as a month name
+   * @return a [BibtexMacroReference] for the given month or [null] if parsing failed
+   */
   fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
     val month: String? = months.get(string.lowercase())
     if (month == null) {

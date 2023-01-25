@@ -12,6 +12,48 @@ import java.time.Duration
 import kotlin.math.roundToLong
 import kotlin.text.toRegex
 
+/** Scraping functions for BibTeX data from publisher websites, but without
+ * making an effort to format them nicely. */
+object Scrape {
+  /** Scrapes an arbitrary URL.
+   *
+   * @param driver the [WebDriver] to use for scraping
+   * @param url the URL to scrape
+   * @return the [BibtexEntry] that was scraped
+   */
+  fun dispatch(driver: WebDriver, url: String): BibtexEntry {
+    val newUrl = """^doi:(https?://(dx\.)?doi.org/)?""".toRegex().replace(url, "https://doi.org/")
+    driver.get(newUrl)
+
+    val domainMatchResult = """^[^/]*//([^/]*)/""".toRegex().find(driver.currentUrl)
+
+    if (domainMatchResult == null) { throw Error("TODO") }
+    val domain = domainMatchResult.groupValues.get(1)
+
+    val scrapers = listOf(
+      ScrapeAcm,
+      ScrapeArxiv,
+      ScrapeCambridge,
+      ScrapeIeeeComputer,
+      ScrapeIeeeExplore,
+      ScrapeIosPress,
+      ScrapeJstor,
+      ScrapeOxford,
+      ScrapeScienceDirect,
+      ScrapeSpringer,
+    )
+    for (scraper in scrapers) {
+      for (d in scraper.domains) {
+        if ("\\b${Regex.escape(d)}\$".toRegex().containsMatchIn(domain)) {
+          return scraper.scrape(driver)
+        }
+      }
+    }
+
+    throw Error("Unsupported domain: $domain")
+  }
+}
+
 /** Scrapes BibTeX data for the specified [domains]. */
 interface Scraper {
   /** The domains implemented by this scraper. */
@@ -20,19 +62,36 @@ interface Scraper {
   /** Scrapes the given [domain] assuming [driver] is already pointing at the
    * correct page.
    *
-   * @param driver the driver to use for scraping.
-   * @return the BibTeX entry that was scraped.
+   * @param driver the driver to use for scraping
+   * @return the BibTeX entry that was scraped
    */
   fun scrape(driver: WebDriver): BibtexEntry
 }
 
+/** Gets the `innerHTML` property of a [WebElement].
+ *
+ * @return the value of the `innerHTML` property
+ */
 fun WebElement.getInnerHtml(): String = this.getDomProperty("innerHTML")
-fun WebDriver.executeScript(s: String, e: WebElement) = (this as JavascriptExecutor).executeScript(s, e)
 
-@Suppress("ClassOrdering", "WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
+/** Executes a given [script].
+ *
+ * @param script the JavaScript code to run
+ * @param args the arguments to pass to the [script]
+ * @return the value returned by the [script]
+*/
+fun WebDriver.executeScript(script: String, vararg args: Any?): Any? =
+  (this as JavascriptExecutor).executeScript(script, *args)
+
+// @Suppress("ClassOrdering", "WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
 private const val MILLIS_PER_SECOND = 1_000
 
-/** Extends the driver's wait time while running a given block. */
+/** Sets the driver's wait time while running a given [block].
+ *
+ * @param timeout the time to wait in seconds
+ * @param block the code to execute and wait on
+ * @return the value returned by the [block]
+ */
 fun <T> WebDriver.await(timeout: Double = 30.0, block: () -> T): T {
   val oldWait = this.manage().timeouts().implicitWaitTimeout
   this.manage().timeouts().implicitlyWait(Duration.ofMillis((MILLIS_PER_SECOND * timeout).roundToLong()))
@@ -70,49 +129,16 @@ fun <T> WebDriver.await(timeout: Double = 30.0, block: () -> T): T {
 //   }
 // }
 
-/** Parses a string into its constituent BibTeX entries. */
-fun parseBibtex(s: String): List<BibtexEntry> {
+/** Parses a [string] into its constituent BibTeX entries.
+ *
+ * @param string the string to parse
+ * @return the entries that were succesfully parsed
+ */
+fun parseBibtex(string: String): List<BibtexEntry> {
   val bibtexFile = BibtexFile()
-  val parser = BibtexParser(false)
-  parser.parse(bibtexFile, StringReader(s))
+  val parser = BibtexParser(false) // false => don't throw parse exceptions
+  parser.parse(bibtexFile, StringReader(string))
   return bibtexFile.getEntries().filterIsInstance<BibtexEntry>()
-}
-
-/** Scraping functions for BibTeX data from publisher websites, but without
- * making much effort to format them nicely. */
-object Scrape {
-  /** Scrapes an arbitrary URL. */
-  fun dispatch(driver: WebDriver, url: String): BibtexEntry {
-    val newUrl = """^doi:(https?://(dx\.)?doi.org/)?""".toRegex().replace(url, "https://doi.org/")
-    driver.get(newUrl)
-
-    val domainMatchResult = """^[^/]*//([^/]*)/""".toRegex().find(driver.currentUrl)
-
-    if (domainMatchResult == null) { throw Error("TODO") }
-    val domain = domainMatchResult.groupValues.get(1)
-
-    val scrapers = listOf(
-      ScrapeAcm,
-      ScrapeArxiv,
-      ScrapeCambridge,
-      ScrapeIeeeComputer,
-      ScrapeIeeeExplore,
-      ScrapeIosPress,
-      ScrapeJstor,
-      ScrapeOxford,
-      ScrapeScienceDirect,
-      ScrapeSpringer,
-    )
-    for (scraper in scrapers) {
-      for (d in scraper.domains) {
-        if ("\\b${Regex.escape(d)}\$".toRegex().containsMatchIn(domain)) {
-          return scraper.scrape(driver)
-        }
-      }
-    }
-
-    throw Error("Unsupported domain: $domain")
-  }
 }
 
 /** Scrapes the ACM Digital Library. */

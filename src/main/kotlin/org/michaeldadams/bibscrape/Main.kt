@@ -16,6 +16,7 @@ import java.nio.file.Path
 fun main(args: Array<String>) { Main().main(args) }
 
 // The following enum values are lower case because their names are used by the CLI
+
 /** What type of ISBN or ISSN media type to prefer. */
 @Suppress("EnumNaming", "ENUM_VALUE")
 enum class MediaType { print, online, both } // ktlint-disable experimental:enum-entry-name-case

@@ -9,13 +9,22 @@ typealias HtmlMetaTable = Map<String, List<String>>
 
 /** Functions for converting HTML "meta" tags into BibTeX data. */
 object HtmlMeta {
-  /** Retrieves HTML meta values. */
+  /** Retrieves HTML meta values.
+   *
+   * @param driver the [WebDriver] from which to take the HTML meta values
+   * @return the meta values that were found
+   */
   fun parse(driver: WebDriver): HtmlMetaTable =
     driver
       .findElements(By.cssSelector("meta[name]"))
       .groupBy({ it.getAttribute("name") }, { it.getAttribute("content") })
 
-  /** Converts HTML meta values into BibTeX fields. */
+  /** Converts HTML meta values into BibTeX fields.
+   *
+   * @param entry the [BibtexEntry] into which to store the BibTeX fields
+   * @param meta the meta values returned by [parse]
+   * @param fields TODO: document
+   */
   fun bibtex(entry: BibtexEntry, meta: HtmlMetaTable, vararg fields: Pair<String, Boolean>) {
     //   sub html-meta-bibtex(
     //     BibScrape::BibTeX::Entry:D $entry,
@@ -23,8 +32,8 @@ object HtmlMeta {
     //     *%fields where { $_.values.all ~~ Bool:D }
     //     --> HtmlMeta:D) is export {
     //   my BibScrape::BibTeX::Value:D %values;
+    val values: MutableMap<String, String> = mutableMapOf()
     val fieldsMap = fields.toMap()
-    val values = mutableMapOf<String, String>()
     fun getFirst(vararg fields: String): String? =
       fields.flatMap { meta.getOrDefault(it, listOf()) }.firstOrNull()
 
