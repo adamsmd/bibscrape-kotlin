@@ -1,6 +1,7 @@
 /** Extension functions for [WebDriver] */
 package org.michaeldadams.bibscrape.webdriverextensions
 
+import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
@@ -31,13 +32,16 @@ private const val MILLIS_PER_SECOND = 1_000
  * @param block the code to execute and wait on
  * @return the value returned by the [block]
  */
-fun <T> WebDriver.await(timeout: Double = 30.0, block: () -> T): T {
+fun <T> WebDriver.await(timeout: Double = 30.0, block: (WebDriver) -> T): T {
   val oldWait = this.manage().timeouts().implicitWaitTimeout
   this.manage().timeouts().implicitlyWait(Duration.ofMillis((MILLIS_PER_SECOND * timeout).roundToLong()))
-  val result = block()
+  val result = block(this)
   this.manage().timeouts().implicitlyWait(oldWait)
   return result
 }
+
+fun WebDriver.awaitFindElement(by: By): WebElement = this.await { it.findElement(by) }
+fun WebDriver.awaitFindElements(by: By): List<WebElement> = this.await { it.findElements(by) }
 
 // fun <T> await(driver: WebDriver, block: () -> T?, timeout: Double = 30.0, sleep: Double = 0.5): T {
 //   val start = Clock.System.now()

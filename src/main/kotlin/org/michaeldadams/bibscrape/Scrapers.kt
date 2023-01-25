@@ -27,7 +27,7 @@ object ScrapeAcm : Scraper {
     // // BibTeX
     driver.findElement(By.cssSelector("""a[data-title="Export Citation"]""")).click()
     val entries: List<BibtexEntry> =
-      driver.await { driver.findElements(By.cssSelector("#exportCitation .csl-right-inline")) }
+      driver.awaitFindElements(By.cssSelector("#exportCitation .csl-right-inline"))
         .flatMap { Bibtex.parse(it.text) }
         // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering
         // non-journal over journal
@@ -251,20 +251,13 @@ object ScrapeCambridge : Scraper {
     if (m != null) {
       driver.get("https://doi.org/10.1017/${m.groups[1]}")
     }
-    // if $web-driver%<current_url> ~~
-    //     /^ 'http' 's'? '://www.cambridge.org/core/services/aop-cambridge-core/content/view/' ( 'S' \d+) $/ {
-    //   $web-driver.get("https://doi.org/10.1017/$0");
-    // }
 
     // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     val meta = HtmlMeta.parse(driver)
 
     // // BibTeX
-    driver.await { driver.findElement(By.className("export-citation-product")) }.click()
-    // await({ $web-driver.find_element_by_class_name( 'export-citation-product' ) }).click;
-    driver.await { driver.findElement(By.cssSelector("[data-export-type=\"bibtex\"]")) }.click()
-    // await({ $web-driver.find_element_by_css_selector( '[data-export-type="bibtex"]' ) }).click;
+    driver.awaitFindElement(By.className("export-citation-product")).click()
+    driver.awaitFindElement(By.cssSelector("[data-export-type=\"bibtex\"]")).click()
     // val entry = Bibtex.parse(driver.readDownloads()).first()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
@@ -303,28 +296,19 @@ object ScrapeIeeeComputer : Scraper {
 
   override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
-    driver.await { driver.findElement(By.cssSelector(".article-action-toolbar button")) }.click()
-    // await({ $web-driver.find_element_by_css_selector( '.article-action-toolbar button' ) }).click;
-    val bibtexLink = driver.await { driver.findElement(By.linkText("BibTex")) }
-    // my #`(Inline::Python::PythonObject:D) $bibtex-link =
-    //           await({ $web-driver.find_element_by_link_text( 'BibTex' ) });
+    driver.awaitFindElement(By.cssSelector(".article-action-toolbar button")).click()
+    val bibtexLink = driver.awaitFindElement(By.linkText("BibTex"))
     driver.executeScript("arguments[0].removeAttribute(\"target\")", bibtexLink)
-    // $web-driver.execute_script( 'arguments[0].removeAttribute("target")', $bibtex-link);
     driver.findElement(By.linkText("BibTex")).click()
-    // $web-driver.find_element_by_link_text( 'BibTex' ).click;
-    var bibtexText = driver.await { driver.findElement(By.tagName("pre")) }.getInnerHtml()
-    // my Str:D $bibtex-text = await({ $web-driver.find_element_by_tag_name( 'pre' ) }).get_property( 'innerHTML' );
+    var bibtexText = driver.awaitFindElement(By.tagName("pre")).getInnerHtml()
     // $bibtex-text ~~ s/ "\{," /\{key,/;
     // $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
     val entry = Bibtex.parse(bibtexText).first()
-    // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($bibtex-text).items.head;
     driver.navigate().back()
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     HtmlMeta.bibtex(entry, meta)
-    // html-meta-bibtex($entry, $meta);
 
     // // Authors
     // my Str:D @authors =
@@ -342,7 +326,7 @@ object ScrapeIeeeComputer : Scraper {
     // // Keywords
     // update($entry, 'keywords', { s:g/ ';' \s* /; / });
 
-    TODO()
+    return entry
   }
 }
 
@@ -352,26 +336,18 @@ object ScrapeIeeeExplore : Scraper {
 
   override fun scrape(driver: WebDriver): BibtexEntry {
     // // BibTeX
-    driver.await { driver.findElement(By.tagName("xpl-cite-this-modal")) }.click()
-    // await({ $web-driver.find_element_by_tag_name( 'xpl-cite-this-modal' ) }).click;
-    driver.await { driver.findElement(By.cssSelector("BibTeX")) }.click()
-    // await({ $web-driver.find_element_by_link_text( 'BibTeX' ) }).click;
-    driver.await { driver.findElement(By.cssSelector(".enable-abstract input")) }.click()
-    // await({ $web-driver.find_element_by_css_selector( '.enable-abstract input' ) }).click;
-    val text = driver.await { driver.findElement(By.className("ris-text")) }.getInnerHtml()
-    // my Str:D $text = await({ $web-driver.find_element_by_class_name( 'ris-text' ) }).get_property( 'innerHTML' );
+    driver.awaitFindElement(By.tagName("xpl-cite-this-modal")).click()
+    driver.awaitFindElement(By.linkText("BibTeX")).click()
+    driver.awaitFindElement(By.cssSelector(".enable-abstract input")).click()
+    val text = driver.awaitFindElement(By.className("ris-text")).getInnerHtml()
     val entry = Bibtex.parse(text).first()
-    // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($text).items.head;
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     HtmlMeta.bibtex(entry, meta)
-    // html-meta-bibtex($entry, $meta);
 
     // // HTML body text
-    // val body = driver.findElement(By.tagName("body")).getInnerHtml()
-    // my Str:D $body = $web-driver.find_element_by_tag_name( 'body' ).get_property( 'innerHTML' );
+    val body = driver.findElement(By.tagName("body")).getInnerHtml()
 
     // // Keywords
     // my Str:D $keywords = $entry.fields<keywords>.simple-str;
@@ -426,7 +402,7 @@ object ScrapeIeeeExplore : Scraper {
     // // Abstract
     // update($entry, 'abstract', { s/ '&lt;&gt;' $// });
 
-    TODO()
+    return entry
   }
 }
 
@@ -434,8 +410,9 @@ object ScrapeIeeeExplore : Scraper {
 object ScrapeIosPress : Scraper {
   override val domains = listOf("iospress.com")
 
-  override fun scrape(@Suppress("UNUSED_PARAMETER") driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: WebDriver): BibtexEntry {
     // // RIS
+    driver.awaitFindElement(By.className("p13n-cite")).click()
     // await({ $web-driver.find_element_by_class_name( 'p13n-cite' ) }).click;
     // await({ $web-driver.find_element_by_class_name( 'btn-clear' ) }).click;
     // my BibScrape::Ris::Ris:D $ris = ris-parse($web-driver.read-downloads());
@@ -538,9 +515,9 @@ object ScrapeOxford : Scraper {
     // say "WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.";
 
     // // BibTeX
-    driver.await { driver.findElement(By.className("js-cite-button")) }.click()
+    driver.awaitFindElement(By.className("js-cite-button")).click()
     // await({ $web-driver.find_element_by_class_name( 'js-cite-button' ) }).click;
-    val selectElement = driver.await { driver.findElement(By.id("selectFormat")) }
+    val selectElement = driver.awaitFindElement(By.id("selectFormat"))
     // my #`(Inline::Python::PythonObject:D) $select-element =
     //     await({ $web-driver.find_element_by_id( 'selectFormat' ) });
     // my #`(Inline::Python::PythonObject:D) $select = $web-driver.select($select-element);
