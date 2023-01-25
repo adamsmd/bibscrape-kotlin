@@ -8,23 +8,6 @@ description = "Collect BibTeX information from publisher pages"
 // authors = [
 //   { name = "Michael D. Adams" },
 // ]
-// keywords = [ "BibTeX", "LaTeX" ]
-// classifiers = [
-//   "Development Status :: 5 - Production/Stable",
-//   "Environment :: Console",
-//   "Intended Audience :: Science/Research",
-//   "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
-//   "Programming Language :: Python :: 3",
-//   "Operating System :: MacOS",
-//   "Operating System :: Microsoft :: Windows",
-//   "Operating System :: OS Independent",
-//   "Operating System :: POSIX",
-//   "Programming Language :: Python :: 3.10",
-//   "Topic :: Internet :: WWW/HTTP",
-//   "Topic :: Scientific/Engineering",
-//   "Topic :: Text Processing",
-//   "Topic :: Utilities",
-// ]
 
 // [project.urls]
 // "Homepage" = "https://github.com/pypa/sampleproject"
@@ -38,9 +21,18 @@ description = "Collect BibTeX information from publisher pages"
 // "Source" = "https://github.com/pypa/sampleproject/"
 // #   "source-url" : "git://github.com/adamsmd/BibScrape.git"
 
+
+buildscript {
+  // Dependencies used by this build script
+  dependencies {
+    classpath("org.eclipse.jgit:org.eclipse.jgit:6.4.0.202211300538-r")
+  }
+}
+
+// To see a complete list of tasks, use: ./gradlew tasks
 plugins {
-  kotlin("jvm") // version determined by buildSrc/build.gradle.kts
-  application
+  kotlin("jvm") version "1.8.0"
+  application // To run, do "./gradlew installDist" then "./build/install/bibscrape/bin/bibscrape"
 
   // Code Analysis
   id("io.gitlab.arturbosch.detekt").version("1.22.0") // Tasks: detekt
@@ -52,7 +44,7 @@ plugins {
   // Code Style
   // id("com.ncorti.ktfmt.gradle") version "0.11.0" // Tasks: ktfmtCheck (omitted because issues errors not warnings)
   id("org.cqfn.diktat.diktat-gradle-plugin") version "1.2.4.1" // Tasks: diktatCheck
-  id("org.jlleitschuh.gradle.ktlint") version "10.3.0" // Tasks: ktlintCheck
+  id("org.jlleitschuh.gradle.ktlint") version "11.0.0" // Tasks: ktlintCheck
 
   // Dependency Licenses
   id("com.github.jk1.dependency-license-report") version "2.1" // Tasks: generateLicenseReport
@@ -81,11 +73,11 @@ dependencies {
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
 
   // ISBN
-  implementation("com.github.ladutsko:isbn-core:1.1.0")
+  implementation("com.github.ladutsko:isbn-core:1.1.1")
 
   // Logging
-  implementation("ch.qos.logback:logback-classic:1.2.6")
-  implementation("io.github.microutils:kotlin-logging-jvm:2.1.21")
+  implementation("ch.qos.logback:logback-classic:1.4.5")
+  implementation("io.github.microutils:kotlin-logging-jvm:3.0.4")
 
   // RIS
   implementation("ch.difty.kris:kris-core:0.4.1")
@@ -95,7 +87,7 @@ dependencies {
   testImplementation(kotlin("test:1.8.0"))
 
   // WebDriver
-  implementation("org.seleniumhq.selenium:selenium-java:4.7.2")
+  implementation("org.seleniumhq.selenium:selenium-java:4.8.0")
 }
 
 // ////////////////////////////////////////////////////////////////
