@@ -1,22 +1,35 @@
 package org.michaeldadams.bibscrape
 
+import com.github.ajalt.clikt.completion.completionOption
+/* ktlint-disable no-wildcard-imports */
 import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.parameters.arguments.*
-import com.github.ajalt.clikt.parameters.groups.OptionGroup
-import com.github.ajalt.clikt.parameters.groups.provideDelegate
+import com.github.ajalt.clikt.parameters.groups.*
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
+/* ktlint-enable no-wildcard-imports */
 import org.openqa.selenium.firefox.FirefoxDriver
 import java.nio.file.Path
 
-@kotlin.time.ExperimentalTime
-fun main(args: Array<String>): Unit = Main().main(args)
+/** Runs the main entry point of the application. */
+fun main(args: Array<String>) { Main().main(args) }
 
+/** What type of ISBN or ISSN media type to prefer. */
+@Suppress("EnumNaming")
+enum class MediaType { print, online, both } // ktlint-disable experimental:enum-entry-name-case
+
+/** What type of ISBN to prefer. */
+@Suppress("EnumNaming")
+enum class IsbnType { isbn13, isbn10, preserve } // ktlint-disable experimental:enum-entry-name-case
+
+/** Option group controlling configuration inputs. */
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
 class Inputs : OptionGroup(name = "INPUTS") {
 
   val key: List<List<String>> by option(
-    "-k", "--key",
+    "-k",
+    "--key",
     help = """
       Keys to use in the output BibTeX.
 
@@ -80,6 +93,8 @@ class Inputs : OptionGroup(name = "INPUTS") {
   ).split(";".toRegex()).multiple()
 }
 
+/** Option group controlling what major modes of work is actually done. */
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
 class OperatingModes : OptionGroup(name = "OPERATING MODES") {
 
   val init: Boolean by option(
@@ -95,46 +110,38 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
   ).flag("--no-config-dir")
 
   val scrape: Boolean by option(
-    "-S", "--scrape",
+    "-S",
+    "--scrape",
     help = """
       Scrape BibTeX entries from publisher's pages.
       """
   ).flag("-/S", "--no-scrape", default = true)
 
   val fix: Boolean by option(
-    "-F", "--fix",
+    "-F",
+    "--fix",
     help = """
       Fix mistakes found in BibTeX entries.
       """
   ).flag("+F", "--no-fix", default = true)
 }
 
-enum class MediaType { print, online, both }
-enum class IsbnType { isbn13, isbn10, preserve }
-
+/** Option group controlling miscellaneous general settings. */
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
 class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
-  fun mediaHelpString(name: String): String = """
-    Whether to use print or online ${name}s.
-
-    ```
-    - If <MediaType> is "print", use only the print ${name}.
-    - If <MediaType> is "online", use only the online ${name}.
-    - If <MediaType> is "both", use both the print and online ${name}s.
-    ```
-
-    If only one type of ${name} is available, this option is ignored.
-    """
-
   val window: Boolean by option(
-    "-w", "--window",
+    "-w",
+    "--window",
     help = """
       Show the browser window while scraping.  This is useful for debugging or
       determining why BibScrape hangs on a particular publisher's page.
       """
   ).flag("--no-window")
 
+  @Suppress("MagicNumber")
   val timeout: Double by option(
-    "-t", "--timeout",
+    "-t",
+    "--timeout",
     help = """
       Browser timeout in seconds for individual page loads.
       """
@@ -184,8 +191,22 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
 
 // Bool:D :h(:$help) = False,
 // #={Print this usage message.}
+
+  private fun mediaHelpString(name: String): String = """
+    Whether to use print or online ${name}s.
+
+    ```
+    - If <MediaType> is "print", use only the print ${name}.
+    - If <MediaType> is "online", use only the online ${name}.
+    - If <MediaType> is "both", use both the print and online ${name}s.
+    ```
+
+    If only one type of ${name} is available, this option is ignored.
+    """
 }
 
+/** Option group controlling BibTeX fields. */
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
 class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
 
 // Str:D :f(:@field) = Array[Str:D](<
@@ -215,7 +236,8 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
 // #={Fields that should be omitted from the output if they are empty.}
 }
 
-//@kotlin.time.ExperimentalTime
+/** The main application. */
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty")
 class Main : CliktCommand(
   name = "bibscrape",
   printHelpOnEmptyArgs = true,
@@ -379,6 +401,7 @@ class Main : CliktCommand(
     // TODO: Better placement of the default in the help text
     context { helpFormatter = CliktHelpFormatter(showDefaultValues = true) }
     versionOption(BuildInformation.version)
+    completionOption(help = "Generate an autocomplete script for the given shell")
   }
 
   // TODO: allow argument in option groups
@@ -405,7 +428,6 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
 
   override fun run() {
-
     val driver = FirefoxDriver()
     try {
       driver.setLogLevel(java.util.logging.Level.WARNING)

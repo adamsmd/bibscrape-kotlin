@@ -7,13 +7,15 @@ import kotlin.text.toRegex
 
 typealias HtmlMetaTable = Map<String, List<String>>
 
+/** Functions for converting HTML "meta" tags into BibTeX data. */
 object HtmlMeta {
-
+  /** Retrieves HTML meta values. */
   fun parse(driver: WebDriver): HtmlMetaTable =
     driver
       .findElements(By.cssSelector("meta[name]"))
       .groupBy({ it.getAttribute("name") }, { it.getAttribute("content") })
 
+  /** Converts HTML meta values into BibTeX fields. */
   fun bibtex(entry: BibtexEntry, meta: HtmlMetaTable, vararg fields: Pair<String, Boolean>) {
     //   sub html-meta-bibtex(
     //     BibScrape::BibTeX::Entry:D $entry,
@@ -82,7 +84,8 @@ object HtmlMeta {
               ),
               ""
             )
-          }.joinToString("; ")
+          }
+          .joinToString("; ")
       )
     }
     //   set( 'keywords',
@@ -114,13 +117,13 @@ object HtmlMeta {
     //   }
 
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
-    for ((k, b) in listOf(
+    val types = listOf(
       "citation_conference" to "booktitle",
       "citation_journal_title" to "journal",
       "citation_inbook_title" to "booktitle",
       "citation_inbook_title" to "journal",
     )
-    ) {
+    for ((k, b) in types) {
       if (meta.containsKey(k)) {
         set(b, getFirst(k))
         break
@@ -156,7 +159,8 @@ object HtmlMeta {
 
     // 'dc.description' also contains abstract information
     //   for (%meta<description>, %meta<Description>).flat -> Array:_[Str:D] $d {
-    //     set( 'abstract', $d.head) if $d.defined and $d !~~ /^ [ '' $ | '****' | 'IEEE Xplore' | 'IEEE Computer Society' ] /;
+    //     set( 'abstract', $d.head) if
+    //         $d.defined and $d !~~ /^ [ '' $ | '****' | 'IEEE Xplore' | 'IEEE Computer Society' ] /;
     //   }
 
     if (meta.containsKey("citation_author_institution")) {

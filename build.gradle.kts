@@ -1,10 +1,8 @@
 // NOTE: Groups with comment headers are sorted alphabetically by group name (TODO)
 
-// name = "bibscrape"
-// version = "2023.01.17"
-// description = "Collect BibTeX information from publisher pages"
+description = "Collect BibTeX information from publisher pages"
+
 // readme = "README.md"
-// # requires-python = ">=3.0"
 // license = { file = "LICENSE" }
 // #license = {text = "AGPLv3+"}
 // authors = [
@@ -45,7 +43,7 @@ plugins {
   application
 
   // Code Analysis
-  id("io.gitlab.arturbosch.detekt").version("1.22.0") // Tasks: detekt (disabled because too noisy)
+  id("io.gitlab.arturbosch.detekt").version("1.22.0") // Tasks: detekt
 
   // Code Coverage
   id("jacoco") // Tasks: jacocoTestReport
@@ -53,8 +51,8 @@ plugins {
 
   // Code Style
   // id("com.ncorti.ktfmt.gradle") version "0.11.0" // Tasks: ktfmtCheck (omitted because issues errors not warnings)
-  // id("org.cqfn.diktat.diktat-gradle-plugin") version "1.0.3" // Tasks: diktatCheck
-  id("org.jlleitschuh.gradle.ktlint") version "10.2.1" // Tasks: ktlintCheck (requires disabling diktat)
+  id("org.cqfn.diktat.diktat-gradle-plugin") version "1.2.4.1" // Tasks: diktatCheck
+  id("org.jlleitschuh.gradle.ktlint") version "10.3.0" // Tasks: ktlintCheck
 
   // Dependency Licenses
   id("com.github.jk1.dependency-license-report") version "2.1" // Tasks: generateLicenseReport
@@ -75,6 +73,7 @@ repositories {
 
 dependencies {
   // BibTeX
+  // https://ftp.math.utah.edu/pub/tex/bib/
   // $ wget --recursive --timestamping --reject=html,dvi,ltx,pdf,ps.gz,ps.xz,sok,twx,db --reject='bib*' --reject='filehdr-*' --reject-regex='.*/(RCS|idx|toc)/.*' ftp://ftp.math.utah.edu/pub/tex/bib/
   implementation("org.bibsonomy:bibsonomy-bibtex-parser:3.9.4")
 
@@ -90,6 +89,10 @@ dependencies {
   // Logging
   implementation("ch.qos.logback:logback-classic:1.2.6")
   implementation("io.github.microutils:kotlin-logging-jvm:2.1.21")
+
+  // RIS
+  implementation("ch.difty.kris:kris-core:0.4.1")
+  implementation("ch.difty.kris:kris-io:0.4.1")
 
   // Testing
   testImplementation(kotlin("test:1.8.0"))
@@ -170,25 +173,20 @@ detekt {
 // ////////////////////////////////////////////////////////////////
 // Code Formatting
 
-// TODO:
-// indentWithSpaces(2) // or spaces. Takes an integer argument if you don't like 4
-// trimTrailingWhitespace()
-// endWithNewline()
-
-// diktat {
-//   ignoreFailures = true
-// }
+diktat {
+  ignoreFailures = true
+}
 
 ktlint {
   verbose.set(true)
   ignoreFailures.set(true)
   enableExperimentalRules.set(true)
-  disabledRules.set(
-    setOf(
-      "experimental:argument-list-wrapping",
-      "no-wildcard-imports",
-    )
-  )
+//   disabledRules.set(
+//     setOf(
+//       "experimental:argument-list-wrapping",
+//       "no-wildcard-imports",
+//     )
+//   )
 }
 
 // ////////////////////////////////////////////////////////////////

@@ -3,13 +3,14 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexMacroReference
 
+/** Month handling functions for BibTeX. */
 object Month {
-  val longNames =
+  private val longNames =
     "january february march april may june july august september october november december".split(" ")
-  val macroNames =
+  private val macroNames =
     "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
 
-  val months = (
+  private val months = (
     listOf("sept" to "sep") +
       macroNames.map { it to it } +
       longNames zip macroNames
@@ -29,6 +30,7 @@ object Month {
 //     !! die "Invalid month number: $num"
 // }
 
+  /** Converts a string containing a month to the BibTeX macro for that month if it exists. */
   fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
     val month: String? = months.get(string.lowercase())
     if (month == null) {
