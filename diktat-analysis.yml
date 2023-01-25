@@ -1,0 +1,96 @@
+# Common configuration
+- name: DIKTAT_COMMON
+  configuration:
+    # put your package name here - it will be autofixed and checked
+    domainName: org.michaeldadams.bibscrape
+    kotlinVersion: 1.8
+
+## Explicitly enabled rules that are disabled by default
+
+# Checks that package name starts with the company's domain
+- name: PACKAGE_NAME_INCORRECT_PREFIX
+  enabled: true
+# Checks that the path for a file matches with a package name
+- name: PACKAGE_NAME_INCORRECT_PATH
+  enabled: true
+
+## Temporarily disabled rules
+
+- name: COMMENT_WHITE_SPACE
+  enabled: false
+
+## Explicitly disabled rules that are enabled by default
+
+# Checks that copyright exists on top of file and is properly formatted (as a block comment)
+- name: HEADER_MISSING_OR_WRONG_COPYRIGHT
+  enabled: false
+# Checks that file does not contain lines > maxSize
+- name: FILE_IS_TOO_LONG
+  enabled: false
+# Checks that function length isn't too long
+- name: TOO_LONG_FUNCTION
+  enabled: false
+# Checks that function doesn't contains too many parameters
+- name: TOO_MANY_PARAMETERS
+  enabled: false
+# Identifier length should be in range [2,64] except names that used in industry like {i, j} and 'e' for catching exceptions
+- name: IDENTIFIER_LENGTH
+  enabled: false
+# Checks if null-check was used explicitly (for example: if (a == null))
+# Try to avoid explicit null checks (explicit comparison with `null`)
+# Kotlin is declared as [Null-safe](https://kotlinlang.org/docs/reference/null-safety.html) language.
+# But Kotlin architects wanted Kotlin to be fully compatible with Java, that's why `null` keyword was also introduced in Kotlin.
+# There are several code-structures that can be used in Kotlin to avoid null-checks. For example: `?:`,  `.let {}`, `.also {}`, e.t.c
+- name: AVOID_NULL_CHECKS
+  enabled: false
+# Warns if there are nested functions
+- name: AVOID_NESTED_FUNCTIONS
+  enabled: false
+# Checks that properties with comments are separated by a blank line
+- name: BLANK_LINE_BETWEEN_PROPERTIES
+  enabled: false
+# Checks that file does not contain commented out code
+- name: COMMENTED_OUT_CODE
+  enabled: false
+# Inspection that checks if string template has redundant curly braces
+- name: STRING_TEMPLATE_CURLY_BRACES
+  enabled: false
+
+## Rules with custom configurations
+
+# Checks that indentation is correct
+- name: WRONG_INDENTATION
+  configuration:
+    # The indentation size for each file
+    indentationSize: 2
+
+
+# # Checks that line breaks follow code style guide: rule 3.6
+# - name: WRONG_NEWLINES
+#   enabled: true
+#   configuration:
+#     # If the number of parameters on one line is more than this threshold, all parameters will be placed on separate lines.
+#     maxParametersInOneLine: 2
+#     # 3 by default.
+#     maxCallsInOneLine: 3
+# # Checks trailing comma
+# - name: TRAILING_COMMA
+#   enabled: true
+#   configuration:
+#     # VALUE_ARGUMENT
+#     valueArgument: false
+#     # VALUE_PARAMETER
+#     valueParameter: false
+#     # REFERENCE_EXPRESSION
+#     indices: false
+#     # WHEN_CONDITION_WITH_EXPRESSION
+#     whenConditions: false
+#     # STRING_TEMPLATE
+#     collectionLiteral: false
+#     # TYPE_PROJECTION
+#     typeArgument: false
+#     # TYPE_PARAMETER
+#     typeParameter: false
+#     # DESTRUCTURING_DECLARATION_ENTRY
+#     destructuringDeclaration: false
+
