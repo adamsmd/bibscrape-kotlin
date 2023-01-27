@@ -31,7 +31,7 @@ class Driver private constructor(
   var closed = AtomicBoolean()
 
   override fun close() {
-    if (closed.getAndSet(true)) {
+    if (!closed.getAndSet(true)) {
       // TODO: do in another thread?
       Thread.sleep(1_000) // Fixes "Timed out waiting for driver server to stop" (sometimes)
       driver.quit()
