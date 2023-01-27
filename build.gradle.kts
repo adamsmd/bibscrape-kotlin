@@ -2,26 +2,6 @@
 
 description = "Collect BibTeX information from publisher pages"
 
-// readme = "README.md"
-// license = { file = "LICENSE" }
-// #license = {text = "AGPLv3+"}
-// authors = [
-//   { name = "Michael D. Adams" },
-// ]
-
-// [project.urls]
-// "Homepage" = "https://github.com/pypa/sampleproject"
-// "Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
-// "Bug Reports" = "https://github.com/pypa/sampleproject/issues"
-// # documentation = "https://readthedocs.org"
-// # repository = "https://github.com"
-// # changelog = "https://github.com/me/spam/blob/master/CHANGELOG.md"
-// # Download-URL
-// # Bug Tracker, http://bitbucket.org/tarek/distribute/issues/
-// "Source" = "https://github.com/pypa/sampleproject/"
-// #   "source-url" : "git://github.com/adamsmd/BibScrape.git"
-
-
 buildscript {
   // Dependencies used by this build script
   dependencies {
@@ -35,7 +15,7 @@ plugins {
   application // To run, do "./gradlew installDist" then "./build/install/bibscrape/bin/bibscrape"
 
   // Code Analysis
-  id("io.gitlab.arturbosch.detekt").version("1.22.0") // Tasks: detekt
+  id("io.gitlab.arturbosch.detekt") version "1.22.0" // Tasks: detekt
 
   // Code Coverage
   id("jacoco") // Tasks: jacocoTestReport
@@ -77,7 +57,7 @@ dependencies {
 
   // Logging
   implementation("ch.qos.logback:logback-classic:1.4.5")
-  implementation("io.github.microutils:kotlin-logging-jvm:3.0.4")
+  // implementation("io.github.microutils:kotlin-logging-jvm:3.0.4")
 
   // RIS
   implementation("ch.difty.kris:kris-core:0.4.1")
@@ -87,7 +67,21 @@ dependencies {
   testImplementation(kotlin("test:1.8.0"))
 
   // WebDriver
-  implementation("org.seleniumhq.selenium:selenium-java:4.8.0")
+  // implementation("org.seleniumhq.selenium:selenium-java:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-api:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-devtools-v107:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-devtools-v108:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-devtools-v109:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-devtools-v85:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-edge-driver:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-firefox-driver:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-ie-driver:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-remote-driver:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-safari-driver:4.8.0")
+  implementation("org.seleniumhq.selenium:selenium-support:4.8.0")
+  
+
+  implementation("net.lightbody.bmp:browsermob-core:2.1.5")
 }
 
 // ////////////////////////////////////////////////////////////////

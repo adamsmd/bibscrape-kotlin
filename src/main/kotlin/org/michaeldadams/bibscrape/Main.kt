@@ -10,6 +10,20 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 /* ktlint-enable no-wildcard-imports */
 import org.openqa.selenium.firefox.FirefoxDriver
+import org.openqa.selenium.firefox.FirefoxOptions
+import org.openqa.selenium.firefox.FirefoxDriverLogLevel
+import org.openqa.selenium.firefox.FirefoxDriverService
+import org.openqa.selenium.firefox.GeckoDriverService
+// import org.openqa.selenium.chrome.ChromeOptions
+import org.openqa.selenium.remote.DesiredCapabilities
+import org.openqa.selenium.remote.CapabilityType
+import org.openqa.selenium.logging.LoggingPreferences
+import org.openqa.selenium.logging.LogType
+import org.openqa.selenium.devtools.NetworkInterceptor
+import org.openqa.selenium.devtools.Event
+import org.openqa.selenium.remote.http.*
+import org.openqa.selenium.devtools.HasDevTools
+// import org.openqa.selenium.chrome.ChromeDriver
 import java.nio.file.Path
 
 /** Runs the main entry point of the application. */
@@ -420,14 +434,94 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
 
   override fun run() {
-    val driver = FirefoxDriver()
+    val proxy = net.lightbody.bmp.BrowserMobProxyServer()
+    proxy.start(0)
+    val seleniumProxy = net.lightbody.bmp.client.ClientUtil.createSeleniumProxy(proxy)
+    // println("XXX:"+seleniumProxy.getHttpProxy())
+
+    proxy.addResponseFilter( { response, contents, messageInfo ->
+      println("responding: $response\n")
+      response.headers().remove("Content-Disposition")
+      null
+    })
+    // proxy.addRequestFilter({ request, contents, messageInfo ->
+    //   if (request.uri.startsWith("https://disqus")) { HttpResponse(404) }
+    //   else null
+    // })
+
+    val capabilities = DesiredCapabilities()
+    capabilities.setCapability(CapabilityType.PROXY, seleniumProxy)
+
+
+    val options = FirefoxOptions(capabilities)
+    options.setProxy(seleniumProxy)
+    // val profile = options.profile
+    // profile.setPreference("fission.webContentIsolationStrategy", 0 as java.lang.Integer)
+    // profile.setPreference("fission.bfcacheInParent", false as java.lang.Boolean)
+    // profile.setPreference("foo", java.lang.String("bar"))
+    // println("x: ${java.lang.String("bar") is java.lang.String}")
+    //println("BAR: ${options.profile.getIntegerPreference("fission.webContentIsolationStrategy", -1)}")
+    // options.setProfile(profile)
+    // println("BAR: ${options.profile.getStringPreference("foo", "<none>")}")
+    if (!generalOptions.window) {
+      options.addArguments("--headless")
+    }
+    // TODO: option for withLogFile
+    val serviceBuilder = GeckoDriverService.Builder()
+    if (true) {
+      // Prevent debugging noise
+      // serviceBuilder.withLogFile(java.io.File("/dev/null")) // TODO: or "NUL" on windows
+    }
+    val service = serviceBuilder.build()
+    println("pre aug")
+    val driver = FirefoxDriver(service, options) //org.openqa.selenium.remote.Augmenter().augment(FirefoxDriver(service, options))
+println("post aug")
+    // #profile.set_preference('browser.download.panel.shown', False)
+    // #profile.set_preference('browser.helperApps.neverAsk.openFile',
+    // #  'text/plain,text/x-bibtex,application/x-bibtex,application/x-research-info-systems')
+    // profile.set_preference('browser.helperApps.neverAsk.saveToDisk',
+    //   'application/atom+xml,application/x-bibtex,application/x-research-info-systems,text/plain,text/x-bibtex')
+    // profile.set_preference('browser.download.folderList', 2) # Use a custom folder for downloading
+    // profile.set_preference('browser.download.dir', '$downloads')
+    // #profile.set_preference('permissions.default.image', 2) # Never load the images
+    // val downloadDirectory = kotlin.io.path.createTempDirectory()
+    // Runtime.getRuntime().addShutdownHook(Thread { downloadDirectory.deleteRecursively() })
+    // println("FOO: ${options.profile.getStringPreference("browser.download.dir", "<none>")}")
+    // driver = new Augmenter().augment(driver);
+    // val devTools = (driver as HasDevTools).getDevTools()
+    // devTools.createSession()
+    
+
+    // val filter = object : org.openqa.selenium.remote.http.Filter {
+    //   override fun apply(next: HttpHandler): HttpHandler = next
+        // object : HttpHandler {
+        //   override fun execute(req: HttpRequest): HttpResponse {
+        //     // req.addHeader("cheese", "brie");
+        //     val res = next.execute(req)
+        //     // res.addHeader("vegetable", "peas");
+        //     // println("req\n")
+        //     return res
+        //   }
+        // }
+
+    // }
+    // val n = NetworkInterceptor(driver, filter) //null //NetworkInterceptor​(driver, filter)
+    // n.use {
     try {
-      driver.setLogLevel(java.util.logging.Level.WARNING)
       for (filename in arg) {
         println(Scrape.dispatch(driver, filename))
       }
     } finally {
+      // TODO: as option?
+      Thread.sleep(100*1_000) // Fixes "Timed out waiting for driver server to stop" (sometimes)
       driver.quit()
     }
+    // System.exit(0)
+  // }
   }
 }
+
+
+// class Driver(val driver: RemoteWebDriver) : WebDriver by driver, JavascriptExecutor by driver {
+
+// }
