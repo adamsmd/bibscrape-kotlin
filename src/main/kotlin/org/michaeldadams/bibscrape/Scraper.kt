@@ -14,5 +14,5 @@ interface Scraper {
    * @param driver the driver to use for scraping
    * @return the BibTeX entry that was scraped
    */
-  fun scrape(driver: WebDriver): BibtexEntry
+  fun scrape(driver: Driver): BibtexEntry
 }

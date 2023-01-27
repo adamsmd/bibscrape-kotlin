@@ -13,7 +13,7 @@ object Scrape {
    * @param url the URL to scrape
    * @return the [BibtexEntry] that was scraped
    */
-  fun dispatch(driver: WebDriver, url: String): BibtexEntry {
+  fun dispatch(driver: Driver, url: String): BibtexEntry {
     val newUrl = """^doi:(https?://(dx\.)?doi.org/)?""".toRegex().replace(url, "https://doi.org/")
     driver.get(newUrl)
 

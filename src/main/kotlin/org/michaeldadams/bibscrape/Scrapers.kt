@@ -10,7 +10,7 @@ import kotlin.text.toRegex
 object ScrapeAcm : Scraper {
   override val domains = listOf("acm.org")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // driver.manage().timeouts().implicitlyWait(Duration.ofMillis((1000 * 30.0).roundToLong()))
     // TODO: prevent loops on ACM
     if ("Association for Computing Machinery" !=
@@ -139,7 +139,7 @@ object ScrapeAcm : Scraper {
 object ScrapeArxiv : Scraper {
   override val domains = listOf("arxiv.org")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // format_bibtex_arxiv in
     // https://github.com/mattbierbaum/arxiv-bib-overlay/blob/master/src/ui/CiteModal.tsx
     // Ensure we are at the "abstract" page
@@ -250,7 +250,7 @@ object ScrapeArxiv : Scraper {
 object ScrapeCambridge : Scraper {
   override val domains = listOf("cambridge.org")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     val m = "^https?://www.cambridge.org/core/services/aop-cambridge-core/content/view/('S'\\d+)\$"
       .toRegex()
       .matchEntire(driver.currentUrl)
@@ -300,7 +300,7 @@ object ScrapeCambridge : Scraper {
 object ScrapeIeeeComputer : Scraper {
   override val domains = listOf("computer.org")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
     driver.awaitFindElement(By.cssSelector(".article-action-toolbar button")).click()
     val bibtexLink = driver.awaitFindElement(By.linkText("BibTex"))
@@ -340,7 +340,7 @@ object ScrapeIeeeComputer : Scraper {
 object ScrapeIeeeExplore : Scraper {
   override val domains = listOf("ieeexplore.ieee.org")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
     driver.awaitFindElement(By.tagName("xpl-cite-this-modal")).click()
     driver.awaitFindElement(By.linkText("BibTeX")).click()
@@ -416,7 +416,7 @@ object ScrapeIeeeExplore : Scraper {
 object ScrapeIosPress : Scraper {
   override val domains = listOf("iospress.com")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
     // await({ $web-driver.find_element_by_class_name( 'p13n-cite' ) }).click;
@@ -457,7 +457,7 @@ object ScrapeIosPress : Scraper {
 object ScrapeJstor : Scraper {
   override val domains = listOf("jstor.org")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // // Remove overlay
     val overlays = driver.findElements(By.className("reveal-overlay"))
     overlays.forEach { driver.executeScript("arguments[0].removeAttribute(\"style\")", it) }
@@ -517,7 +517,7 @@ object ScrapeJstor : Scraper {
 object ScrapeOxford : Scraper {
   override val domains = listOf("oup.com")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // TODO: say "WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.";
 
     // // BibTeX
@@ -563,7 +563,7 @@ object ScrapeOxford : Scraper {
 object ScrapeScienceDirect : Scraper {
   override val domains = listOf("sciencedirect.com", "elsevier.com")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
     driver.await {
       it.findElement(By.id("export-citation")).click()
@@ -610,7 +610,7 @@ object ScrapeScienceDirect : Scraper {
 object ScrapeSpringer : Scraper {
   override val domains = listOf("link.springer.com")
 
-  override fun scrape(driver: WebDriver): BibtexEntry {
+  override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
     // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new();
     // Use the BibTeX download if it is available
