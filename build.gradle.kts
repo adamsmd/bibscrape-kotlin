@@ -79,7 +79,6 @@ dependencies {
   implementation("org.seleniumhq.selenium:selenium-remote-driver:4.8.0")
   implementation("org.seleniumhq.selenium:selenium-safari-driver:4.8.0")
   implementation("org.seleniumhq.selenium:selenium-support:4.8.0")
-  
 
   implementation("net.lightbody.bmp:browsermob-core:2.1.5")
 }

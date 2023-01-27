@@ -9,21 +9,6 @@ import com.github.ajalt.clikt.parameters.groups.*
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 /* ktlint-enable no-wildcard-imports */
-import org.openqa.selenium.firefox.FirefoxDriver
-import org.openqa.selenium.firefox.FirefoxOptions
-import org.openqa.selenium.firefox.FirefoxDriverLogLevel
-import org.openqa.selenium.firefox.FirefoxDriverService
-import org.openqa.selenium.firefox.GeckoDriverService
-// import org.openqa.selenium.chrome.ChromeOptions
-import org.openqa.selenium.remote.DesiredCapabilities
-import org.openqa.selenium.remote.CapabilityType
-import org.openqa.selenium.logging.LoggingPreferences
-import org.openqa.selenium.logging.LogType
-import org.openqa.selenium.devtools.NetworkInterceptor
-import org.openqa.selenium.devtools.Event
-import org.openqa.selenium.remote.http.*
-import org.openqa.selenium.devtools.HasDevTools
-// import org.openqa.selenium.chrome.ChromeDriver
 import java.nio.file.Path
 
 /** Runs the main entry point of the application. */

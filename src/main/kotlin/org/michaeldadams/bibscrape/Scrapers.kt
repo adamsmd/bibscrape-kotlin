@@ -1,9 +1,7 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-import org.michaeldadams.bibscrape.webdriverextensions.*
 import org.openqa.selenium.By
-import org.openqa.selenium.WebDriver
 import kotlin.text.toRegex
 
 /** Scrapes the ACM Digital Library. */
