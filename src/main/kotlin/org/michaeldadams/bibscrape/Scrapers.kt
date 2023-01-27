@@ -4,6 +4,18 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import org.openqa.selenium.By
 import kotlin.text.toRegex
+import kotlin.text.replace
+import kotlin.text.RegexOption
+
+val String.r: Regex
+  get() = this.toRegex(RegexOption.COMMENTS)
+val String.ri: Regex
+  get() = this.toRegex(setOf(RegexOption.COMMENTS, RegexOption.IGNORE_CASE))
+
+fun String.find(regex: Regex): MatchResult? = regex.find(this)
+
+fun BibtexEntry.set(field: String, value: String): Unit =
+  this.setField(field, this.ownerFile.makeString(value))
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : Scraper {
@@ -43,7 +55,7 @@ object ScrapeAcm : Scraper {
       .last()
       .innerHtml
     if (abstract != "<p>No abstract available.</p>") {
-      entry.setField("abstract", entry.ownerFile.makeString(abstract))
+      entry.set("abstract", abstract)
     }
 
     // // Author
@@ -51,11 +63,11 @@ object ScrapeAcm : Scraper {
       .findElements(By.cssSelector(".citation .author-name"))
       .map { it.getAttribute("title") }
       .joinToString(" and ")
-    entry.setField("author", entry.ownerFile.makeString(author))
+    entry.set("author", author)
 
     // // Title
     val title = driver.findElement(By.cssSelector(".citation__title")).innerHtml
-    entry.setField("title", entry.ownerFile.makeString(title))
+    entry.set("title", title)
 
     // // Month
     //
@@ -64,7 +76,7 @@ object ScrapeAcm : Scraper {
     if (entry.getFieldValue("issue_date") != null) {
       val month = entry.getFieldValue("issue_date").toString().split("\\s+").first()
       if (Bibtex.str2month(entry.ownerFile, month) != null) {
-        entry.setField("month", entry.ownerFile.makeString(month))
+        entry.set("month", month)
       }
     } else if (entry.getFieldValue("month") != null) {
       val month = driver
@@ -72,7 +84,7 @@ object ScrapeAcm : Scraper {
         .innerHtml
         .split("\\s+")
         .first()
-      entry.setField("month", entry.ownerFile.makeString(month))
+      entry.set("month", month)
     }
 
     // // Keywords
@@ -83,7 +95,7 @@ object ScrapeAcm : Scraper {
       // We sort them so that we are deterministic.
       .sorted()
     if (keywords.size > 0) {
-      entry.setField("keywords", entry.ownerFile.makeString(keywords.joinToString("; ")))
+      entry.set("keywords", keywords.joinToString("; "))
     }
 
     // // Journal
@@ -92,7 +104,7 @@ object ScrapeAcm : Scraper {
         .findElements(By.cssSelector("meta[name=\"citation_journal_title\"]"))
         .map { it.getAttribute("content") }
       if (journal.size > 0) {
-        entry.setField("journal", entry.ownerFile.makeString(journal.first()))
+        entry.set("journal", journal.first())
       }
     }
 
@@ -104,19 +116,14 @@ object ScrapeAcm : Scraper {
       val issn = issns.first().innerHtml
       val pissn =
         """<span class="bold">ISSN:</span><span class="space">(.*?)</span>"""
-          .toRegex()
+          .r
           .find(issn)
       val eissn =
         """<span class="bold">EISSN:</span><span class="space">(.*?)</span>"""
-          .toRegex()
+          .r
           .find(issn)
       if (pissn != null && eissn != null) {
-        entry.setField(
-          "issn",
-          entry.ownerFile.makeString(
-            "${pissn.groupValues[1]} (Print) ${eissn.groupValues[1]} (Online)"
-          )
-        )
+        entry.set("issn", "${pissn.groupValues[1]} (Print) ${eissn.groupValues[1]} (Online)")
       }
     }
 
@@ -127,7 +134,7 @@ object ScrapeAcm : Scraper {
     ) {
       val articleno = entry.getFieldValue("articleno").toString()
       val numpages = entry.getFieldValue("numpages").toString()
-      entry.setField("pages", entry.ownerFile.makeString("$articleno:1--$articleno:$numpages"))
+      entry.set("pages", "$articleno:1--$articleno:$numpages")
     }
 
     return entry
@@ -142,7 +149,7 @@ object ScrapeArxiv : Scraper {
     // format_bibtex_arxiv in
     // https://github.com/mattbierbaum/arxiv-bib-overlay/blob/master/src/ui/CiteModal.tsx
     // Ensure we are at the "abstract" page
-    val urlRegex = "://arxiv.org/([^/]+)/(.*)$".toRegex()
+    val urlRegex = "://arxiv.org/ ([^/]+) / (.*) $".r
 
     val urlMatch = urlRegex.find(driver.currentUrl)!!
     if (urlMatch.groupValues[1] != "abs") {
@@ -277,6 +284,7 @@ object ScrapeCambridge : Scraper {
     val title = driver.awaitFindElement(By.className("article-title")).innerHtml
     // my Str:D $title =
     //   await({ $web-driver.find_element_by_class_name( 'article-title' ) }).get_property( 'innerHTML' );
+    entry.set("title", title)
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Abstract
@@ -296,6 +304,7 @@ object ScrapeCambridge : Scraper {
     // my Str:D $pissn = $web-driver.find_element_by_name( 'productIssn' ).get_attribute( 'value' );
     val eissn = driver.findElement(By.name("productEissn")).getAttribute("value")
     // my Str:D $eissn = $web-driver.find_element_by_name( 'productEissn' ).get_attribute( 'value' );
+    entry.set("issn", "$pissn (Print) $eissn (Online)")
     // $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
 
     return entry
@@ -331,6 +340,7 @@ object ScrapeIeeeComputer : Scraper {
     //   ($web-driver.find_elements_by_css_selector(
     //      'a[href^="https://www.computer.org/csdl/search/default?type=author&"]' )
     //   )».get_property( 'innerHTML' );
+    entry.set("author", authors.joinToString(" and "))
     // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // Affiliation
@@ -339,6 +349,9 @@ object ScrapeIeeeComputer : Scraper {
       .map { it.innerHtml }
     // my Str:D @affiliations =
     //   ($web-driver.find_elements_by_class_name( 'article-author-affiliations' ))».get_property( 'innerHTML' );
+    if (!affiliations.isEmpty()) {
+      entry.set("affiliation", affiliations.joinToString(" and "))
+    }
     // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new(@affiliations.join( ' and ' ))
     //   if @affiliations;
 
@@ -502,6 +515,7 @@ object ScrapeJstor : Scraper {
     // // DOI
     val doi = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
     // my Str:D $doi = $web-driver.find_element_by_css_selector( '[data-doi]' ).get_attribute( 'data-doi' );
+    entry.set("doi", doi)
     // $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi);
 
     // // ISSN
@@ -617,6 +631,7 @@ object ScrapeScienceDirect : Scraper {
     // my Str:D @keywords =
     //   ($web-driver.find_elements_by_css_selector(
     //      '.keywords-section > .keyword > span' ))».get_property( 'innerHTML' );
+    entry.set("keywords", keywords.joinToString("; "))
     // $entry.fields<keywords> = BibScrape::BibTeX::Value.new(@keywords.join( '; ' ));
 
     // // Abstract
@@ -625,6 +640,9 @@ object ScrapeScienceDirect : Scraper {
       .map { it.innerHtml }
     // my Str:D @abstract =
     //   ($web-driver.find_elements_by_css_selector( '.abstract > div' ))».get_property( 'innerHTML' );
+    if (!abstract.isEmpty()) {
+      entry.set("abstract", abstract.first())
+    }
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new(@abstract.head)
     //   if @abstract;
 
@@ -663,6 +681,7 @@ object ScrapeSpringer : Scraper {
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
     // $entry.type = html-meta-type($meta);
+    HtmlMeta.bibtex(entry, meta, "publisher" to true)
     // html-meta-bibtex($entry, $meta, :publisher);
 
     // if $entry.fields<editor>:exists {

@@ -1,18 +1,46 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
+import bibtex.dom.BibtexAbstractValue
+import bibtex.dom.BibtexString
 
 // enum MediaType <print online both>;
 
+fun BibtexEntry.contains(field: String): Boolean = this.fields.containsKey(field)
+
+fun BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> Unit): Unit? = this.fields[field]?.let(block)
+
+fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean) {
 // sub check(BibScrape::BibTeX::Entry:D $entry, Str:D $field, Str:D $msg, &check --> Any:U) {
+  this.ifField(field) {
 //   if ($entry.fields{$field}:exists) {
+    val value = it.asString
 //     my Str:D $value = $entry.fields{$field}.simple-str;
+    if (!block(value)) {
 //     unless (&check($value)) {
+      println("WARNING: ${msg}: ${value}")
 //       say "WARNING: $msg: $value";
 //     }
+    }
 //   }
+  }
 //   return;
 // }
+}
+
+// fun BibtexEntry.set(field: String, value: String): Unit =
+//   this.setField(field, this.ownerFile.makeString(value))
+
+val BibtexAbstractValue.asString: String
+  get() = (this as? BibtexString)?.content ?: this.toString()
+
+fun BibtexEntry.update(field: String, block: (String) -> String?) {
+  this.ifField(field) {
+    val newValue = block(it.asString)
+    if (newValue != null) { this.set(field, newValue) }
+    else { this.undefineField(field) }
+  }
+}
 
 class Fix(
   // // INPUTS
@@ -84,58 +112,90 @@ class Fix(
 //   self.bless(:@name-groups, :@noun-groups, :@stop-words-strs, |%args.Map);
 // }
 
-  fun fix(entry: BibtexEntry): BibtexEntry {
+  fun fix(oldEntry: BibtexEntry): BibtexEntry {
+    val entry = oldEntry.ownerFile.makeEntry(oldEntry.entryType, oldEntry.entryKey)
+    oldEntry.fields.forEach({ name, value -> entry.setField(name, value) })
 
 // method fix(BibScrape::BibTeX::Entry:D $entry is copy --> BibScrape::BibTeX::Entry:D) {
 //   $entry = $entry.clone;
 
-//   ################################
-//   # Pre-omit fixes               #
-//   ################################
+    // ///////////////////////////////
+    //  Pre-omit fixes              //
+    // ///////////////////////////////
 
-//   # Doi field: remove "http://hostname/" or "DOI: "
+    // Doi field: remove "http://hostname/" or "DOI: "
+    if (!entry.contains("doi") &&
+      (entry.fields["url"]?.asString ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
+    ) {
 //   if not $entry.fields<doi>:exists
 //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
+      entry.fields["doi"] = entry.fields["url"]
 //     $entry.fields<doi> = $entry.fields<url>;
+      entry.undefineField("url")
 //     $entry.fields<url>:delete;
-//   }
+    }
 
-//   # Fix wrong field names (SpringerLink and ACM violate this)
+    // Fix wrong field names (SpringerLink and ACM violate this)
+    for ((wrongName, rightName) in listOf("issue" to "number", "keyword" to "keywords")) {
 //   for ('issue', 'number', 'keyword', 'keywords') -> Str:D $key, Str:D $value {
+      if (entry.contains(wrongName) &&
+        (!entry.contains(rightName) ||
+          entry.fields[wrongName] == entry.fields[rightName])) {
 //     if $entry.fields{$key}:exists and
 //         (not $entry.fields{$value}:exists or
 //           $entry.fields{$key} eq $entry.fields{$value}) {
+        entry.setField(rightName, entry.fields[wrongName])
 //       $entry.fields{$value} = $entry.fields{$key};
+        entry.undefineField(wrongName)
 //       $entry.fields{$key}:delete;
 //     }
+          }
 //   }
+    }
 
 //   # Fix Springer's use of 'note' to store 'doi'
+    entry.update("note") { if (it == entry.fields["doi"] ?: "") { null } else { it }  }
 //   update($entry, 'note', { $_ = Str if $_ eq ($entry.fields<doi> // '') });
 
-//   ################################
-//   # Post-omit fixes              #
-//   ################################
+    // ///////////////////////////////
+    // Post-omit fixes              //
+    // ///////////////////////////////
 
-//   # Omit fields we don't want.  Should be first after inter-field fixes.
-//   $entry.fields{$_}:exists and $entry.fields{$_}:delete for @.omit;
+    // Omit fields we don't want.  Should be first after inter-field fixes.
+    omit.forEach { entry.undefineField(it) }
+    // $entry.fields{$_}:exists and $entry.fields{$_}:delete for @.omit;
 
+    entry.update("doi") {
+      it
+      .replace("http s? :// [^/]+ /".ri, "")
+      .replace("doi: \\s*".ri, "")
+    }
 //   update($entry, 'doi', { s:i:g/"http" "s"? "://" <-[/]>+ "/"//; s:i:g/"DOI:"\s*//; });
 
-//   # Page numbers: no "pp." or "p."
-//   update($entry, 'pages', { s:i:g/"p" "p"? "." \s*//; });
+    // Page numbers: no "pp." or "p."
+    entry.update("pages") { it.replace("p p? \\. \\s*".ri, "") }
+    // update($entry, 'pages', { s:i:g/"p" "p"? "." \s*//; });
 
-//   # Ranges: convert "-" to "--"
+    // Ranges: convert "-" to "--"
+    for (field in "chapter month number pages volume year".split(" ")) {
 //   for ('chapter', 'month', 'number', 'pages', 'volume', 'year') -> Str:D $key {
+      val dash = // Don't use en-dash in techreport numbers
+        if (entry.entryType == "techreport" && field == "number") "-" else "--"
 //     my Str:D $dash = # Don't use en-dash in techreport numbers
 //       $entry.type eq 'techreport' && $_ eq 'number'
 //       ?? '-' !! '--';
+      entry.update(field) { it.replace("\\s* (- | \\N{EN DASH} | \\N{EM DASH})+ \\s*".ri, dash) }
 //     update($entry, $key, { s:i:g/ \s* [ '-' | \c[EN DASH] | \c[EM DASH] ]+ \s* /$dash/; });
+      entry.update(field) { val x = it.replace("n/a -- n/a".ri, ""); if (x == "") null else x }
 //     update($entry, $key, { s:i:g/ 'n/a--n/a' //; $_ = Str if !$_ });
+      entry.update(field) { it.replace("\\b (\\w+) -- \\1".ri, "$1") }
 //     update($entry, $key, { s:i:g/ «(\w+) '--' $0» /$0/; });
+      entry.update(field) { it.replace("(^|\\ ) (\\w+)--(\\w+)--(\\w+)--(\\w+) ($|,)".ri, "$1$2-$3--$4-$5$6") }
 //     update($entry, $key, { s:i:g/ (^ | ' ') (\w+) '--' (\w+) '--' (\w+) '--' (\w+) ($ | ',')/$0$1-$2--$3-$4$5/ });
+      entry.update(field) { it.replace("\\s+ , \\s+".ri, ", ") }
 //     update($entry, $key, { s:i:g/ \s+ ',' \s+/, /; });
 //   }
+    }
 
 //   check($entry, 'pages', 'Possibly incorrect page number', {
 //     my Regex:D $page = rx[
@@ -166,9 +226,25 @@ class Fix(
 //     /^ $page+ % "," $/;
 //   });
 
+    entry.check("volume", "Possibly incorrect volume") {
+      it.contains("^ \\d+          $".r) ||
+      it.contains("^ \\d+  - \\d+  $".r) ||
+      it.contains("^ [A-Z] - \\d+  $".r) ||
+      it.contains("^ \\d+  - [A-Z] $".r)
+    }
 //   check($entry, 'volume', 'Possibly incorrect volume', {
 //     /^ \d+ $/ || /^ \d+ "-" \d+ $/ || /^ <[A..Z]> "-" \d+ $/ || /^ \d+ "-" <[A..Z]> $/ });
 
+    entry.check("number", "Possibly incorrect number") {
+      it.contains("^   \\d+           $".r) ||
+      it.contains("^   \\d+ -- \\d+   $".r) ||
+      it.contains("^   \\d+ (/ \\d+)* $".r) ||
+      it.contains("^   \\d+ es        $".r) ||
+      it.contains("^ S \\d+           $".r) ||
+      // PACMPL uses conference abbreviations (e.g., ICFP)
+      it.contains("^   [A-Z]+         $".r) ||
+      it.contains("^ Special\\ Issue\\  \\d+ (--\\d+)? $".r)
+    }
 //   check($entry, 'number', 'Possibly incorrect number', {
 //     /^ \d+ $/ || /^ \d+ "--" \d+ $/ || /^ [\d+]+ % "/" $/ || /^ \d+ "es" $/ ||
 //     /^ "Special Issue " \d+ ["--" \d+]? $/ || /^ "S" \d+ $/ ||
@@ -185,7 +261,19 @@ class Fix(
 //   if ($entry.fields<author>:exists) { $entry.fields<author> = $.canonical-names($entry.fields<author>) }
 //   if ($entry.fields<editor>:exists) { $entry.fields<editor> = $.canonical-names($entry.fields<editor>) }
 
-//   # Don't include pointless URLs to publisher's page
+    // val publisherUrl = """
+    //   ^
+    //   ( http s? ://doi\.acm\.org/
+    //   | http s? ://doi\.ieeecomputersociety\.org/
+    //   | http s? ://doi\.org/
+    //   | http s? ://dx\.doi\.org/
+    //   | http s? ://portal\.acm\.org/citation\.cfm
+    //   | http s? ://www\.jstor\.org/stable/
+    //   | http s? ://www\.sciencedirect\.com/science/article/
+    //   ) """.r
+    val publisherUrl = """^https://doi.org/""".toRegex()
+    // Don't include pointless URLs to publisher's page
+    entry.update("url") { if (it.contains(publisherUrl)) null else it }
 //   update($entry, 'url', {
 //     $_ = Str if m/^
 //       [ 'http' 's'? '://doi.acm.org/'
@@ -196,10 +284,11 @@ class Fix(
 //       | 'http' 's'? '://www.jstor.org/stable/'
 //       | 'http' 's'? '://www.sciencedirect.com/science/article/' ]/; });
 
-//   # Year
+    // Year
+    entry.check("year", "Possibly incorrect year") { it.contains("^ \\d\\d\\d\\d $".r) }
 //   check($entry, 'year', 'Possibly incorrect year', { /^ \d\d\d\d $/ });
 
-//   # Eliminate Unicode but not for no-encode fields (e.g. doi, url, etc.)
+    // Eliminate Unicode but not for no-encode fields (e.g. doi, url, etc.)
 //   for $entry.fields.keys -> Str:D $field {
 //     unless $field ∈ @.no-encode {
 //       update($entry, $field, {
@@ -210,11 +299,12 @@ class Fix(
 //     }
 //   }
 
-//   ################################
-//   # Post-Unicode fixes           #
-//   ################################
+    // ///////////////////////////////
+    // Post-Unicode fixes           //
+    // ///////////////////////////////
 
-//   # Canonicalize series: PEPM'97 -> PEPM~'97.  After Unicode encoding so "'" doesn't get encoded.
+    // Canonicalize series: PEPM'97 -> PEPM~'97.  After Unicode encoding so "'" doesn't get encoded.
+    entry.update("series") { it.replace("([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d+)".r, "$1~'$3") }
 //   update($entry, 'series', { s:g/(<upper>+) " "* [ '19' | '20' | "'" | '{\\textquoteright}' ] (\d+)/$0~'$1/; });
 
 //   # Collapse spaces and newlines.  After Unicode encoding so stuff from XML is caught.
@@ -251,9 +341,9 @@ class Fix(
 //         say "WARNING: Possibly incorrect month: $_" and BibScrape::BibTeX::Piece.new($_)});
 //     $_ = BibScrape::BibTeX::Value.new(@x)});
 
-//   ################################
-//   # Final fixes                  #
-//   ################################
+    // ///////////////////////////////
+    // Final fixes                  //
+    // ///////////////////////////////
 
 //   # Omit empty fields we don't want
 //   for @.omit-empty {
@@ -298,8 +388,7 @@ class Fix(
 //   }
 //   $entry.set-fields(@.field.flatmap({ $entry.fields{$_}:exists ?? ($_ => $entry.fields{$_}) !! () }));
 
-//   $entry;
-// }
+    return entry
   }
 
 // method isbn(BibScrape::BibTeX::Entry:D $entry, Str:D $field, MediaType:D $print_or_online, &canonical --> Any:U) {

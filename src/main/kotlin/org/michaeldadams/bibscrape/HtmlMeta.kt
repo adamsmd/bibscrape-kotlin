@@ -85,15 +85,7 @@ object HtmlMeta {
         "keywords",
         meta
           .getOrDefault("citation_keywords", emptyList())
-          .map {
-            """^\s*;*""".toRegex().replace(
-              """;*\s*$""".toRegex().replace(
-                it,
-                ""
-              ),
-              ""
-            )
-          }
+          .map { it.replace("^ \\s* ;* ".r, "").replace(" ;* \\s* $".r, "") }
           .joinToString("; ")
       )
     }

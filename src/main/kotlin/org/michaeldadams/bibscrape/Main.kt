@@ -39,7 +39,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       BibTeX entry or automatically generated if there is no existing BibTeX
       entry.
       """
-  ).split(",".toRegex()).multiple()
+  ).split(",".r).multiple()
 
   val names: List<List<Path>> by option(
     help = """
@@ -47,7 +47,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the NAMES FILES and LIST FLAGS sections for details.
       The file name "." means "names.cfg" in the user-configuration directory.
       """
-  ).path(mustExist = true, canBeDir = false).split(";".toRegex()).multiple()
+  ).path(mustExist = true, canBeDir = false).split(";".r).multiple()
   // TODO: default to "." and support "."
 
   val name: List<List<String>> by option(
@@ -56,7 +56,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the NAMES FILES section for details about names files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).split(";".toRegex()).multiple()
+  ).split(";".r).multiple()
 
   val nouns: List<List<Path>> by option(
     help = """
@@ -64,7 +64,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the NOUNS FILES and LIST FLAGS sections for details.
       The file name "." means "nouns.cfg" in the user-configuration directory.
       """
-  ).path(mustExist = true, canBeDir = false).split(";".toRegex()).multiple()
+  ).path(mustExist = true, canBeDir = false).split(";".r).multiple()
   // TODO: default to "." and support "."
 
   val noun: List<List<String>> by option(
@@ -73,7 +73,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the NOUNS FILES section for details about nouns files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).split(";".toRegex()).multiple()
+  ).split(";".r).multiple()
 
   val stopWords: List<List<Path>> by option(
     help = """
@@ -81,7 +81,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the STOP-WORDS FILES and LIST FLAGS sections for details.
       The file name "." means "stop-words.cfg" in the user-configuration directory.
       """
-  ).path(mustExist = true, canBeDir = false).split(";".toRegex()).multiple()
+  ).path(mustExist = true, canBeDir = false).split(";".r).multiple()
   // TODO: default to "." and support "."
 
   val stopWord: List<List<String>> by option(
@@ -90,7 +90,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the STOP-WORDS FILES section for details about stop-words files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).split(";".toRegex()).multiple()
+  ).split(";".r).multiple()
 }
 
 /** Option group controlling what major modes of work is actually done. */
@@ -419,10 +419,13 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
 
   override fun run() {
+    val fixer = Fix(emptyList(), emptyList(), emptyList(), generalOptions.escapeAcronyms, generalOptions.issnMedia, generalOptions.isbnMedia, generalOptions.isbnType, generalOptions.isbnSep, emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
     val driver = Driver.make(!generalOptions.window, false)
     driver.use {
       for (filename in arg) {
-        println(Scrape.dispatch(driver, filename))
+        val scrapedBibtex = Scrape.dispatch(driver, filename)
+        val fixedBibtex = fixer.fix(scrapedBibtex)
+        println(fixedBibtex)
       }
     }
   }

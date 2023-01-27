@@ -13,10 +13,10 @@ object Scrape {
    * @return the [BibtexEntry] that was scraped
    */
   fun dispatch(driver: Driver, url: String): BibtexEntry {
-    val newUrl = """^doi:(https?://(dx\.)?doi.org/)?""".toRegex().replace(url, "https://doi.org/")
+    val newUrl = url.replace("^ doi: (http s? :// (dx\\.)? doi.org/)?".r, "https://doi.org/")
     driver.get(newUrl)
 
-    val domainMatchResult = """^[^/]*//([^/]*)/""".toRegex().find(driver.currentUrl)
+    val domainMatchResult = driver.currentUrl.find("^ [^/]* // ([^/]*) /".r)
 
     if (domainMatchResult == null) { throw Error("TODO") }
     val domain = domainMatchResult.groupValues[1]
@@ -35,7 +35,7 @@ object Scrape {
     )
     for (scraper in scrapers) {
       for (d in scraper.domains) {
-        if ("\\b${Regex.escape(d)}\$".toRegex().containsMatchIn(domain)) {
+        if ("\\b ${Regex.escape(d)} $".r.containsMatchIn(domain)) {
           return scraper.scrape(driver)
         }
       }
