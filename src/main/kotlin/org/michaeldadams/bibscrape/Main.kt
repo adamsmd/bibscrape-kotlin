@@ -434,13 +434,14 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
 
   override fun run() {
+    // Would prefer to use org.openqa.selenium.remote.http.Filter, NetworkInterceptor or devTools.createSession(), but that breaks on Firefox
     val proxy = net.lightbody.bmp.BrowserMobProxyServer()
     proxy.start(0)
     val seleniumProxy = net.lightbody.bmp.client.ClientUtil.createSeleniumProxy(proxy)
     // println("XXX:"+seleniumProxy.getHttpProxy())
 
     proxy.addResponseFilter( { response, contents, messageInfo ->
-      println("responding: $response\n")
+      // println("responding: $response\n")
       response.headers().remove("Content-Disposition")
       null
     })
@@ -459,10 +460,7 @@ class Main : CliktCommand(
     // profile.setPreference("fission.webContentIsolationStrategy", 0 as java.lang.Integer)
     // profile.setPreference("fission.bfcacheInParent", false as java.lang.Boolean)
     // profile.setPreference("foo", java.lang.String("bar"))
-    // println("x: ${java.lang.String("bar") is java.lang.String}")
-    //println("BAR: ${options.profile.getIntegerPreference("fission.webContentIsolationStrategy", -1)}")
     // options.setProfile(profile)
-    // println("BAR: ${options.profile.getStringPreference("foo", "<none>")}")
     if (!generalOptions.window) {
       options.addArguments("--headless")
     }
@@ -473,9 +471,7 @@ class Main : CliktCommand(
       // serviceBuilder.withLogFile(java.io.File("/dev/null")) // TODO: or "NUL" on windows
     }
     val service = serviceBuilder.build()
-    println("pre aug")
-    val driver = FirefoxDriver(service, options) //org.openqa.selenium.remote.Augmenter().augment(FirefoxDriver(service, options))
-println("post aug")
+    val driver = FirefoxDriver(service, options)
     // #profile.set_preference('browser.download.panel.shown', False)
     // #profile.set_preference('browser.helperApps.neverAsk.openFile',
     // #  'text/plain,text/x-bibtex,application/x-bibtex,application/x-research-info-systems')
@@ -486,42 +482,20 @@ println("post aug")
     // #profile.set_preference('permissions.default.image', 2) # Never load the images
     // val downloadDirectory = kotlin.io.path.createTempDirectory()
     // Runtime.getRuntime().addShutdownHook(Thread { downloadDirectory.deleteRecursively() })
-    // println("FOO: ${options.profile.getStringPreference("browser.download.dir", "<none>")}")
-    // driver = new Augmenter().augment(driver);
-    // val devTools = (driver as HasDevTools).getDevTools()
-    // devTools.createSession()
-    
 
-    // val filter = object : org.openqa.selenium.remote.http.Filter {
-    //   override fun apply(next: HttpHandler): HttpHandler = next
-        // object : HttpHandler {
-        //   override fun execute(req: HttpRequest): HttpResponse {
-        //     // req.addHeader("cheese", "brie");
-        //     val res = next.execute(req)
-        //     // res.addHeader("vegetable", "peas");
-        //     // println("req\n")
-        //     return res
-        //   }
-        // }
-
-    // }
-    // val n = NetworkInterceptor(driver, filter) //null //NetworkInterceptor​(driver, filter)
-    // n.use {
     try {
       for (filename in arg) {
         println(Scrape.dispatch(driver, filename))
       }
     } finally {
       // TODO: as option?
-      Thread.sleep(100*1_000) // Fixes "Timed out waiting for driver server to stop" (sometimes)
+      Thread.sleep(1_000) // Fixes "Timed out waiting for driver server to stop" (sometimes)
       driver.quit()
+      proxy.stop()
     }
     // System.exit(0)
   // }
   }
 }
 
-
-// class Driver(val driver: RemoteWebDriver) : WebDriver by driver, JavascriptExecutor by driver {
-
-// }
+// $ ./gradlew installDist && ./build/install/bibscrape/bin/bibscrape --window 'https://doi.org/10.1145/1863543.1863551'
