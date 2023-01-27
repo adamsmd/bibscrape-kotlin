@@ -64,6 +64,7 @@
     # The indentation size for each file
     indentationSize: 2
 
+## Rules that I am not sure about yet
 
 # # Checks that line breaks follow code style guide: rule 3.6
 # - name: WRONG_NEWLINES
