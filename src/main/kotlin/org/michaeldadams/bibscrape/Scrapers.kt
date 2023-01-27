@@ -1,6 +1,7 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
+import bibtex.dom.BibtexFile
 import org.openqa.selenium.By
 import kotlin.text.toRegex
 
@@ -98,7 +99,7 @@ object ScrapeAcm : Scraper {
     val issns =
       driver
         .findElements(By.className("cover-image__details"))
-        .sortedBy({ it.findElements(By.className("journal-meta")).size > 0 })
+        .sortedBy { it.findElements(By.className("journal-meta")).size > 0 }
     if (issns.size > 0) {
       val issn = issns.first().innerHtml
       val pissn =
@@ -142,26 +143,25 @@ object ScrapeArxiv : Scraper {
     // https://github.com/mattbierbaum/arxiv-bib-overlay/blob/master/src/ui/CiteModal.tsx
     // Ensure we are at the "abstract" page
     val urlRegex = "://arxiv.org/([^/]+)/(.*)$".toRegex()
+
     val urlMatch = urlRegex.find(driver.currentUrl)!!
     if (urlMatch.groupValues[1] != "abs") {
       driver.get("https://arxiv.org/abs/${urlMatch.groupValues[2]}")
     }
-    // $web-driver%<current_url> ~~ / '://arxiv.org/' (<-[/]>+) '/' (.*) $/;
-    // if $0 ne 'abs' {
-    //   $web-driver.get("https://arxiv.org/abs/$1");
-    // }
 
     // Id
     val id = urlRegex.find(driver.currentUrl)!!.groupValues[1]
-    // $web-driver%<current_url> ~~ / '://arxiv.org/' (<-[/]>+) '/' (.*) $/;
-    // my Str:D $id = $1.Str;
 
     // Use the arXiv API to download meta-data
     // #$web-driver.get("https://export.arxiv.org/api/query?id_list=$id"); # Causes a timeout
     // #$web-driver.execute_script(
     // #   'window.location.href = arguments[0]', "https://export.arxiv.org/api/query?id_list=$id");
+    driver.executeScript("window.open(arguments[0], \"_self\")",
+      "https://export.arxiv.org/api/query?id_list=${id}")
     // $web-driver.execute_script( 'window.open(arguments[0], "_self")',
     //   "https://export.arxiv.org/api/query?id_list=$id");
+    val xmlString = driver.pageSource
+    driver.navigate().back()
     // my Str:D $xml-string = $web-driver.read-downloads();
     // my XML::Document:D $xml = from-xml($xml-string);
 
@@ -172,75 +172,78 @@ object ScrapeArxiv : Scraper {
     // } else {
     //   my XML::Element:D $xml-entry = $xml.getElementsByTagName('entry').head;
 
-    //   sub text(XML::Element:D $element, Str:D $str --> Str:D) {
-    //     my XML::Element:D @elements = $element.getElementsByTagName($str);
-    //     if @elements {
-    //       @elements.head.contents».text.join('');
-    //     } else {
-    //       '';
-    //     }
+    // sub text(XML::Element:D $element, Str:D $str --> Str:D) {
+    //   my XML::Element:D @elements = $element.getElementsByTagName($str);
+    //   if @elements {
+    //     @elements.head.contents».text.join('');
+    //   } else {
+    //     '';
     //   }
+    // }
 
-    //   # BibTeX object
-    //   my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new(:type('misc'), :key("arxiv.$id"));
+    // // BibTeX object
+    val file = BibtexFile()
+    val entry = file.makeEntry("misc", "arxiv.${id}")
+    // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new(:type('misc'), :key("arxiv.$id"));
 
-    //   # Title
-    //   my Str:D $title = text($xml-entry, 'title');
-    //   $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
+    // // Title
+    // my Str:D $title = text($xml-entry, 'title');
+    // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
-    //   # Author
-    //   my XML::Element:D @authors = $xml-entry.getElementsByTagName('author');
-    //   my Str:D $author = @authors.map({text($_, 'name')}).join( ' and ' );
-    //     # author=<author><name> 	One for each author. Has child element <name> containing the author name.
-    //   $entry.fields<author> = BibScrape::BibTeX::Value.new($author);
+    // // Author
+    // my XML::Element:D @authors = $xml-entry.getElementsByTagName('author');
+    // my Str:D $author = @authors.map({text($_, 'name')}).join( ' and ' );
+    //   # author=<author><name> 	One for each author. Has child element <name> containing the author name.
+    // $entry.fields<author> = BibScrape::BibTeX::Value.new($author);
 
-    //   # Affiliation
-    //   my Str:D $affiliation = @authors.map({text($_, 'arxiv:affiliation')}).grep({$_ ne ''}).join( ' and ' );
-    //     # affiliation=<author><arxiv:affiliation>
-    //     // The author's affiliation included as a subelement of <author> if present.
-    //   $entry.fields<affiliation> = BibScrape::BibTeX::Value.new($affiliation)
-    //     if $affiliation ne '';
+    // // Affiliation
+    // my Str:D $affiliation = @authors.map({text($_, 'arxiv:affiliation')}).grep({$_ ne ''}).join( ' and ' );
+    //   # affiliation=<author><arxiv:affiliation>
+    //   // The author's affiliation included as a subelement of <author> if present.
+    // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new($affiliation)
+    //   if $affiliation ne '';
 
-    //   # How published
-    //   $entry.fields<howpublished> = BibScrape::BibTeX::Value.new('arXiv.org');
+    // // How published
+    // $entry.fields<howpublished> = BibScrape::BibTeX::Value.new('arXiv.org');
 
-    //   # Year, month and day
-    //   my Str:D $published = text($xml-entry, 'published');
-    //   $published ~~ /^ (\d ** 4) '-' (\d ** 2) '-' (\d ** 2) 'T'/;
-    //   my (Str:D $year, Str:D $month, Str:D $day) = ($0.Str, $1.Str, $2.Str);
-    //     # year, month, day = <published> 	The date that version 1 of the article was submitted.
-    //     # <updated> 	The date that the retrieved version of the article was
-    //             submitted. Same as <published> if the retrieved version is version 1.
-    //   $entry.fields<year> = BibScrape::BibTeX::Value.new($year);
-    //   $entry.fields<month> = BibScrape::BibTeX::Value.new($month);
-    //   $entry.fields<day> = BibScrape::BibTeX::Value.new($day);
+    // // Year, month and day
+    // my Str:D $published = text($xml-entry, 'published');
+    // $published ~~ /^ (\d ** 4) '-' (\d ** 2) '-' (\d ** 2) 'T'/;
+    // my (Str:D $year, Str:D $month, Str:D $day) = ($0.Str, $1.Str, $2.Str);
+    //   # year, month, day = <published> 	The date that version 1 of the article was submitted.
+    //   # <updated> 	The date that the retrieved version of the article was
+    //           submitted. Same as <published> if the retrieved version is version 1.
+    // $entry.fields<year> = BibScrape::BibTeX::Value.new($year);
+    // $entry.fields<month> = BibScrape::BibTeX::Value.new($month);
+    // $entry.fields<day> = BibScrape::BibTeX::Value.new($day);
 
-    //   my Str:D $doi = $xml-entry.elements(:TAG<link>, :title<doi>).map({$_.attribs<href>}).join(';');
-    //   $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi)
-    //     if $doi ne '';
+    // my Str:D $doi = $xml-entry.elements(:TAG<link>, :title<doi>).map({$_.attribs<href>}).join(';');
+    // $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi)
+    //   if $doi ne '';
 
-    //   # Eprint
-    //   my Str:D $eprint = $id;
-    //   $entry.fields<eprint> = BibScrape::BibTeX::Value.new($eprint);
+    // // Eprint
+    // my Str:D $eprint = $id;
+    // $entry.fields<eprint> = BibScrape::BibTeX::Value.new($eprint);
 
-    //   # Archive prefix
-    //   $entry.fields<archiveprefix> = BibScrape::BibTeX::Value.new('arXiv');
+    // // Archive prefix
+    // $entry.fields<archiveprefix> = BibScrape::BibTeX::Value.new('arXiv');
 
-    //   # Primary class
-    //   my Str:D $primaryClass = $xml-entry.getElementsByTagName('arxiv:primary_category').head.attribs<term>;
-    //   $entry.fields<primaryclass> = BibScrape::BibTeX::Value.new($primaryClass);
+    // // Primary class
+    // my Str:D $primaryClass = $xml-entry.getElementsByTagName('arxiv:primary_category').head.attribs<term>;
+    // $entry.fields<primaryclass> = BibScrape::BibTeX::Value.new($primaryClass);
 
-    //   # Abstract
-    //   my Str:D $abstract = text($xml-entry, 'summary');
-    //   $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
+    // // Abstract
+    // my Str:D $abstract = text($xml-entry, 'summary');
+    // $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
 
-    //   # The following XML elements are ignored
-    //   # <link> 	Can be up to 3 given url's associated with this article.
-    //   # <category> 	The arXiv or ACM or MSC category for an article if present.
-    //   # <arxiv:comment> 	The authors comment if present.
-    //   # <arxiv:journal_ref> 	A journal reference if present.
-    //   # <arxiv:doi> 	A url for the resolved DOI to an external resource if present.
-    TODO()
+    // The following XML elements are ignored
+    // <link>              Can be up to 3 given url's associated with this article.
+    // <category>          The arXiv or ACM or MSC category for an article if present.
+    // <arxiv:comment>     The authors comment if present.
+    // <arxiv:journal_ref> A journal reference if present.
+    // <arxiv:doi>         A url for the resolved DOI to an external resource if present.
+    
+    return entry
   }
 }
 
@@ -262,13 +265,16 @@ object ScrapeCambridge : Scraper {
     // // BibTeX
     driver.awaitFindElement(By.className("export-citation-product")).click()
     driver.awaitFindElement(By.cssSelector("[data-export-type=\"bibtex\"]")).click()
-    // val entry = Bibtex.parse(driver.readDownloads()).first()
+    val entry = Bibtex.parse(driver.pageSource).first()
+    driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
+    HtmlMeta.bibtex(entry, meta, "abstract" to false)
     // html-meta-bibtex($entry, $meta, :!abstract);
 
     // // Title
+    val title = driver.awaitFindElement(By.className("article-title")).innerHtml
     // my Str:D $title =
     //   await({ $web-driver.find_element_by_class_name( 'article-title' ) }).get_property( 'innerHTML' );
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
@@ -286,11 +292,13 @@ object ScrapeCambridge : Scraper {
     // }
 
     // // ISSN
+    val pissn = driver.findElement(By.name("productIssn")).getAttribute("value")
     // my Str:D $pissn = $web-driver.find_element_by_name( 'productIssn' ).get_attribute( 'value' );
+    val eissn = driver.findElement(By.name("productEissn")).getAttribute("value")
     // my Str:D $eissn = $web-driver.find_element_by_name( 'productEissn' ).get_attribute( 'value' );
     // $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
 
-    TODO()
+    return entry
   }
 }
 
@@ -315,6 +323,10 @@ object ScrapeIeeeComputer : Scraper {
     HtmlMeta.bibtex(entry, meta)
 
     // // Authors
+    val authors =
+      driver
+      .findElements(By.cssSelector("a[href^=\"https://www.computer.org/csdl/search/default?type=author&\"]"))
+      .map { it.innerHtml }
     // my Str:D @authors =
     //   ($web-driver.find_elements_by_css_selector(
     //      'a[href^="https://www.computer.org/csdl/search/default?type=author&"]' )
@@ -322,6 +334,9 @@ object ScrapeIeeeComputer : Scraper {
     // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // Affiliation
+    val affiliations =
+      driver.findElements(By.className("article-author-affiliations"))
+      .map { it.innerHtml }
     // my Str:D @affiliations =
     //   ($web-driver.find_elements_by_class_name( 'article-author-affiliations' ))».get_property( 'innerHTML' );
     // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new(@affiliations.join( ' and ' ))
@@ -429,12 +444,14 @@ object ScrapeIosPress : Scraper {
     // html-meta-bibtex($entry, $meta);
 
     // // Title
+    val title = driver.findElement(By.cssSelector("[data-p13n-title]")).getDomAttribute("data-p13n-title")
     // my Str:D $title =
     //   $web-driver.find_element_by_css_selector( '[data-p13n-title]' ).get_attribute( 'data-p13n-title' );
     // $title ~~ s:g/ "\n" //; # Remove extra newlines
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Abstract
+    val abstract = driver.findElement(By.cssSelector("[data-abstract]")).getDomAttribute("data-abstract")
     // my Str:D $abstract =
     //   $web-driver.find_element_by_css_selector( '[data-abstract]' ).get_attribute( 'data-abstract' );
     // $abstract ~~ s:g/ (<[.!?]>) '  ' /$0\n\n/; # Insert missing paragraphs.  This is a heuristic solution.
@@ -465,10 +482,14 @@ object ScrapeJstor : Scraper {
     // await({ $web-driver.find_elements_by_css_selector( '[data-qa="cite-this-item"]' )
     //         || $web-driver.find_elements_by_class_name( 'cite-this-item' ) }).head.click;
     // await({ $web-driver.find_element_by_css_selector( '[data-sc="text link: citation text"]' ) }).click;
+    val entry = Bibtex.parse(driver.pageSource).first()
+    driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
+    val meta = HtmlMeta.parse(driver)
     // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
+    HtmlMeta.bibtex(entry, meta)
     // html-meta-bibtex($entry, $meta);
 
     // // Title
@@ -479,6 +500,7 @@ object ScrapeJstor : Scraper {
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // DOI
+    val doi = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
     // my Str:D $doi = $web-driver.find_element_by_css_selector( '[data-doi]' ).get_attribute( 'data-doi' );
     // $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi);
 
@@ -507,7 +529,7 @@ object ScrapeJstor : Scraper {
     //   };
     // $entry.fields<publisher> = BibScrape::BibTeX::Value.new($publisher);
 
-    TODO()
+    return entry
   }
 }
 
@@ -530,6 +552,8 @@ object ScrapeOxford : Scraper {
     //   $button.get_attribute( 'class' ) !~~ / « 'disabled' » /
     //     and $button }
     // ).click;
+    val entry = Bibtex.parse(driver.pageSource).first()
+    driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
@@ -545,6 +569,7 @@ object ScrapeOxford : Scraper {
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
 
     // // ISSN
+    val issn = driver.findElement(By.tagName("body")).innerHtml
     // my Str:D $issn = $web-driver.find_element_by_tag_name( 'body' ).get_property( 'innerHTML' );
     // my Str:D $pissn = ($issn ~~ / 'Print ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
     // my Str:D $eissn = ($issn ~~ / 'Online ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
@@ -553,7 +578,7 @@ object ScrapeOxford : Scraper {
     // // Publisher
     // update($entry, 'publisher', { s/^ 'Oxford Academic' $/Oxford University Press/ });
 
-    TODO()
+    return entry
   }
 }
 
@@ -572,10 +597,13 @@ object ScrapeScienceDirect : Scraper {
     //   $web-driver.find_element_by_css_selector( 'button[aria-label="bibtex"]' ).click;
     //   True
     // });
+    val entry = Bibtex.parse(driver.pageSource).first()
+    driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
+    HtmlMeta.bibtex(entry, meta, "number" to true)
     // html-meta-bibtex($entry, $meta, :number);
 
     // // Title
@@ -583,12 +611,18 @@ object ScrapeScienceDirect : Scraper {
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Keywords
+    val keywords =
+      driver.findElements(By.cssSelector(".keywords-section > .keyword > span"))
+      .map { it.innerHtml }
     // my Str:D @keywords =
     //   ($web-driver.find_elements_by_css_selector(
     //      '.keywords-section > .keyword > span' ))».get_property( 'innerHTML' );
     // $entry.fields<keywords> = BibScrape::BibTeX::Value.new(@keywords.join( '; ' ));
 
     // // Abstract
+    val abstract =
+      driver.findElements(By.cssSelector(".abstract > div"))
+      .map { it.innerHtml }
     // my Str:D @abstract =
     //   ($web-driver.find_elements_by_css_selector( '.abstract > div' ))».get_property( 'innerHTML' );
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new(@abstract.head)
@@ -600,7 +634,7 @@ object ScrapeScienceDirect : Scraper {
     //   $entry.fields<note>:delete;
     // }
 
-    TODO()
+    return entry
   }
 }
 
@@ -610,6 +644,8 @@ object ScrapeSpringer : Scraper {
 
   override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
+    val file = BibtexFile()
+    val entry = file.makeEntry("", "")
     // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new();
     // Use the BibTeX download if it is available
     // if $web-driver.find_elements_by_id( 'button-Dropdown-citations-dropdown' ) {
@@ -693,6 +729,6 @@ object ScrapeSpringer : Scraper {
     //     if $_ eq "Springer, $address";
     // });
 
-    TODO()
+    return entry
   }
 }
