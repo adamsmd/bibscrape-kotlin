@@ -1,6 +1,10 @@
 package org.michaeldadams.bibscrape
 
+import io.netty.handler.codec.http.DefaultFullHttpResponse
+import io.netty.handler.codec.http.HttpResponseStatus
+import io.netty.handler.codec.http.HttpVersion
 import net.lightbody.bmp.BrowserMobProxyServer
+import net.lightbody.bmp.client.ClientUtil
 import org.openqa.selenium.By
 import org.openqa.selenium.firefox.FirefoxDriver
 import org.openqa.selenium.firefox.FirefoxOptions
@@ -17,11 +21,6 @@ import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.ConcurrentSkipListSet
 import kotlin.math.roundToLong
-import net.lightbody.bmp.client.ClientUtil
-import io.netty.handler.codec.http.FullHttpResponse
-import io.netty.handler.codec.http.DefaultFullHttpResponse
-import io.netty.handler.codec.http.HttpVersion
-import io.netty.handler.codec.http.HttpResponseStatus
 
 // @Suppress("ClassOrdering", "WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
 private const val MILLIS_PER_SECOND = 1_000
@@ -122,18 +121,17 @@ class Driver private constructor(
       // NetworkInterceptor or devTools.createSession(), but all of those break
       // on Firefox
       val proxy = BrowserMobProxyServer()
-      proxy.addResponseFilter( { response, /*contents*/ _, /*messageInfo*/ _ ->
-        println("response")
+      proxy.addResponseFilter { response, /*contents*/ _, /*messageInfo*/ _ ->
         response.headers().remove("Content-Disposition")
-      })
-      proxy.addRequestFilter({ request, /*contents*/ _, /*messageInfo*/ _ ->
+      }
+      proxy.addRequestFilter { request, /*contents*/ _, /*messageInfo*/ _ ->
         // disqus.com is sometimes slow to respond, and we don't need it, so we block it
         if (request.uri().contains("^http s? :// [^/]* \\b.disqus\\.com/".r)) {
           DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
         } else {
           null
         }
-      })
+      }
       proxy.start()
 
       // // Capabilities

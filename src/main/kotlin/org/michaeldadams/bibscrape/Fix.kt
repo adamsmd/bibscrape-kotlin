@@ -1,46 +1,9 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-import bibtex.dom.BibtexAbstractValue
-import bibtex.dom.BibtexString
+import java.util.Locale
 
 // enum MediaType <print online both>;
-
-fun BibtexEntry.contains(field: String): Boolean = this.fields.containsKey(field)
-
-fun BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> Unit): Unit? = this.fields[field]?.let(block)
-
-fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean) {
-// sub check(BibScrape::BibTeX::Entry:D $entry, Str:D $field, Str:D $msg, &check --> Any:U) {
-  this.ifField(field) {
-//   if ($entry.fields{$field}:exists) {
-    val value = it.asString
-//     my Str:D $value = $entry.fields{$field}.simple-str;
-    if (!block(value)) {
-//     unless (&check($value)) {
-      println("WARNING: ${msg}: ${value}")
-//       say "WARNING: $msg: $value";
-//     }
-    }
-//   }
-  }
-//   return;
-// }
-}
-
-// fun BibtexEntry.set(field: String, value: String): Unit =
-//   this.setField(field, this.ownerFile.makeString(value))
-
-val BibtexAbstractValue.asString: String
-  get() = (this as? BibtexString)?.content ?: this.toString()
-
-fun BibtexEntry.update(field: String, block: (String) -> String?) {
-  this.ifField(field) {
-    val newValue = block(it.asString)
-    if (newValue != null) { this.set(field, newValue) }
-    else { this.undefineField(field) }
-  }
-}
 
 class Fix(
   // // INPUTS
@@ -114,7 +77,7 @@ class Fix(
 
   fun fix(oldEntry: BibtexEntry): BibtexEntry {
     val entry = oldEntry.ownerFile.makeEntry(oldEntry.entryType, oldEntry.entryKey)
-    oldEntry.fields.forEach({ name, value -> entry.setField(name, value) })
+    oldEntry.fields.forEach { name, value -> entry.setField(name, value) }
 
 // method fix(BibScrape::BibTeX::Entry:D $entry is copy --> BibScrape::BibTeX::Entry:D) {
 //   $entry = $entry.clone;
@@ -125,7 +88,7 @@ class Fix(
 
     // Doi field: remove "http://hostname/" or "DOI: "
     if (!entry.contains("doi") &&
-      (entry.fields["url"]?.asString ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
+      (entry.fields["url"]?.string ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
     ) {
 //   if not $entry.fields<doi>:exists
 //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
@@ -197,6 +160,35 @@ class Fix(
 //   }
     }
 
+    entry.check("pages", "Possibly incorrect page number") {
+      val page = """
+        # Simple digits
+        \d+ |
+        \d+ -- \d+ |
+
+        # Roman digits
+        [XVIxvi]+ |
+        [XVIxvi]+ -- [XVIxvi]+ |
+
+        # Roman digits then dash then digits
+        [XVIxvi]+ - \d+ |
+        [XVIxvi]+ - \d+ -- [XVIxvi]+ - \d+ |
+
+        # Digits plus letter
+        \d+ [a-z] |
+        \d+ [a-z] -- \d+ [a-z] |
+
+        # Digits then a separator then Digits
+        \d+ [.:/] \d+ |
+        \d+ ([.:/]) \d+ -- \d+ \1 \d+ |
+
+        # "Front" page
+        f \d+ |
+        f \d+ -- f \d+ |
+
+        # "es" as ending number
+        \d+ -- es
+      """
 //   check($entry, 'pages', 'Possibly incorrect page number', {
 //     my Regex:D $page = rx[
 //       # Simple digits
@@ -223,8 +215,10 @@ class Fix(
 
 //       # "es" as ending number
 //       \d+ "--" "es" ];
+      it.contains("^ ${page} (, ${page})* $".r)
 //     /^ $page+ % "," $/;
 //   });
+    }
 
     entry.check("volume", "Possibly incorrect volume") {
       it.contains("^ \\d+          $".r) ||
@@ -255,23 +249,23 @@ class Fix(
 
 //   self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
 
-//   # Change language codes (e.g., "en") to proper terms (e.g., "English")
+    // Change language codes (e.g., "en") to proper terms (e.g., "English")
+    entry.update("language") { Locale.forLanguageTag(it)?.displayLanguage ?: it }
 //   update($entry, 'language', { $_ = code2language($_) if code2language($_).defined });
 
 //   if ($entry.fields<author>:exists) { $entry.fields<author> = $.canonical-names($entry.fields<author>) }
 //   if ($entry.fields<editor>:exists) { $entry.fields<editor> = $.canonical-names($entry.fields<editor>) }
 
-    // val publisherUrl = """
-    //   ^
-    //   ( http s? ://doi\.acm\.org/
-    //   | http s? ://doi\.ieeecomputersociety\.org/
-    //   | http s? ://doi\.org/
-    //   | http s? ://dx\.doi\.org/
-    //   | http s? ://portal\.acm\.org/citation\.cfm
-    //   | http s? ://www\.jstor\.org/stable/
-    //   | http s? ://www\.sciencedirect\.com/science/article/
-    //   ) """.r
-    val publisherUrl = """^https://doi.org/""".toRegex()
+    val publisherUrl = """
+      ^
+      ( http s? ://doi\.acm\.org/
+      | http s? ://doi\.ieeecomputersociety\.org/
+      | http s? ://doi\.org/
+      | http s? ://dx\.doi\.org/
+      | http s? ://portal\.acm\.org/citation\.cfm
+      | http s? ://www\.jstor\.org/stable/
+      | http s? ://www\.sciencedirect\.com/science/article/
+      ) """.r
     // Don't include pointless URLs to publisher's page
     entry.update("url") { if (it.contains(publisherUrl)) null else it }
 //   update($entry, 'url', {
@@ -369,8 +363,10 @@ class Fix(
 //   $title = ($title.words.grep({$_.fc ∉ @.stop-words-strs}).head // '').fc;
 //   $title = $title ne '' ?? ':' ~ $title !! '';
 
+    val year = entry.ifField("year") { ":" + it.string } ?: ""
 //   my Str:D $year = $entry.fields<year>:exists ?? ':' ~ $entry.fields<year>.simple-str !! '';
 
+    val doi = entry.ifField("doi") { ":" + it.string } ?: ""
 //   my Str:D $doi = $entry.fields<doi>:exists ?? ':' ~ $entry.fields<doi>.simple-str !! '';
 //   if $entry.fields<archiveprefix>:exists
 //       and $entry.fields<archiveprefix>.simple-str eq 'arXiv'

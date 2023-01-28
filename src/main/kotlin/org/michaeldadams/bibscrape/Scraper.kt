@@ -1,7 +1,6 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-import org.openqa.selenium.WebDriver
 
 /** Scrapes BibTeX data for the specified [domains]. */
 interface Scraper {

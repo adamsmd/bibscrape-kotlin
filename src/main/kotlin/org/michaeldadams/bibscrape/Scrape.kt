@@ -1,7 +1,6 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-import kotlin.text.toRegex
 
 /** Scraping functions for BibTeX data from publisher websites, but without
  * making an effort to format them nicely. */

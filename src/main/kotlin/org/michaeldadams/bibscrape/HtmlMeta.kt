@@ -3,7 +3,6 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexEntry
 import org.openqa.selenium.By
 import org.openqa.selenium.WebDriver
-import kotlin.text.toRegex
 
 typealias HtmlMetaTable = Map<String, List<String>>
 

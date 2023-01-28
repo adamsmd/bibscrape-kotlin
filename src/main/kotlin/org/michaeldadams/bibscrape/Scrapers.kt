@@ -4,18 +4,6 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import org.openqa.selenium.By
 import kotlin.text.toRegex
-import kotlin.text.replace
-import kotlin.text.RegexOption
-
-val String.r: Regex
-  get() = this.toRegex(RegexOption.COMMENTS)
-val String.ri: Regex
-  get() = this.toRegex(setOf(RegexOption.COMMENTS, RegexOption.IGNORE_CASE))
-
-fun String.find(regex: Regex): MatchResult? = regex.find(this)
-
-fun BibtexEntry.set(field: String, value: String): Unit =
-  this.setField(field, this.ownerFile.makeString(value))
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : Scraper {
