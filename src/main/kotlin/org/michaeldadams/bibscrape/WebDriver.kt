@@ -12,10 +12,16 @@ import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import java.io.Closeable
+import java.io.File
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.ConcurrentSkipListSet
 import kotlin.math.roundToLong
+import net.lightbody.bmp.client.ClientUtil
+import io.netty.handler.codec.http.FullHttpResponse
+import io.netty.handler.codec.http.DefaultFullHttpResponse
+import io.netty.handler.codec.http.HttpVersion
+import io.netty.handler.codec.http.HttpResponseStatus
 
 // @Suppress("ClassOrdering", "WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
 private const val MILLIS_PER_SECOND = 1_000
@@ -88,6 +94,7 @@ class Driver private constructor(
   // }
 
   companion object {
+    // TODO: weak table of drivers
     val pids = ConcurrentSkipListSet<Int>()
     val directories = ConcurrentSkipListSet<String>()
     init {
@@ -109,57 +116,53 @@ class Driver private constructor(
       })
     }
 
-    fun make(headless: Boolean, noOutput: Boolean): Driver {
+    fun make(headless: Boolean, verbose: Boolean): Driver {
+      // // Proxy
       // Would prefer to use org.openqa.selenium.remote.http.Filter,
-      // NetworkInterceptor or devTools.createSession(), but that breaks on
-      // Firefox
-
-      val proxy = net.lightbody.bmp.BrowserMobProxyServer()
-      proxy.start(0)
-      val seleniumProxy = net.lightbody.bmp.client.ClientUtil.createSeleniumProxy(proxy)
-      // println("XXX:"+seleniumProxy.getHttpProxy())
-
-      proxy.addResponseFilter( { response, contents, messageInfo ->
-        // println("responding: $response\n")
+      // NetworkInterceptor or devTools.createSession(), but all of those break
+      // on Firefox
+      val proxy = BrowserMobProxyServer()
+      proxy.addResponseFilter( { response, /*contents*/ _, /*messageInfo*/ _ ->
+        println("response")
         response.headers().remove("Content-Disposition")
-        // null
       })
-      // proxy.addRequestFilter({ request, contents, messageInfo ->
-      //   if (request.uri.startsWith("https://disqus")) { HttpResponse(404) }
-      //   else null
-      // })
+      proxy.addRequestFilter({ request, /*contents*/ _, /*messageInfo*/ _ ->
+        // disqus.com is sometimes slow to respond, and we don't need it, so we block it
+        if (request.uri().contains("^http s? :// [^/]* \\b.disqus\\.com/".r)) {
+          DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
+        } else {
+          null
+        }
+      })
+      proxy.start()
 
+      // // Capabilities
       val capabilities = DesiredCapabilities()
-      capabilities.setCapability(CapabilityType.PROXY, seleniumProxy)
+      // Could also do: options.setProxy(ClientUtil.createSeleniumProxy(proxy))
+      capabilities.setCapability(CapabilityType.PROXY, ClientUtil.createSeleniumProxy(proxy))
 
+      // // Options
       val options = FirefoxOptions(capabilities)
-      options.setProxy(seleniumProxy)
-      // val profile = options.profile
-      // profile.setPreference("fission.webContentIsolationStrategy", 0 as java.lang.Integer)
-      // profile.setPreference("fission.bfcacheInParent", false as java.lang.Boolean)
-      // profile.setPreference("foo", java.lang.String("bar"))
-      // options.setProfile(profile)
+      // Note: If we ever need to modify the profile, we must call
+      // options.setProfile, and not just modify the result of
+      // options.getProfile.
       if (headless) {
         options.addArguments("--headless")
       }
-      // TODO: option for withLogFile
+
+      // // Service
       val serviceBuilder = GeckoDriverService.Builder()
-      if (noOutput) {
+      if (!verbose) {
         // Prevent debugging noise
-        // serviceBuilder.withLogFile(java.io.File("/dev/null")) // TODO: or "NUL" on windows
+        val nullFile = if (File.separatorChar == '\\') "NUL" else "/dev/null"
+        serviceBuilder.withLogFile(File(nullFile))
       }
       val service = serviceBuilder.build()
+
+      // // Firefox Driver
       val driver = FirefoxDriver(service, options)
-      // #profile.set_preference('browser.download.panel.shown', False)
-      // #profile.set_preference('browser.helperApps.neverAsk.openFile',
-      // #  'text/plain,text/x-bibtex,application/x-bibtex,application/x-research-info-systems')
-      // profile.set_preference('browser.helperApps.neverAsk.saveToDisk',
-      //   'application/atom+xml,application/x-bibtex,application/x-research-info-systems,text/plain,text/x-bibtex')
-      // profile.set_preference('browser.download.folderList', 2) # Use a custom folder for downloading
-      // profile.set_preference('browser.download.dir', '$downloads')
-      // #profile.set_preference('permissions.default.image', 2) # Never load the images
-      // val downloadDirectory = kotlin.io.path.createTempDirectory()
-      // Runtime.getRuntime().addShutdownHook(Thread { downloadDirectory.deleteRecursively() })
+
+      // // Result
       return Driver(driver, proxy)
     }
   }

@@ -420,7 +420,7 @@ class Main : CliktCommand(
 
   override fun run() {
     val fixer = Fix(emptyList(), emptyList(), emptyList(), generalOptions.escapeAcronyms, generalOptions.issnMedia, generalOptions.isbnMedia, generalOptions.isbnType, generalOptions.isbnSep, emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
-    val driver = Driver.make(!generalOptions.window, false)
+    val driver = Driver.make(!generalOptions.window, true) // TODO: option for withLogFile
     driver.use {
       for (filename in arg) {
         val scrapedBibtex = Scrape.dispatch(driver, filename)
