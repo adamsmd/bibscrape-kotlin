@@ -94,7 +94,7 @@ class Fix(
     ) {
 //   if not $entry.fields<doi>:exists
 //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
-      entry[F.DOI] = entry[F.URL]
+      entry[F.DOI] = entry[F.URL]!!
 //     $entry.fields<doi> = $entry.fields<url>;
       entry.undefineField(F.URL)
 //     $entry.fields<url>:delete;
@@ -107,7 +107,7 @@ class Fix(
 //     if $entry.fields{$key}:exists and
 //         (not $entry.fields{$value}:exists or
 //           $entry.fields{$key} eq $entry.fields{$value}) {
-          entry[rightName] = entry[wrongName]
+          entry[rightName] = entry[wrongName]!!
 //       $entry.fields{$value} = $entry.fields{$key};
           entry.undefineField(wrongName)
 //       $entry.fields{$key}:delete;
@@ -340,15 +340,22 @@ class Fix(
     // Final fixes                  //
     // ///////////////////////////////
 
-//   # Omit empty fields we don't want
+    // Omit empty fields we don't want
+    for (field in omitEmpty) {
 //   for @.omit-empty {
+      entry.ifField(field) {
 //     if $entry.fields{$_}:exists {
 //       my Str:D $str = $entry.fields{$_}.Str;
+        if (it.toString().contains("^( {} | \"\" | )$".r)) {
 //       if $str eq ( '{}' | '""' | '' ) {
+          entry.undefineField(field)
 //         $entry.fields{$_}:delete;
 //       }
 //     }
 //   }
+        }
+      }
+    }
 
 //   # Generate an entry key
 //   my BibScrape::BibTeX::Value:_ $name-value =

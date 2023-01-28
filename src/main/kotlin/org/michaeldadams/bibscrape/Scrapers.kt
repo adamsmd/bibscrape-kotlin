@@ -61,17 +61,18 @@ object ScrapeAcm : Scraper {
     //
     // ACM publication months are often inconsistent within the same page.
     // This is a best effort at picking the right month among these inconsistent results.
-    if (entry.getFieldValue(F.ISSUE_DATE) != null) {
-      val month = entry[F.ISSUE_DATE].string.split("\\s+").first()
-      if (Bibtex.str2month(entry.ownerFile, month) != null) {
-        entry[F.MONTH] = month
-      }
-    } else entry.ifField(F.MONTH) {
+    entry.ifField(F.MONTH) {
       entry[F.MONTH] = driver
         .findElement(By.cssSelector(".book-meta + .cover-date"))
         .innerHtml
         .split("\\s+")
         .first()
+    }
+    entry.ifField(F.ISSUE_DATE) {
+      val month = it.string.split("\\s+").first()
+      if (Bibtex.str2month(entry.ownerFile, month) != null) {
+        entry[F.MONTH] = month
+      }
     }
 
     // // Keywords

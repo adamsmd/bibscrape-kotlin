@@ -25,7 +25,7 @@ fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): U
 val BibtexAbstractValue.string: String // TODO: return null when not BibtexString
   get() = (this as? BibtexString)?.content ?: this.toString()
 
-operator fun BibtexEntry.get(field: String): BibtexAbstractValue =
+operator fun BibtexEntry.get(field: String): BibtexAbstractValue? =
   this.getFieldValue(field)
 
 operator fun BibtexEntry.set(field: String, value: String): Unit =
