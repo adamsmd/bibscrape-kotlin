@@ -2,6 +2,8 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import java.util.Locale
+import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 // enum MediaType <print online both>;
 
@@ -87,19 +89,19 @@ class Fix(
     // ///////////////////////////////
 
     // Doi field: remove "http://hostname/" or "DOI: "
-    if (!entry.contains("doi") &&
-      (entry.fields["url"]?.string ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
+    if (!entry.contains(F.DOI) &&
+      (entry.fields[F.URL]?.string ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
     ) {
 //   if not $entry.fields<doi>:exists
 //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
-      entry.fields["doi"] = entry.fields["url"]
+      entry.fields[F.DOI] = entry.fields[F.URL]
 //     $entry.fields<doi> = $entry.fields<url>;
-      entry.undefineField("url")
+      entry.undefineField(F.URL)
 //     $entry.fields<url>:delete;
     }
 
     // Fix wrong field names (SpringerLink and ACM violate this)
-    for ((wrongName, rightName) in listOf("issue" to "number", "keyword" to "keywords")) {
+    for ((wrongName, rightName) in listOf("issue" to F.NUMBER, "keyword" to F.KEYWORDS)) {
 //   for ('issue', 'number', 'keyword', 'keywords') -> Str:D $key, Str:D $value {
       if (entry.contains(wrongName) &&
         (!entry.contains(rightName) ||
@@ -117,7 +119,7 @@ class Fix(
     }
 
 //   # Fix Springer's use of 'note' to store 'doi'
-    entry.update("note") { if (it == entry.fields["doi"] ?: "") { null } else { it }  }
+    entry.update(F.NOTE) { if (it == entry.fields[F.DOI] ?: "") { null } else { it }  }
 //   update($entry, 'note', { $_ = Str if $_ eq ($entry.fields<doi> // '') });
 
     // ///////////////////////////////
@@ -128,7 +130,7 @@ class Fix(
     omit.forEach { entry.undefineField(it) }
     // $entry.fields{$_}:exists and $entry.fields{$_}:delete for @.omit;
 
-    entry.update("doi") {
+    entry.update(F.DOI) {
       it
       .replace("http s? :// [^/]+ /".ri, "")
       .replace("doi: \\s*".ri, "")
@@ -136,14 +138,14 @@ class Fix(
 //   update($entry, 'doi', { s:i:g/"http" "s"? "://" <-[/]>+ "/"//; s:i:g/"DOI:"\s*//; });
 
     // Page numbers: no "pp." or "p."
-    entry.update("pages") { it.replace("p p? \\. \\s*".ri, "") }
+    entry.update(F.PAGES) { it.replace("p p? \\. \\s*".ri, "") }
     // update($entry, 'pages', { s:i:g/"p" "p"? "." \s*//; });
 
     // Ranges: convert "-" to "--"
-    for (field in "chapter month number pages volume year".split(" ")) {
+    for (field in listOf(F.CHAPTER, F.MONTH, F.NUMBER, F.PAGES, F.VOLUME, F.YEAR)) {
 //   for ('chapter', 'month', 'number', 'pages', 'volume', 'year') -> Str:D $key {
       val dash = // Don't use en-dash in techreport numbers
-        if (entry.entryType == "techreport" && field == "number") "-" else "--"
+        if (entry.entryType == T.TECHREPORT && field == F.NUMBER) "-" else "--"
 //     my Str:D $dash = # Don't use en-dash in techreport numbers
 //       $entry.type eq 'techreport' && $_ eq 'number'
 //       ?? '-' !! '--';
@@ -160,7 +162,7 @@ class Fix(
 //   }
     }
 
-    entry.check("pages", "Possibly incorrect page number") {
+    entry.check(F.PAGES, "Possibly incorrect page number") {
       val page = """
         # Simple digits
         \d+ |
@@ -220,7 +222,7 @@ class Fix(
 //   });
     }
 
-    entry.check("volume", "Possibly incorrect volume") {
+    entry.check(F.VOLUME, "Possibly incorrect volume") {
       it.contains("^ \\d+          $".r) ||
       it.contains("^ \\d+  - \\d+  $".r) ||
       it.contains("^ [A-Z] - \\d+  $".r) ||
@@ -229,7 +231,7 @@ class Fix(
 //   check($entry, 'volume', 'Possibly incorrect volume', {
 //     /^ \d+ $/ || /^ \d+ "-" \d+ $/ || /^ <[A..Z]> "-" \d+ $/ || /^ \d+ "-" <[A..Z]> $/ });
 
-    entry.check("number", "Possibly incorrect number") {
+    entry.check(F.NUMBER, "Possibly incorrect number") {
       it.contains("^   \\d+           $".r) ||
       it.contains("^   \\d+ -- \\d+   $".r) ||
       it.contains("^   \\d+ (/ \\d+)* $".r) ||
@@ -250,7 +252,7 @@ class Fix(
 //   self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
 
     // Change language codes (e.g., "en") to proper terms (e.g., "English")
-    entry.update("language") { Locale.forLanguageTag(it)?.displayLanguage ?: it }
+    entry.update(F.LANGUAGE) { Locale.forLanguageTag(it)?.displayLanguage ?: it }
 //   update($entry, 'language', { $_ = code2language($_) if code2language($_).defined });
 
 //   if ($entry.fields<author>:exists) { $entry.fields<author> = $.canonical-names($entry.fields<author>) }
@@ -267,7 +269,7 @@ class Fix(
       | http s? ://www\.sciencedirect\.com/science/article/
       ) """.r
     // Don't include pointless URLs to publisher's page
-    entry.update("url") { if (it.contains(publisherUrl)) null else it }
+    entry.update(F.URL) { if (it.contains(publisherUrl)) null else it }
 //   update($entry, 'url', {
 //     $_ = Str if m/^
 //       [ 'http' 's'? '://doi.acm.org/'
@@ -279,7 +281,7 @@ class Fix(
 //       | 'http' 's'? '://www.sciencedirect.com/science/article/' ]/; });
 
     // Year
-    entry.check("year", "Possibly incorrect year") { it.contains("^ \\d\\d\\d\\d $".r) }
+    entry.check(F.YEAR, "Possibly incorrect year") { it.contains("^ \\d\\d\\d\\d $".r) }
 //   check($entry, 'year', 'Possibly incorrect year', { /^ \d\d\d\d $/ });
 
     // Eliminate Unicode but not for no-encode fields (e.g. doi, url, etc.)
@@ -298,7 +300,7 @@ class Fix(
     // ///////////////////////////////
 
     // Canonicalize series: PEPM'97 -> PEPM~'97.  After Unicode encoding so "'" doesn't get encoded.
-    entry.update("series") { it.replace("([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d+)".r, "$1~'$3") }
+    entry.update(F.SERIES) { it.replace("([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d+)".r, "$1~'$3") }
 //   update($entry, 'series', { s:g/(<upper>+) " "* [ '19' | '20' | "'" | '{\\textquoteright}' ] (\d+)/$0~'$1/; });
 
 //   # Collapse spaces and newlines.  After Unicode encoding so stuff from XML is caught.
@@ -363,10 +365,10 @@ class Fix(
 //   $title = ($title.words.grep({$_.fc ∉ @.stop-words-strs}).head // '').fc;
 //   $title = $title ne '' ?? ':' ~ $title !! '';
 
-    val year = entry.ifField("year") { ":" + it.string } ?: ""
+    val year = entry.ifField(F.YEAR) { ":" + it.string } ?: ""
 //   my Str:D $year = $entry.fields<year>:exists ?? ':' ~ $entry.fields<year>.simple-str !! '';
 
-    val doi = entry.ifField("doi") { ":" + it.string } ?: ""
+    val doi = entry.ifField(F.DOI) { ":" + it.string } ?: ""
 //   my Str:D $doi = $entry.fields<doi>:exists ?? ':' ~ $entry.fields<doi>.simple-str !! '';
 //   if $entry.fields<archiveprefix>:exists
 //       and $entry.fields<archiveprefix>.simple-str eq 'arXiv'

@@ -4,6 +4,8 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import org.openqa.selenium.By
 import kotlin.text.toRegex
+import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : Scraper {
@@ -30,12 +32,12 @@ object ScrapeAcm : Scraper {
         .flatMap { Bibtex.parse(it.text) }
         // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering
         // non-journal over journal
-        .sortedBy { it.getFieldValue("journal") != null }
+        .sortedBy { it.contains(F.JOURNAL) }
     val entry = entries.first()
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    HtmlMeta.bibtex(entry, meta, "journal" to false)
+    HtmlMeta.bibtex(entry, meta, F.JOURNAL to false)
 
     // // Abstract
     val abstract = driver
@@ -43,15 +45,14 @@ object ScrapeAcm : Scraper {
       .last()
       .innerHtml
     if (abstract != "<p>No abstract available.</p>") {
-      entry.set("abstract", abstract)
+      entry[F.ABSTRACT] = abstract
     }
 
     // // Author
-    val author = driver
+    entry[F.AUTHOR] = driver
       .findElements(By.cssSelector(".citation .author-name"))
       .map { it.getAttribute("title") }
       .joinToString(" and ")
-    entry.set("author", author)
 
     // // Title
     val title = driver.findElement(By.cssSelector(".citation__title")).innerHtml
@@ -61,18 +62,17 @@ object ScrapeAcm : Scraper {
     //
     // ACM publication months are often inconsistent within the same page.
     // This is a best effort at picking the right month among these inconsistent results.
-    if (entry.getFieldValue("issue_date") != null) {
-      val month = entry.getFieldValue("issue_date").toString().split("\\s+").first()
+    if (entry.getFieldValue(F.ISSUE_DATE) != null) {
+      val month = entry[F.ISSUE_DATE].string.split("\\s+").first()
       if (Bibtex.str2month(entry.ownerFile, month) != null) {
-        entry.set("month", month)
+        entry[F.MONTH] = month
       }
-    } else if (entry.getFieldValue("month") != null) {
-      val month = driver
+    } else entry.ifField(F.MONTH) {
+      entry[F.MONTH] = driver
         .findElement(By.cssSelector(".book-meta + .cover-date"))
         .innerHtml
         .split("\\s+")
         .first()
-      entry.set("month", month)
     }
 
     // // Keywords
@@ -265,7 +265,7 @@ object ScrapeCambridge : Scraper {
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
-    HtmlMeta.bibtex(entry, meta, "abstract" to false)
+    HtmlMeta.bibtex(entry, meta, F.ABSTRACT to false)
     // html-meta-bibtex($entry, $meta, :!abstract);
 
     // // Title

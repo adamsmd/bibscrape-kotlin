@@ -25,7 +25,10 @@ fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): U
 val BibtexAbstractValue.string: String // TODO: return null when not BibtexString
   get() = (this as? BibtexString)?.content ?: this.toString()
 
-fun BibtexEntry.set(field: String, value: String): Unit =
+operator fun BibtexEntry.get(field: String): BibtexAbstractValue =
+  this.getFieldValue(field)
+
+operator fun BibtexEntry.set(field: String, value: String): Unit =
   this.setField(field, this.ownerFile.makeString(value))
 
 fun BibtexEntry.update(field: String, block: (String) -> String?) {
@@ -38,6 +41,80 @@ fun BibtexEntry.update(field: String, block: (String) -> String?) {
 
 /** BibTeX utility functions. */
 object Bibtex {
+  @Suppress("UndocumentedPublicProperty")
+  object Types {
+    const val ARTICLE = "article"
+    const val BOOK = "book"
+    const val BOOKLET = "booklet"
+    const val COLLECTION = "collection"
+    const val CONFERENCE = "conference"
+    const val DATASET = "dataset"
+    const val ELECTRONIC = "electronic"
+    const val INBOOK = "inbook"
+    const val INCOLLECTION = "incollection"
+    const val INPROCEEDINGS = "inproceedings"
+    const val MANUAL = "manual"
+    const val MASTERSTHESIS = "mastersthesis"
+    const val MISC = "misc"
+    const val PATENT = "patent"
+    const val PERIODICAL = "periodical"
+    const val PHDTHESIS = "phdthesis"
+    const val PREPRINT = "preprint"
+    const val PRESENTATION = "presentation"
+    const val PROCEEDINGS = "proceedings"
+    const val STANDARD = "standard"
+    const val TECHREPORT = "techreport"
+    const val THESIS = "thesis"
+    const val UNPUBLISHED = "unpublished"
+  }
+
+  @Suppress("UndocumentedPublicProperty")
+  object Fields {
+    const val ABSTRACT = "abstract"
+    const val ADDRESS = "address"
+    const val AFFILIATION = "affiliation"
+    const val ANNOTE = "annote"
+    const val ARCHIVEPREFIX = "archiveprefix"
+    const val ARTICLENO = "articleno"
+    const val AUTHOR = "author"
+    const val BIB_SCRAPE_URL = "bib_scrape_url"
+    const val BOOKTITLE = "booktitle"
+    const val CHAPTER = "chapter"
+    const val CONFERENCE_DATE = "conference_date"
+    const val CROSSREF = "crossref"
+    const val DAY = "day"
+    const val DOI = "doi"
+    const val EDITION = "edition"
+    const val EDITOR = "editor"
+    const val EMAIL = "email"
+    const val EPRINT = "eprint"
+    const val HOWPUBLISHED = "howpublished"
+    const val INSTITUTION = "institution"
+    const val ISBN = "isbn"
+    const val ISSN = "issn"
+    const val ISSUE_DATE = "issue_date"
+    const val JOURNAL = "journal"
+    const val KEY = "key"
+    const val KEYWORDS = "keywords"
+    const val LANGUAGE = "language"
+    const val LOCATION = "location"
+    const val MONTH = "month"
+    const val NOTE = "note"
+    const val NUMBER = "number"
+    const val NUMPAGES = "numpages"
+    const val ORGANIZATION = "organization"
+    const val PAGES = "pages"
+    const val PRIMARYCLASS = "primaryclass"
+    const val PUBLISHER = "publisher"
+    const val SCHOOL = "school"
+    const val SERIES = "series"
+    const val TITLE = "title"
+    const val TYPE = "type"
+    const val URL = "url"
+    const val VOLUME = "volume"
+    const val YEAR = "year"
+  }
+
   private val longNames =
     "january february march april may june july august september october november december".split(" ")
   private val macroNames =
