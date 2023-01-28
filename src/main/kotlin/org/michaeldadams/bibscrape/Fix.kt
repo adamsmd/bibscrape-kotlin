@@ -79,7 +79,7 @@ class Fix(
 
   fun fix(oldEntry: BibtexEntry): BibtexEntry {
     val entry = oldEntry.ownerFile.makeEntry(oldEntry.entryType, oldEntry.entryKey)
-    oldEntry.fields.forEach { name, value -> entry.setField(name, value) }
+    oldEntry.fields.forEach { name, value -> entry[name] = value }
 
 // method fix(BibScrape::BibTeX::Entry:D $entry is copy --> BibScrape::BibTeX::Entry:D) {
 //   $entry = $entry.clone;
@@ -90,11 +90,11 @@ class Fix(
 
     // Doi field: remove "http://hostname/" or "DOI: "
     if (!entry.contains(F.DOI) &&
-      (entry.fields[F.URL]?.string ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
+      (entry[F.URL]?.string ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
     ) {
 //   if not $entry.fields<doi>:exists
 //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
-      entry.fields[F.DOI] = entry.fields[F.URL]
+      entry[F.DOI] = entry[F.URL]
 //     $entry.fields<doi> = $entry.fields<url>;
       entry.undefineField(F.URL)
 //     $entry.fields<url>:delete;
@@ -102,24 +102,23 @@ class Fix(
 
     // Fix wrong field names (SpringerLink and ACM violate this)
     for ((wrongName, rightName) in listOf("issue" to F.NUMBER, "keyword" to F.KEYWORDS)) {
-//   for ('issue', 'number', 'keyword', 'keywords') -> Str:D $key, Str:D $value {
-      if (entry.contains(wrongName) &&
-        (!entry.contains(rightName) ||
-          entry.fields[wrongName] == entry.fields[rightName])) {
+      entry.ifField(wrongName) {
+        if (!entry.contains(rightName) || entry[wrongName] == entry[rightName]) {
 //     if $entry.fields{$key}:exists and
 //         (not $entry.fields{$value}:exists or
 //           $entry.fields{$key} eq $entry.fields{$value}) {
-        entry.setField(rightName, entry.fields[wrongName])
+          entry[rightName] = entry[wrongName]
 //       $entry.fields{$value} = $entry.fields{$key};
-        entry.undefineField(wrongName)
+          entry.undefineField(wrongName)
 //       $entry.fields{$key}:delete;
 //     }
-          }
+        }
 //   }
+      }
     }
 
-//   # Fix Springer's use of 'note' to store 'doi'
-    entry.update(F.NOTE) { if (it == entry.fields[F.DOI] ?: "") { null } else { it }  }
+    // Fix Springer's use of 'note' to store 'doi'
+    entry.update(F.NOTE) { if (it == entry[F.DOI] ?: "") { null } else { it }  }
 //   update($entry, 'note', { $_ = Str if $_ eq ($entry.fields<doi> // '') });
 
     // ///////////////////////////////

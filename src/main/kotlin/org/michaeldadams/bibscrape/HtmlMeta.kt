@@ -37,7 +37,7 @@ object HtmlMeta {
       fields.flatMap { meta.getOrDefault(it, emptyList()) }.firstOrNull()
 
     fun set(field: String, value: String?) {
-      if (value != null) { values.set(field, value) }
+      if (value != null) { values[field] = value }
     }
     //   sub set(Str:D $field, $value where Any:U | Str:_ | BibScrape::BibTeX::Piece:_ --> Any:U) {
     //     if $value {
@@ -172,7 +172,7 @@ object HtmlMeta {
     // Copy results from values to entry
     for ((k, v) in values) {
       if (fieldsMap.getOrDefault(k, entry.getFieldValue(k) == null)) {
-        entry.setField(k, entry.ownerFile.makeString(v)) // TODO: BibtexPersonList
+        entry[k] = v // TODO: BibtexPersonList
       }
     }
     //   for %values.kv -> Str:D $key, BibScrape::BibTeX::Value:D $value {

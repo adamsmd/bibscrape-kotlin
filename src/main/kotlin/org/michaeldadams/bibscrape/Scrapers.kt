@@ -55,8 +55,7 @@ object ScrapeAcm : Scraper {
       .joinToString(" and ")
 
     // // Title
-    val title = driver.findElement(By.cssSelector(".citation__title")).innerHtml
-    entry.set("title", title)
+    entry[F.TITLE] = driver.findElement(By.cssSelector(".citation__title")).innerHtml
 
     // // Month
     //
@@ -83,7 +82,7 @@ object ScrapeAcm : Scraper {
       // We sort them so that we are deterministic.
       .sorted()
     if (keywords.size > 0) {
-      entry.set("keywords", keywords.joinToString("; "))
+      entry[F.KEYWORDS] = keywords.joinToString("; ")
     }
 
     // // Journal
@@ -92,7 +91,7 @@ object ScrapeAcm : Scraper {
         .findElements(By.cssSelector("meta[name=\"citation_journal_title\"]"))
         .map { it.getAttribute("content") }
       if (journal.size > 0) {
-        entry.set("journal", journal.first())
+        entry[F.JOURNAL] = journal.first()
       }
     }
 
@@ -111,7 +110,7 @@ object ScrapeAcm : Scraper {
           .r
           .find(issn)
       if (pissn != null && eissn != null) {
-        entry.set("issn", "${pissn.groupValues[1]} (Print) ${eissn.groupValues[1]} (Online)")
+        entry[F.ISSN] = "${pissn.groupValues[1]} (Print) ${eissn.groupValues[1]} (Online)"
       }
     }
 
@@ -122,7 +121,7 @@ object ScrapeAcm : Scraper {
     ) {
       val articleno = entry.getFieldValue("articleno").toString()
       val numpages = entry.getFieldValue("numpages").toString()
-      entry.set("pages", "$articleno:1--$articleno:$numpages")
+      entry[F.PAGES] = "$articleno:1--$articleno:$numpages"
     }
 
     return entry
@@ -269,10 +268,9 @@ object ScrapeCambridge : Scraper {
     // html-meta-bibtex($entry, $meta, :!abstract);
 
     // // Title
-    val title = driver.awaitFindElement(By.className("article-title")).innerHtml
+    entry[F.TITLE] = driver.awaitFindElement(By.className("article-title")).innerHtml
     // my Str:D $title =
     //   await({ $web-driver.find_element_by_class_name( 'article-title' ) }).get_property( 'innerHTML' );
-    entry.set("title", title)
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Abstract
@@ -289,11 +287,8 @@ object ScrapeCambridge : Scraper {
 
     // // ISSN
     val pissn = driver.findElement(By.name("productIssn")).getAttribute("value")
-    // my Str:D $pissn = $web-driver.find_element_by_name( 'productIssn' ).get_attribute( 'value' );
     val eissn = driver.findElement(By.name("productEissn")).getAttribute("value")
-    // my Str:D $eissn = $web-driver.find_element_by_name( 'productEissn' ).get_attribute( 'value' );
-    entry.set("issn", "$pissn (Print) $eissn (Online)")
-    // $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
+    entry[F.ISSN] = "$pissn (Print) $eissn (Online)"
 
     return entry
   }
@@ -320,15 +315,15 @@ object ScrapeIeeeComputer : Scraper {
     HtmlMeta.bibtex(entry, meta)
 
     // // Authors
-    val authors =
+    entry[F.AUTHOR] =
       driver
       .findElements(By.cssSelector("a[href^=\"https://www.computer.org/csdl/search/default?type=author&\"]"))
       .map { it.innerHtml }
+      .joinToString(" and ")
     // my Str:D @authors =
     //   ($web-driver.find_elements_by_css_selector(
     //      'a[href^="https://www.computer.org/csdl/search/default?type=author&"]' )
     //   )».get_property( 'innerHTML' );
-    entry.set("author", authors.joinToString(" and "))
     // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // Affiliation
@@ -338,7 +333,7 @@ object ScrapeIeeeComputer : Scraper {
     // my Str:D @affiliations =
     //   ($web-driver.find_elements_by_class_name( 'article-author-affiliations' ))».get_property( 'innerHTML' );
     if (!affiliations.isEmpty()) {
-      entry.set("affiliation", affiliations.joinToString(" and "))
+      entry[F.AFFILIATION] = affiliations.joinToString(" and ")
     }
     // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new(@affiliations.join( ' and ' ))
     //   if @affiliations;
@@ -501,9 +496,8 @@ object ScrapeJstor : Scraper {
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // DOI
-    val doi = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
+    entry[F.DOI] = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
     // my Str:D $doi = $web-driver.find_element_by_css_selector( '[data-doi]' ).get_attribute( 'data-doi' );
-    entry.set("doi", doi)
     // $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi);
 
     // // ISSN
@@ -613,13 +607,13 @@ object ScrapeScienceDirect : Scraper {
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Keywords
-    val keywords =
+    entry[F.KEYWORDS] =
       driver.findElements(By.cssSelector(".keywords-section > .keyword > span"))
       .map { it.innerHtml }
+      .joinToString("; ")
     // my Str:D @keywords =
     //   ($web-driver.find_elements_by_css_selector(
     //      '.keywords-section > .keyword > span' ))».get_property( 'innerHTML' );
-    entry.set("keywords", keywords.joinToString("; "))
     // $entry.fields<keywords> = BibScrape::BibTeX::Value.new(@keywords.join( '; ' ));
 
     // // Abstract
@@ -629,7 +623,7 @@ object ScrapeScienceDirect : Scraper {
     // my Str:D @abstract =
     //   ($web-driver.find_elements_by_css_selector( '.abstract > div' ))».get_property( 'innerHTML' );
     if (!abstract.isEmpty()) {
-      entry.set("abstract", abstract.first())
+      entry[F.ABSTRACT] = abstract.first()
     }
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new(@abstract.head)
     //   if @abstract;

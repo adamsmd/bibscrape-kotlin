@@ -12,7 +12,7 @@ fun BibtexEntry.contains(field: String): Boolean =
   this.fields.containsKey(field)
 
 fun BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> Unit): Unit? =
-  this.fields[field]?.let(block)
+  this[field]?.let(block)
 
 fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): Unit? =
   this.ifField(field) {
@@ -31,13 +31,15 @@ operator fun BibtexEntry.get(field: String): BibtexAbstractValue =
 operator fun BibtexEntry.set(field: String, value: String): Unit =
   this.setField(field, this.ownerFile.makeString(value))
 
-fun BibtexEntry.update(field: String, block: (String) -> String?) {
+operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue): Unit =
+  this.setField(field, value)
+
+fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
   this.ifField(field) {
     val newValue = block(it.string)
     if (newValue != null) { this.set(field, newValue) }
     else { this.undefineField(field) }
   }
-}
 
 /** BibTeX utility functions. */
 object Bibtex {
@@ -122,8 +124,8 @@ object Bibtex {
 
   private val months =
     (listOf("sept" to "sep") +
-      macroNames.map { it to it } +
-      longNames zip macroNames
+      (macroNames zip macroNames) +
+      (longNames zip macroNames)
     ).toMap()
 
   /** Parses a [string] into its constituent BibTeX entries.
