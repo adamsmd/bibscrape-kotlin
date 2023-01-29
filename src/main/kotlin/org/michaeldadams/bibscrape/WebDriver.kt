@@ -3,6 +3,7 @@ package org.michaeldadams.bibscrape
 import io.netty.handler.codec.http.DefaultFullHttpResponse
 import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpVersion
+import io.netty.handler.codec.http.HttpHeaderNames
 import net.lightbody.bmp.BrowserMobProxyServer
 import net.lightbody.bmp.client.ClientUtil
 import org.openqa.selenium.By
@@ -126,11 +127,18 @@ class Driver private constructor(
       }
       proxy.addRequestFilter { request, /*contents*/ _, /*messageInfo*/ _ ->
         // disqus.com is sometimes slow to respond, and we don't need it, so we block it
-        if (request.uri().contains("^http s? :// [^/]* \\b.disqus\\.com/".r)) {
-          DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
-        } else {
-          null
-        }
+        // if (request.uri().contains("disqus")) {
+        //   println()
+        //   println("DISQUS SIMPLE:" + request)
+        //   println()
+        // }
+        // if (request.headers()[HttpHeaderNames.HOST].contains("\\.disqus\\.com:".r)) {
+        //   println("DISQUS")
+        //   DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
+        // } else {
+        //   null
+        // }
+        null
       }
       proxy.start()
 
