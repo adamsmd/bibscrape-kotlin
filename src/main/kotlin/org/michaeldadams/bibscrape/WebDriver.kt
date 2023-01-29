@@ -149,9 +149,15 @@ class Driver private constructor(
 
       // // Options
       val options = FirefoxOptions(capabilities)
-      // Note: If we ever need to modify the profile, we must call
-      // options.setProfile, and not just modify the result of
-      // options.getProfile.
+
+      val profile = options.profile
+
+      // Prevent "Invalid browser preferences for CDP" error
+      profile.setPreference("fission.webContentIsolationStrategy", 0)
+      profile.setPreference("fission.bfcacheInParent", false)
+
+      options.profile = profile
+
       if (headless) {
         options.addArguments("--headless")
       }
