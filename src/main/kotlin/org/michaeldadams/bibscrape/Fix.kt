@@ -89,25 +89,25 @@ class Fix(
     // ///////////////////////////////
 
     // Doi field: remove "http://hostname/" or "DOI: "
-    if (!entry.contains(F.DOI) &&
-      (entry[F.URL]?.string ?: "").contains("http s? :// (dx\\.)? doi\\.org/".ri)
-    ) {
+    entry.ifField(F.URL) {
+      if (!entry.contains(F.DOI) && it.string.contains("http s? :// (dx\\.)? doi\\.org/".ri)) {
 //   if not $entry.fields<doi>:exists
 //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
-      entry[F.DOI] = entry[F.URL]!!
+        entry[F.DOI] = it
 //     $entry.fields<doi> = $entry.fields<url>;
-      entry.undefineField(F.URL)
+        entry.undefineField(F.URL)
 //     $entry.fields<url>:delete;
+      }
     }
 
     // Fix wrong field names (SpringerLink and ACM violate this)
     for ((wrongName, rightName) in listOf("issue" to F.NUMBER, "keyword" to F.KEYWORDS)) {
       entry.ifField(wrongName) {
-        if (!entry.contains(rightName) || entry[wrongName] == entry[rightName]) {
+        if (!entry.contains(rightName) || it == entry[rightName]) {
 //     if $entry.fields{$key}:exists and
 //         (not $entry.fields{$value}:exists or
 //           $entry.fields{$key} eq $entry.fields{$value}) {
-          entry[rightName] = entry[wrongName]!!
+          entry[rightName] = it
 //       $entry.fields{$value} = $entry.fields{$key};
           entry.undefineField(wrongName)
 //       $entry.fields{$key}:delete;
@@ -383,6 +383,9 @@ class Fix(
 //   }
 //   $entry.key = $name ~ $year ~ $title ~ $doi;
 
+    val unknownFields = entry.fields.keys subtract this.field
+    if (!unknownFields.isEmpty()) { TODO("Unknown fields: ${unknownFields}") }
+    // TODO: Duplicate fields
 //   # Put fields in a standard order (also cleans out any fields we deleted)
 //   my Int:D %fields = @.field.map(* => 0);
 //   for $entry.fields.keys -> Str:D $field {

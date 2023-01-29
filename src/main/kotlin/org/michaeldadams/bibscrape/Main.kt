@@ -419,6 +419,133 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
 
   override fun run() {
+    //   my IO::Path:D $config-dir-path =
+    //   ($*DISTRO.is-win
+    //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
+    //     !! %*ENV<XDG_CONFIG_HOME> // %*ENV<HOME> ~ </.config>).IO
+    //     .add(<BibScrape>);
+    // my Str:D constant $names-filename = 'names.cfg';
+    // my Str:D constant $nouns-filename = 'nouns.cfg';
+    // my Str:D constant $stop-words-filename = 'stop-words.cfg';
+
+    // if $config-dir {
+    //   say "User-configuration directory: $config-dir-path";
+    // }
+
+    // if $init {
+    //   $config-dir-path.mkdir;
+    //   for ($names-filename, $nouns-filename, $stop-words-filename) -> Str:D $src {
+    //     my IO::Path:D $dst = $config-dir-path.add($src);
+    //     if $dst.e {
+    //       say "Not copying default $src since $dst already exists";
+    //     } else {
+    //       %?RESOURCES{$src}.copy($dst);
+    //       say "Successfully copied default $src to $dst";
+    //     }
+    //   }
+    // }
+  
+    // sub default-file(Str:D $type, Str:D $file --> Callable[IO::Path:D]) {
+    //   sub (IO::Path:D $x --> IO::Path:D) {
+    //     if $x ne '.' {
+    //       $x
+    //     } else {
+    //       my IO::Path:D $io = $config-dir-path.add($file);
+    //       if !$io.IO.e {
+    //         die "$type file does not exist: $file.  Invoke bibscrape with --init to automatically create it.";
+    //       }
+    //       $io
+    //     }
+    //   }
+    // }
+    // @names = @names.map(default-file('Names', $names-filename));
+    // @nouns = @nouns.map(default-file('Nouns', $nouns-filename));
+    // @stop-words = @stop-words.map(default-file('Stop-words', $stop-words-filename));
+  
+    // my BibScrape::Fix::Fix:D $fixer = BibScrape::Fix::Fix.new(
+    //   :@names,
+    //   :@name,
+    //   :@nouns,
+    //   :@noun,
+    //   :@stop-words,
+    //   :@stop-word,
+    //   :$scrape,
+    //   :$fix,
+    //   :$escape-acronyms,
+    //   :$issn-media,
+    //   :$isbn-media,
+    //   :$isbn-type,
+    //   :$isbn-sep,
+    //   # :$verbose,
+    //   :@field,
+    //   :@no-encode,
+    //   :@no-collapse,
+    //   :@omit,
+    //   :@omit-empty,
+    // );
+
+    // for @arg -> Str:D $arg {
+    //   sub scr(Str:D $url --> BibScrape::BibTeX::Entry:D) {
+    //     scrape($url, :$window, :$timeout);
+    //   }
+    //   sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
+    //     if $fix { $entry = $fixer.fix($entry) }
+    //     if $key { $entry.key = $key }
+    //     print $entry.Str;
+    //     return;
+    //   }
+  
+    //   if $arg ~~ m:i/^ 'http:' | 'https:' | 'doi:' / {
+    //     # It's a URL
+    //     if !$scrape { die "Scraping disabled but given URL: $arg"; }
+    //     fix(@key.shift || '', scr($arg));
+    //     print "\n"; # BibTeX::Entry.Str doesn't have a newline at the end so we add one
+    //   } else {
+    //     # Not a URL so try reading it as a file
+    //     my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
+    //     my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
+    //     ITEM: for $bibtex.items -> BibScrape::BibTeX::Item:D $item {
+    //       if $item !~~ BibScrape::BibTeX::Entry:D {
+    //         print $item.Str;
+    //       } else {
+    //         my $key = @key.shift || $item.key;
+    //         if !$scrape {
+    //           # Undo any encoding that could get double encoded
+    //           update($item, 'abstract', { s:g/ \s* "\{\\par}" \s* /\n\n/; }); # Must be before tex2unicode
+    //           for $item.fields.keys -> Str:D $field {
+    //             unless $field ∈ @no-encode {
+    //               update($item, $field, { $_ = tex2unicode($_) });
+    //               update($item, $field, { $_ = encode-entities($_); s:g/ '&#' (\d+) ';'/{$0.chr}/; });
+    //             }
+    //           }
+    //           update($item, 'title', { s:g/ '{' (\d* [<upper> \d*] ** 2..*) '}' /$0/ });
+    //           update($item, 'series', { s:g/ '~' / / });
+    //           fix($key, $item);
+    //         } elsif $item.fields<bib_scrape_url> {
+    //           fix($key, scr($item.fields<bib_scrape_url>.simple-str));
+    //         } elsif $item.fields<doi> {
+    //           my Str:D $doi = $item.fields<doi>.simple-str;
+    //           $doi = "doi:$doi"
+    //             unless $doi ~~ m:i/^ 'doi:' /;
+    //           fix($key, scr($doi));
+    //         } else {
+    //           for <url howpublished> -> Str:D $field {
+    //             next unless $item.fields{$field}:exists;
+    //             my Str:D $value = $item.fields{$field}.simple-str;
+    //             if $value ~~ m:i/^ 'doi:' | 'http' 's'? '://' 'dx.'? 'doi.org/' / {
+    //               fix($key, scr($value));
+    //               next ITEM;
+    //             }
+    //           }
+  
+    //           say "WARNING: Not changing entry '{$item.key}' because could not find publisher URL";
+    //           print $item.Str;
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
+
     val fixer = Fix(emptyList(), emptyList(), emptyList(), generalOptions.escapeAcronyms, generalOptions.issnMedia, generalOptions.isbnMedia, generalOptions.isbnType, generalOptions.isbnSep, emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
     val driver = Driver.make(!generalOptions.window, true) // TODO: option for withLogFile
     driver.use {
