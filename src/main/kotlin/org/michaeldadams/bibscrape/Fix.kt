@@ -9,9 +9,9 @@ import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 class Fix(
   // // INPUTS
-  val nameGroups: List<List<String>>,
-  val nounGroups: List<List<String>>,
-  val stopWordsStrings: List<String>,
+  val names: List<List<String>>,
+  val nouns: List<List<String>>,
+  val stopWords: List<String>,
   // has Array:D[Str:D] @.name-groups is required;
   // has Array:D[Str:D] @.noun-groups is required;
   // has Str:D @.stop-words-strs is required;
@@ -346,7 +346,7 @@ class Fix(
       entry.ifField(field) {
 //     if $entry.fields{$_}:exists {
 //       my Str:D $str = $entry.fields{$_}.Str;
-        if (it.toString().contains("^( {} | \"\" | )$".r)) {
+        if (it.toString().contains("^( \\{\\} | \"\" | )$".r)) {
 //       if $str eq ( '{}' | '""' | '' ) {
           entry.undefineField(field)
 //         $entry.fields{$_}:delete;

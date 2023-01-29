@@ -465,31 +465,29 @@ class Main : CliktCommand(
     //     }
     //   }
     // }
+    val names: List<List<String>> = listOf()
     // @names = @names.map(default-file('Names', $names-filename));
+    val nouns: List<List<String>> = listOf()
     // @nouns = @nouns.map(default-file('Nouns', $nouns-filename));
+    val stopWords: List<String> = listOf()
     // @stop-words = @stop-words.map(default-file('Stop-words', $stop-words-filename));
-  
-    // my BibScrape::Fix::Fix:D $fixer = BibScrape::Fix::Fix.new(
-    //   :@names,
-    //   :@name,
-    //   :@nouns,
-    //   :@noun,
-    //   :@stop-words,
-    //   :@stop-word,
-    //   :$scrape,
-    //   :$fix,
-    //   :$escape-acronyms,
-    //   :$issn-media,
-    //   :$isbn-media,
-    //   :$isbn-type,
-    //   :$isbn-sep,
-    //   # :$verbose,
-    //   :@field,
-    //   :@no-encode,
-    //   :@no-collapse,
-    //   :@omit,
-    //   :@omit-empty,
-    // );
+
+    val fixer = Fix(
+      names = names,
+      nouns = nouns,
+      stopWords = stopWords,
+      escapeAcronyms = generalOptions.escapeAcronyms,
+      issnMedia = generalOptions.issnMedia,
+      isbnMedia = generalOptions.isbnMedia,
+      isbnType = generalOptions.isbnType,
+      isbnSep = generalOptions.isbnSep,
+      field = bibtexFieldOptions.field,
+      noEncode = bibtexFieldOptions.noEncode,
+      noCollapse = bibtexFieldOptions.noCollapse,
+      omit = bibtexFieldOptions.omit,
+      omitEmpty = bibtexFieldOptions.omitEmpty)
+
+    for (a in arg) {
 
     // for @arg -> Str:D $arg {
     //   sub scr(Str:D $url --> BibScrape::BibTeX::Entry:D) {
@@ -553,27 +551,9 @@ class Main : CliktCommand(
     //   }
     // }
 
-    val fixer = Fix(
-      emptyList(),
-      emptyList(),
-      emptyList(),
-      escapeAcronyms = generalOptions.escapeAcronyms,
-      issnMedia = generalOptions.issnMedia,
-      isbnMedia = generalOptions.isbnMedia,
-      isbnType = generalOptions.isbnType,
-      isbnSep = generalOptions.isbnSep,
-      field = bibtexFieldOptions.field,
-      noEncode = bibtexFieldOptions.noEncode,
-      noCollapse = bibtexFieldOptions.noCollapse,
-      omit = bibtexFieldOptions.omit,
-      omitEmpty = bibtexFieldOptions.omitEmpty)
-    val driver = Driver.make(!generalOptions.window, true) // TODO: option for withLogFile
-    driver.use {
-      for (filename in arg) {
-        val scrapedBibtex = Scrape.dispatch(driver, filename)
-        val fixedBibtex = fixer.fix(scrapedBibtex)
-        println(fixedBibtex)
-      }
+      val scrapedBibtex = Scrape.scrape(a, generalOptions.window, generalOptions.timeout)
+      val fixedBibtex = fixer.fix(scrapedBibtex)
+      println(fixedBibtex)
     }
   }
 }
