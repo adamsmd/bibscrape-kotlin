@@ -10,6 +10,8 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 /* ktlint-enable no-wildcard-imports */
 import java.nio.file.Path
+import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 /** Runs the main entry point of the application. */
 fun main(args: Array<String>) { Main().main(args) }
@@ -199,30 +201,35 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
 /** Option group controlling BibTeX fields. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
-  // Str:D :f(:@field) = Array[Str:D](<
-  //   key author editor affiliation title
-  //   howpublished booktitle journal volume number series
-  //   type school institution location conference_date
-  //   chapter pages articleno numpages
-  //   edition day month year issue_date
-  //   organization publisher address
-  //   language isbn issn doi url eprint archiveprefix primaryclass
-  //   bib_scrape_url
-  //   note annote keywords abstract>)
-  //   but Sep[','],
+  val field: List<String> = listOf(
+    F.KEY, F.AUTHOR, F.EDITOR, F.AFFILIATION, F.TITLE,
+    F.HOWPUBLISHED, F.BOOKTITLE, F.JOURNAL, F.VOLUME, F.NUMBER, F.SERIES,
+    F.TYPE, F.SCHOOL, F.INSTITUTION, F.LOCATION, F.CONFERENCE_DATE,
+    F.CHAPTER, F.PAGES, F.ARTICLENO, F.NUMPAGES,
+    F.EDITION, F.DAY, F.MONTH, F.YEAR, F.ISSUE_DATE,
+    F.ORGANIZATION, F.PUBLISHER, F.ADDRESS,
+    F.LANGUAGE, F.ISBN, F.ISSN, F.DOI, F.URL, F.EPRINT, F.ARCHIVEPREFIX, F.PRIMARYCLASS,
+    F.BIB_SCRAPE_URL,
+    F.NOTE, F.ANNOTE, F.KEYWORDS, F.ABSTRACT)
+
+  // Str:D :f(:@field) = Array[Str:D](<...>) but Sep[','],
   // #={The order that fields should placed in the output.}
 
-  // Str:D :@no-encode = Array[Str:D](<doi url eprint bib_scrape_url>) but Sep[','],
+  val noEncode: List<String> = listOf(F.DOI, F.URL, F.EPRINT, F.BIB_SCRAPE_URL)
+  // Str:D :@no-encode = Array[Str:D](<...>) but Sep[','],
   // #={Fields that should not be LaTeX encoded.}
 
+  val noCollapse: List<String> = listOf()
   // Str:D :@no-collapse = Array[Str:D](< >) but Sep[','],
   // #={Fields that should not have multiple successive whitespaces collapsed into a
   // single whitespace.}
 
+  val omit: List<String> = listOf()
   // Str:D :o(:@omit) = Array[Str:D](< >) but Sep[','],
   // #={Fields that should be omitted from the output.}
 
-  // Str:D :@omit-empty = Array[Str:D](<abstract issn doi keywords>) but Sep[','],
+  val omitEmpty: List<String> = listOf(F.ABSTRACT, F.ISSN, F.DOI, F.KEYWORDS)
+  // Str:D :@omit-empty = Array[Str:D](<...>) but Sep[','],
   // #={Fields that should be omitted from the output if they are empty.}
 }
 
@@ -546,7 +553,20 @@ class Main : CliktCommand(
     //   }
     // }
 
-    val fixer = Fix(emptyList(), emptyList(), emptyList(), generalOptions.escapeAcronyms, generalOptions.issnMedia, generalOptions.isbnMedia, generalOptions.isbnType, generalOptions.isbnSep, emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+    val fixer = Fix(
+      emptyList(),
+      emptyList(),
+      emptyList(),
+      escapeAcronyms = generalOptions.escapeAcronyms,
+      issnMedia = generalOptions.issnMedia,
+      isbnMedia = generalOptions.isbnMedia,
+      isbnType = generalOptions.isbnType,
+      isbnSep = generalOptions.isbnSep,
+      field = bibtexFieldOptions.field,
+      noEncode = bibtexFieldOptions.noEncode,
+      noCollapse = bibtexFieldOptions.noCollapse,
+      omit = bibtexFieldOptions.omit,
+      omitEmpty = bibtexFieldOptions.omitEmpty)
     val driver = Driver.make(!generalOptions.window, true) // TODO: option for withLogFile
     driver.use {
       for (filename in arg) {
