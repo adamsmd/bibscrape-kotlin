@@ -8,3 +8,5 @@
  */
 
 rootProject.name = "bibscrape"
+
+includeBuild("gradle-plugins")
