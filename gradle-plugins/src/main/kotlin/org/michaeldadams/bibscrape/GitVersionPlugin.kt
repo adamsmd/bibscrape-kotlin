@@ -17,7 +17,6 @@ import java.io.File
 // Set the version based on Git tags
 class GitVersionPlugin : Plugin<Project> {
   override fun apply(project: Project) {
-
     val version = Git.open(project.rootDir).use { git ->
       val describe = git.describe().apply { setMatch("v*") }.call()
       val isClean = git.status().call().isClean
@@ -41,7 +40,10 @@ class GitVersionPlugin : Plugin<Project> {
 
     val generatedSrcDir = File(project.buildDir, "generated/main/kotlin")
     generatedSrcDir.mkdirs()
-    File(generatedSrcDir, "BuildInformation.kt").writeText(code)
+    val file = File(generatedSrcDir, "BuildInformation.kt")
+    val outdated = try { code != file.readText() } catch (_: Throwable) { true }
+    if (outdated) { file.writeText(code) }
+
     project
       .extensions
       .getByType(org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension::class.java)
