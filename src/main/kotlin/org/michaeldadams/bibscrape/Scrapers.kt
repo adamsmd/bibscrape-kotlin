@@ -3,6 +3,7 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import org.openqa.selenium.By
+import java.net.URI
 import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Types as T
@@ -21,7 +22,7 @@ object ScrapeAcm : Scraper {
         .findElements(By.className("issue-item__doi"))
         .mapNotNull { it.getAttribute("href") }
       // TODO: filter to non-acm links
-      if (urls.size > 0) { return Scrape.dispatch(driver, urls.first()) }
+      if (urls.size > 0) { return Scrape.dispatch(driver, URI(urls.first())) }
       else { TODO("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher") }
     }
 
@@ -29,7 +30,7 @@ object ScrapeAcm : Scraper {
     driver.findElement(By.cssSelector("""a[data-title="Export Citation"]""")).click()
     val entries: List<BibtexEntry> =
       driver.awaitFindElements(By.cssSelector("#exportCitation .csl-right-inline"))
-        .flatMap { Bibtex.parse(it.text) }
+        .flatMap { Bibtex.parseEntries(it.text) }
         // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering
         // non-journal over journal
         .sortedBy { it.contains(F.JOURNAL) }
@@ -260,7 +261,7 @@ object ScrapeCambridge : Scraper {
     // // BibTeX
     driver.awaitFindElement(By.className("export-citation-product")).click()
     driver.awaitFindElement(By.cssSelector("[data-export-type=\"bibtex\"]")).click()
-    val entry = Bibtex.parse(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
@@ -308,7 +309,7 @@ object ScrapeIeeeComputer : Scraper {
     var bibtexText = driver.awaitFindElement(By.tagName("pre")).innerHtml
     // $bibtex-text ~~ s/ "\{," /\{key,/;
     // $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
-    val entry = Bibtex.parse(bibtexText).first()
+    val entry = Bibtex.parseEntries(bibtexText).first()
     driver.navigate().back()
 
     // // HTML Meta
@@ -356,7 +357,7 @@ object ScrapeIeeeExplore : Scraper {
     driver.awaitFindElement(By.linkText("BibTeX")).click()
     driver.awaitFindElement(By.cssSelector(".enable-abstract input")).click()
     val text = driver.awaitFindElement(By.className("ris-text")).innerHtml
-    val entry = Bibtex.parse(text).first()
+    val entry = Bibtex.parseEntries(text).first()
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
@@ -479,7 +480,7 @@ object ScrapeJstor : Scraper {
     // await({ $web-driver.find_elements_by_css_selector( '[data-qa="cite-this-item"]' )
     //         || $web-driver.find_elements_by_class_name( 'cite-this-item' ) }).head.click;
     // await({ $web-driver.find_element_by_css_selector( '[data-sc="text link: citation text"]' ) }).click;
-    val entry = Bibtex.parse(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
@@ -549,7 +550,7 @@ object ScrapeOxford : Scraper {
     //   $button.get_attribute( 'class' ) !~~ / « 'disabled' » /
     //     and $button }
     // ).click;
-    val entry = Bibtex.parse(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
@@ -594,7 +595,7 @@ object ScrapeScienceDirect : Scraper {
     //   $web-driver.find_element_by_css_selector( 'button[aria-label="bibtex"]' ).click;
     //   True
     // });
-    val entry = Bibtex.parse(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 

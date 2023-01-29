@@ -1,5 +1,6 @@
 package org.michaeldadams.bibscrape
 
+import bibtex.dom.BibtexEntry
 import com.github.ajalt.clikt.completion.completionOption
 /* ktlint-disable no-wildcard-imports */
 import com.github.ajalt.clikt.core.*
@@ -10,6 +11,9 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 /* ktlint-enable no-wildcard-imports */
 import java.nio.file.Path
+import java.io.FileReader
+import java.io.InputStreamReader
+import java.net.URI
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Types as T
 
@@ -184,6 +188,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
   ).default("-")
 
   // TODO: verbose flag
+  // TODO: flag to force fresh key generation
 
   private fun mediaHelpString(name: String): String = """
     Whether to use print or online ${name}s.
@@ -465,6 +470,7 @@ class Main : CliktCommand(
     //     }
     //   }
     // }
+    var key: List<String> = inputs.key.flatten()
     val names: List<List<String>> = listOf()
     // @names = @names.map(default-file('Names', $names-filename));
     val nouns: List<List<String>> = listOf()
@@ -487,73 +493,121 @@ class Main : CliktCommand(
       omit = bibtexFieldOptions.omit,
       omitEmpty = bibtexFieldOptions.omitEmpty)
 
+    val keepScrapedKey = false
+    val keepReadKey = true
     for (a in arg) {
+      fun scrape(url: String): BibtexEntry =
+        Scrape.scrape(URI(url.replace("^ doi: \\s*".ri, "")), generalOptions.window, generalOptions.timeout)
+      fun fix(keepKey: Boolean, entry: BibtexEntry) {
+        val e = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
+        // TODO: setEntryKey lower cases but BibtexEntry() does not
+        // TODO: don't keepKey when scraping
+        e.entryKey = key.firstOrNull() ?: if (keepKey) entry.entryKey else e.entryKey
+        key = key.drop(1)
+        // if (key != null) { e.entryKey = key }
+        println(e)
+      //   sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
+      //     if $fix { $entry = $fixer.fix($entry) }
+      //     if $key { $entry.key = $key }
+      //     print $entry.Str;
+      //     return;
+      //   }
+      }
+    
+      if (a.contains("^ http: | https: | doi: ".ri)) {
+        //   if $arg ~~ m:i/^ 'http:' | 'https:' | 'doi:' / {
+        // It's a URL
+        if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: $a") }
+        fix(keepScrapedKey, scrape(a))
+        println()
+      } else {
+        // Not a URL so try reading it as a file
+        val entries =
+          (if (a == "-") InputStreamReader(System.`in`) else FileReader(a))
+            .use(Bibtex::parse).entries
+        //     my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
+        //     my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
 
-    // for @arg -> Str:D $arg {
-    //   sub scr(Str:D $url --> BibScrape::BibTeX::Entry:D) {
-    //     scrape($url, :$window, :$timeout);
-    //   }
-    //   sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
-    //     if $fix { $entry = $fixer.fix($entry) }
-    //     if $key { $entry.key = $key }
-    //     print $entry.Str;
-    //     return;
-    //   }
-  
-    //   if $arg ~~ m:i/^ 'http:' | 'https:' | 'doi:' / {
-    //     # It's a URL
-    //     if !$scrape { die "Scraping disabled but given URL: $arg"; }
-    //     fix(@key.shift || '', scr($arg));
-    //     print "\n"; # BibTeX::Entry.Str doesn't have a newline at the end so we add one
-    //   } else {
-    //     # Not a URL so try reading it as a file
-    //     my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
-    //     my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
-    //     ITEM: for $bibtex.items -> BibScrape::BibTeX::Item:D $item {
-    //       if $item !~~ BibScrape::BibTeX::Entry:D {
-    //         print $item.Str;
-    //       } else {
-    //         my $key = @key.shift || $item.key;
-    //         if !$scrape {
-    //           # Undo any encoding that could get double encoded
-    //           update($item, 'abstract', { s:g/ \s* "\{\\par}" \s* /\n\n/; }); # Must be before tex2unicode
-    //           for $item.fields.keys -> Str:D $field {
-    //             unless $field ∈ @no-encode {
-    //               update($item, $field, { $_ = tex2unicode($_) });
-    //               update($item, $field, { $_ = encode-entities($_); s:g/ '&#' (\d+) ';'/{$0.chr}/; });
-    //             }
-    //           }
-    //           update($item, 'title', { s:g/ '{' (\d* [<upper> \d*] ** 2..*) '}' /$0/ });
-    //           update($item, 'series', { s:g/ '~' / / });
-    //           fix($key, $item);
-    //         } elsif $item.fields<bib_scrape_url> {
-    //           fix($key, scr($item.fields<bib_scrape_url>.simple-str));
-    //         } elsif $item.fields<doi> {
-    //           my Str:D $doi = $item.fields<doi>.simple-str;
-    //           $doi = "doi:$doi"
-    //             unless $doi ~~ m:i/^ 'doi:' /;
-    //           fix($key, scr($doi));
-    //         } else {
-    //           for <url howpublished> -> Str:D $field {
-    //             next unless $item.fields{$field}:exists;
-    //             my Str:D $value = $item.fields{$field}.simple-str;
-    //             if $value ~~ m:i/^ 'doi:' | 'http' 's'? '://' 'dx.'? 'doi.org/' / {
-    //               fix($key, scr($value));
-    //               next ITEM;
-    //             }
-    //           }
-  
-    //           say "WARNING: Not changing entry '{$item.key}' because could not find publisher URL";
-    //           print $item.Str;
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
-
-      val scrapedBibtex = Scrape.scrape(a, generalOptions.window, generalOptions.timeout)
-      val fixedBibtex = fixer.fix(scrapedBibtex)
-      println(fixedBibtex)
+        ENTRY@for (entry in entries) {
+          if (entry !is BibtexEntry) {
+            println(entry)
+            //     ITEM: for $bibtex.items -> BibScrape::BibTeX::Item:D $item {
+            //       if $item !~~ BibScrape::BibTeX::Entry:D {
+            //         print $item.Str;
+          } else if (!operatingModes.scrape) {
+            //       } else {
+            //         my $key = @key.shift || $item.key;
+            // if !$scrape {
+            // Undo any encoding that could get double encoded
+            //   update($item, 'abstract', { s:g/ \s* "\{\\par}" \s* /\n\n/; }); # Must be before tex2unicode
+            //   for $item.fields.keys -> Str:D $field {
+            //     unless $field ∈ @no-encode {
+            //       update($item, $field, { $_ = tex2unicode($_) });
+            //       update($item, $field, { $_ = encode-entities($_); s:g/ '&#' (\d+) ';'/{$0.chr}/; });
+            //     }
+            //   }
+            //   update($item, 'title', { s:g/ '{' (\d* [<upper> \d*] ** 2..*) '}' /$0/ });
+            //   update($item, 'series', { s:g/ '~' / / });
+            //   fix($key, $item);
+            // fix(keepReadKey, entry)
+          } else if (entry[F.BIB_SCRAPE_URL] != null) { // TODO: entry.ifField
+          // } elsif $item.fields<bib_scrape_url> {
+            fix(keepReadKey, scrape(entry[F.BIB_SCRAPE_URL]!!.string))
+          //   fix($key, scr($item.fields<bib_scrape_url>.simple-str));
+          } else if (entry[F.DOI] != null) { // TODO: entry.ifField
+          // } elsif $item.fields<doi> {
+            val doi = entry[F.DOI]!!.string
+            //   my Str:D $doi = $item.fields<doi>.simple-str;
+            //   $doi = "doi:$doi"
+            //     unless $doi ~~ m:i/^ 'doi:' /;
+            val prefixedDoi =
+              if (doi.startsWith("doi:", ignoreCase = true)) doi else "doi:${doi}"
+            //   fix($key, scr($doi));
+            fix(keepReadKey, scrape(prefixedDoi))
+          } else {
+          // } else {
+            for (field in listOf(F.URL, F.HOWPUBLISHED)) {
+            // for <url howpublished> -> Str:D $field {
+              val newEntry = entry.ifField(field) {
+                runCatching { scrape(it.string) }.getOrNull()
+              }
+              //   // Intentionally ignore if this fails
+              //   try { scrape(it.string) } catch (_: Throwable) { null }
+              // }
+              if (newEntry != null) {
+                fix(keepReadKey, newEntry)
+                continue@ENTRY
+              }
+              // if (entry.contains(field) {
+              // entry.ifField(field) { // TODO: doesn't work due to break and continue
+            //   next unless $item.fields{$field}:exists;
+                // val newEntry = try {
+                //   scrape(it.string)
+                // } catch (_: Throwable) {
+                //   // Intentionally ignore if this fails
+                //   continue
+                // }
+                // fix(keepReadKey, newEntry)
+                // continue@ENTRY
+            //   my Str:D $value = $item.fields{$field}.simple-str;
+            //   if $value ~~ m:i/^ 'doi:' | 'http' 's'? '://' 'dx.'? 'doi.org/' / {
+            //     fix($key, scr($value));
+            //     next ITEM;
+            //   }
+            }
+            // }
+            println("WARNING: Not changing entry '${entry.entryKey}' because could not find publisher URL")
+            println(entry)
+            //
+            // say "WARNING: Not changing entry '{$item.key}' because could not find publisher URL";
+            // print $item.Str;
+          }
+        }
+        // val scrapedBibtex = Scrape.scrape(a, generalOptions.window, generalOptions.timeout)
+        // val fixedBibtex = fixer.fix(scrapedBibtex)
+        // println(fixedBibtex)
+        // TODO: use URI in more places
+      }
     }
   }
 }

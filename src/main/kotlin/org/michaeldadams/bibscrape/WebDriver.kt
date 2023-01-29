@@ -116,7 +116,7 @@ class Driver private constructor(
       })
     }
 
-    fun make(headless: Boolean, verbose: Boolean): Driver {
+    fun make(headless: Boolean, verbose: Boolean, timeout: Double): Driver {
       // // Proxy
       // Would prefer to use org.openqa.selenium.remote.http.Filter,
       // NetworkInterceptor or devTools.createSession(), but all of those break
@@ -173,6 +173,9 @@ class Driver private constructor(
 
       // // Firefox Driver
       val driver = FirefoxDriver(service, options)
+      // TODO: fix timeouts
+      // driver.manage().timeouts().implicitlyWait(
+      //   Duration.ofMillis((timeout * MILLIS_PER_SECOND).roundToLong()))
 
       // // Result
       return Driver(driver, proxy)

@@ -6,15 +6,16 @@ import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexMacroReference
 import bibtex.dom.BibtexString
 import bibtex.parser.BibtexParser
+import java.io.Reader
 import java.io.StringReader
 
 fun BibtexEntry.contains(field: String): Boolean =
   this.fields.containsKey(field)
 
-fun BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> Unit): Unit? =
+inline fun <A> BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> A): A? =
   this[field]?.let(block)
 
-fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): Unit? =
+inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): Unit? =
   this.ifField(field) {
     val value = it.string
     if (!block(value)) {
@@ -34,7 +35,7 @@ operator fun BibtexEntry.set(field: String, value: String): Unit =
 operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue): Unit =
   this.setField(field, value)
 
-fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
+inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
   this.ifField(field) {
     val newValue = block(it.string)
     if (newValue != null) { this.set(field, newValue) }
@@ -128,16 +129,26 @@ object Bibtex {
       (longNames zip macroNames)
     ).toMap()
 
+  fun parseEntries(string: String): List<BibtexEntry> =
+    parse(string).entries.filterIsInstance<BibtexEntry>()
+
   /** Parses a [string] into its constituent BibTeX entries.
    *
    * @param string the string to parse
    * @return the entries that were succesfully parsed
    */
-  fun parse(string: String): List<BibtexEntry> {
+  fun parse(string: String): BibtexFile = StringReader(string).use(::parse)
+
+  /** Parses the contents of [reader] into its constituent BibTeX entries.
+   *
+   * @param reader the reader to parse
+   * @return the entries that were succesfully parsed
+   */
+  fun parse(reader: Reader): BibtexFile {
     val bibtexFile = BibtexFile()
     val parser = BibtexParser(false) // false => don't throw parse exceptions
-    parser.parse(bibtexFile, StringReader(string))
-    return bibtexFile.entries.filterIsInstance<BibtexEntry>()
+    parser.parse(bibtexFile, reader)
+    return bibtexFile
   }
 
   private fun wrap(bibtexFile: BibtexFile, macro: String?): BibtexMacroReference? {
