@@ -1,5 +1,6 @@
 // NOTE: Groups with comment headers are sorted alphabetically by group name (TODO)
 
+group = "org.michaeldadams.bibscrape" // TODO: "org.michaeldadams"?
 description = "Collect BibTeX information from publisher pages"
 
 // To see a complete list of tasks, use: ./gradlew tasks
@@ -19,7 +20,7 @@ plugins {
   // Code Style
   // id("com.ncorti.ktfmt.gradle") version "0.11.0" // Tasks: ktfmtCheck (omitted because issues errors not warnings)
   id("org.cqfn.diktat.diktat-gradle-plugin") version "1.2.4.1" // Tasks: diktatCheck
-  id("org.jlleitschuh.gradle.ktlint") version "11.0.0" // Tasks: ktlintCheck
+  id("org.jlleitschuh.gradle.ktlint") version "11.1.0" // Tasks: ktlintCheck
 
   // Dependency Licenses
   id("com.github.jk1.dependency-license-report") version "2.1" // Tasks: generateLicenseReport
@@ -62,7 +63,7 @@ dependencies {
   testImplementation(kotlin("test:1.8.0"))
 
   // WebDriver
-  // implementation("org.seleniumhq.selenium:selenium-java:4.8.0")
+  // implementation("org.seleniumhq.selenium:selenium-java:4.8.0") // depends on version of io.netty incompatible with browsermob-core
   implementation("org.seleniumhq.selenium:selenium-api:4.8.0")
   implementation("org.seleniumhq.selenium:selenium-devtools-v107:4.8.0")
   implementation("org.seleniumhq.selenium:selenium-devtools-v108:4.8.0")
@@ -110,9 +111,12 @@ diktat {
 }
 
 ktlint {
+  // Not using 0.48.0+ due to https://github.com/JLLeitschuh/ktlint-gradle/issues/622
+  version.set("0.47.1") // must match versions in gradle-plugins/build.gradle.kts
   verbose.set(true)
   ignoreFailures.set(true)
-  enableExperimentalRules.set(true)
+  enableExperimentalRules.set(true) // TODO: vs .editorconfig
+  disabledRules.set(setOf("string-template"))
 }
 
 // ////////////////////////////////////////////////////////////////

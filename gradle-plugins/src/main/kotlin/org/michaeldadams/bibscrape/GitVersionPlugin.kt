@@ -38,6 +38,7 @@ class GitVersionPlugin : Plugin<Project> {
       |}
       |""".trimMargin()
 
+    // TODO: fix bug with "./gradlew clean build"
     val generatedSrcDir = File(project.buildDir, "generated/main/kotlin")
     generatedSrcDir.mkdirs()
     val file = File(generatedSrcDir, "BuildInformation.kt")
