@@ -5,9 +5,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskAction
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 import java.io.File
 
 // ////////////////////////////////////////////////////////////////
@@ -36,9 +34,10 @@ class GitVersionPlugin : Plugin<Project> {
       |object BuildInformation {
       |  val version: String = "${version}"
       |}
-      |""".trimMargin()
+      |
+    """.trimMargin()
 
-    // TODO: fix bug with "./gradlew clean build"
+    // TODO: fix bug with "./gradlew clean build" (needs tasks and dependencies)
     val generatedSrcDir = File(project.buildDir, "generated/main/kotlin")
     generatedSrcDir.mkdirs()
     val file = File(generatedSrcDir, "BuildInformation.kt")
@@ -55,7 +54,7 @@ class GitVersionPlugin : Plugin<Project> {
   }
 }
 
-open class VersionAction() : DefaultTask() {
+open class VersionAction : DefaultTask() {
   @TaskAction
   fun version() {
     println(project.version)
