@@ -47,7 +47,7 @@ class GitVersionPlugin : Plugin<Project> {
 
 open class VersionTask : DefaultTask() {
   @TaskAction
-  fun version() { println(project.version) }
+  fun version() { getLogger().quiet(project.version.toString()) }
 }
 
 open class GenerateBuildInformationTask : DefaultTask() {
