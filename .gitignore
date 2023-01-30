@@ -3,6 +3,7 @@
 
 # Ignore Gradle build output directory
 build/
+gradle-plugins/build/
 
 # WIP folder with a lot of data being analyzed
 ignore/
