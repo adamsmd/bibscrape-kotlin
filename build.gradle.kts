@@ -132,6 +132,12 @@ tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
 // ////////////////////////////////////////////////////////////////
 // Task Dependencies
 
+tasks.check {
+  dependsOn(gradle.includedBuild("gradle-plugins").task(":clean"))
+  dependsOn(gradle.includedBuild("gradle-plugins").task(":check"))
+  dependsOn(tasks.clean)
+}
+
 // For why we have to fully qualify KotlinCompile see:
 // https://stackoverflow.com/questions/55456176/unresolved-reference-compilekotlin-in-build-gradle-kts
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
