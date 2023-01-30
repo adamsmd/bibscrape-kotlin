@@ -9,6 +9,8 @@ import bibtex.parser.BibtexParser
 import java.io.Reader
 import java.io.StringReader
 
+fun Iterable<String>.joinByAnd(): String = this.joinToString(" and ")
+
 fun BibtexEntry.contains(field: String): Boolean =
   this.fields.containsKey(field)
 
@@ -29,17 +31,18 @@ val BibtexAbstractValue.string: String // TODO: return null when not BibtexStrin
 operator fun BibtexEntry.get(field: String): BibtexAbstractValue? =
   this.getFieldValue(field)
 
-operator fun BibtexEntry.set(field: String, value: String): Unit =
+operator fun BibtexEntry.set(field: String, value: String) {
   this.setField(field, this.ownerFile.makeString(value))
+}
 
-operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue): Unit =
+operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue) {
   this.setField(field, value)
+}
 
 inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
   this.ifField(field) {
     val newValue = block(it.string)
-    if (newValue != null) { this.set(field, newValue) }
-    else { this.undefineField(field) }
+    if (newValue != null) { this.set(field, newValue) } else { this.undefineField(field) }
   }
 
 /** BibTeX utility functions. */
@@ -123,8 +126,8 @@ object Bibtex {
   private val macroNames =
     "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
 
-  private val months =
-    (listOf("sept" to "sep") +
+  private val months = (
+    listOf("sept" to "sep") +
       (macroNames zip macroNames) +
       (longNames zip macroNames)
     ).toMap()

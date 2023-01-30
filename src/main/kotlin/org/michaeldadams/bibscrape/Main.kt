@@ -1,8 +1,8 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-import com.github.ajalt.clikt.completion.completionOption
 /* ktlint-disable no-wildcard-imports */
+import com.github.ajalt.clikt.completion.completionOption
 import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.parameters.arguments.*
@@ -10,12 +10,11 @@ import com.github.ajalt.clikt.parameters.groups.*
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 /* ktlint-enable no-wildcard-imports */
-import java.nio.file.Path
 import java.io.FileReader
 import java.io.InputStreamReader
 import java.net.URI
+import java.nio.file.Path
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
-import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 /** Runs the main entry point of the application. */
 fun main(args: Array<String>) { Main().main(args) }
@@ -24,11 +23,11 @@ fun main(args: Array<String>) { Main().main(args) }
 
 /** What type of ISBN or ISSN media type to prefer. */
 @Suppress("EnumNaming", "ENUM_VALUE")
-enum class MediaType { print, online, both } // ktlint-disable experimental:enum-entry-name-case
+enum class MediaType { print, online, both } // ktlint-disable enum-entry-name-case
 
 /** What type of ISBN to prefer. */
 @Suppress("EnumNaming", "ENUM_VALUE")
-enum class IsbnType { isbn13, isbn10, preserve } // ktlint-disable experimental:enum-entry-name-case
+enum class IsbnType { isbn13, isbn10, preserve } // ktlint-disable enum-entry-name-case
 
 /** Option group controlling configuration inputs. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
@@ -456,7 +455,7 @@ class Main : CliktCommand(
     //     }
     //   }
     // }
-  
+
     // sub default-file(Str:D $type, Str:D $file --> Callable[IO::Path:D]) {
     //   sub (IO::Path:D $x --> IO::Path:D) {
     //     if $x ne '.' {
@@ -506,27 +505,28 @@ class Main : CliktCommand(
         key = key.drop(1)
         // if (key != null) { e.entryKey = key }
         println(e)
-      //   sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
-      //     if $fix { $entry = $fixer.fix($entry) }
-      //     if $key { $entry.key = $key }
-      //     print $entry.Str;
-      //     return;
-      //   }
+        //   sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
+        //     if $fix { $entry = $fixer.fix($entry) }
+        //     if $key { $entry.key = $key }
+        //     print $entry.Str;
+        //     return;
+        //   }
       }
-    
+
       if (a.contains("^ http: | https: | doi: ".ri)) {
         //   if $arg ~~ m:i/^ 'http:' | 'https:' | 'doi:' / {
         // It's a URL
-        if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: $a") }
+        if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: ${a}") }
         fix(keepScrapedKey, scrape(a))
         println()
       } else {
         // Not a URL so try reading it as a file
         val entries =
           (if (a == "-") InputStreamReader(System.`in`) else FileReader(a))
-            .use(Bibtex::parse).entries
-        //     my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
-        //     my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
+            .use(Bibtex::parse)
+            .entries
+            //     my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
+            //     my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
 
         ENTRY@for (entry in entries) {
           if (entry !is BibtexEntry) {
@@ -551,11 +551,11 @@ class Main : CliktCommand(
             //   fix($key, $item);
             // fix(keepReadKey, entry)
           } else if (entry[F.BIB_SCRAPE_URL] != null) { // TODO: entry.ifField
-          // } elsif $item.fields<bib_scrape_url> {
+            // } elsif $item.fields<bib_scrape_url> {
             fix(keepReadKey, scrape(entry[F.BIB_SCRAPE_URL]!!.string))
-          //   fix($key, scr($item.fields<bib_scrape_url>.simple-str));
+            //   fix($key, scr($item.fields<bib_scrape_url>.simple-str));
           } else if (entry[F.DOI] != null) { // TODO: entry.ifField
-          // } elsif $item.fields<doi> {
+            // } elsif $item.fields<doi> {
             val doi = entry[F.DOI]!!.string
             //   my Str:D $doi = $item.fields<doi>.simple-str;
             //   $doi = "doi:$doi"
@@ -565,9 +565,9 @@ class Main : CliktCommand(
             //   fix($key, scr($doi));
             fix(keepReadKey, scrape(prefixedDoi))
           } else {
-          // } else {
+            // } else {
             for (field in listOf(F.URL, F.HOWPUBLISHED)) {
-            // for <url howpublished> -> Str:D $field {
+              // for <url howpublished> -> Str:D $field {
               val newEntry = entry.ifField(field) {
                 runCatching { scrape(it.string) }.getOrNull()
               }
@@ -580,20 +580,20 @@ class Main : CliktCommand(
               }
               // if (entry.contains(field) {
               // entry.ifField(field) { // TODO: doesn't work due to break and continue
-            //   next unless $item.fields{$field}:exists;
-                // val newEntry = try {
-                //   scrape(it.string)
-                // } catch (_: Throwable) {
-                //   // Intentionally ignore if this fails
-                //   continue
-                // }
-                // fix(keepReadKey, newEntry)
-                // continue@ENTRY
-            //   my Str:D $value = $item.fields{$field}.simple-str;
-            //   if $value ~~ m:i/^ 'doi:' | 'http' 's'? '://' 'dx.'? 'doi.org/' / {
-            //     fix($key, scr($value));
-            //     next ITEM;
-            //   }
+              //   next unless $item.fields{$field}:exists;
+              // val newEntry = try {
+              //   scrape(it.string)
+              // } catch (_: Throwable) {
+              //   // Intentionally ignore if this fails
+              //   continue
+              // }
+              // fix(keepReadKey, newEntry)
+              // continue@ENTRY
+              //   my Str:D $value = $item.fields{$field}.simple-str;
+              //   if $value ~~ m:i/^ 'doi:' | 'http' 's'? '://' 'dx.'? 'doi.org/' / {
+              //     fix($key, scr($value));
+              //     next ITEM;
+              //   }
             }
             // }
             println("WARNING: Not changing entry '${entry.entryKey}' because could not find publisher URL")

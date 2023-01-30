@@ -164,7 +164,7 @@ object HtmlMeta {
     //   }
 
     if (meta.containsKey("citation_author_institution")) {
-      set("affiliation", meta.get("citation_author_institution")!!.joinToString(" and "))
+      set("affiliation", meta.get("citation_author_institution")!!.joinByAnd())
     }
     //   set( 'affiliation', %meta<citation_author_institution>.join( ' and ' ))
     //     if %meta<citation_author_institution>:exists;

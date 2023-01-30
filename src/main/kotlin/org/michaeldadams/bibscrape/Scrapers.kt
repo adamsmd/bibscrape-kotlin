@@ -6,7 +6,6 @@ import org.openqa.selenium.By
 import java.net.URI
 import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
-import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : Scraper {
@@ -53,7 +52,7 @@ object ScrapeAcm : Scraper {
     entry[F.AUTHOR] = driver
       .findElements(By.cssSelector(".citation .author-name"))
       .map { it.getAttribute("title") }
-      .joinToString(" and ")
+      .joinByAnd()
 
     // // Title
     entry[F.TITLE] = driver.findElement(By.cssSelector(".citation__title")).innerHtml
@@ -123,7 +122,7 @@ object ScrapeAcm : Scraper {
     ) {
       val articleno = entry.getFieldValue("articleno").toString()
       val numpages = entry.getFieldValue("numpages").toString()
-      entry[F.PAGES] = "$articleno:1--$articleno:$numpages"
+      entry[F.PAGES] = "${articleno}:1--${articleno}:${numpages}"
     }
 
     return entry
@@ -238,7 +237,7 @@ object ScrapeArxiv : Scraper {
     // <arxiv:comment>     The authors comment if present.
     // <arxiv:journal_ref> A journal reference if present.
     // <arxiv:doi>         A url for the resolved DOI to an external resource if present.
-    
+
     return entry
   }
 }
@@ -290,7 +289,7 @@ object ScrapeCambridge : Scraper {
     // // ISSN
     val pissn = driver.findElement(By.name("productIssn")).getAttribute("value")
     val eissn = driver.findElement(By.name("productEissn")).getAttribute("value")
-    entry[F.ISSN] = "$pissn (Print) $eissn (Online)"
+    entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
 
     return entry
   }
@@ -317,11 +316,10 @@ object ScrapeIeeeComputer : Scraper {
     HtmlMeta.bibtex(entry, meta)
 
     // // Authors
-    entry[F.AUTHOR] =
-      driver
+    entry[F.AUTHOR] = driver
       .findElements(By.cssSelector("a[href^=\"https://www.computer.org/csdl/search/default?type=author&\"]"))
       .map { it.innerHtml }
-      .joinToString(" and ")
+      .joinByAnd()
     // my Str:D @authors =
     //   ($web-driver.find_elements_by_css_selector(
     //      'a[href^="https://www.computer.org/csdl/search/default?type=author&"]' )
@@ -329,13 +327,13 @@ object ScrapeIeeeComputer : Scraper {
     // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // Affiliation
-    val affiliations =
-      driver.findElements(By.className("article-author-affiliations"))
+    val affiliations = driver
+      .findElements(By.className("article-author-affiliations"))
       .map { it.innerHtml }
     // my Str:D @affiliations =
     //   ($web-driver.find_elements_by_class_name( 'article-author-affiliations' ))».get_property( 'innerHTML' );
     if (!affiliations.isEmpty()) {
-      entry[F.AFFILIATION] = affiliations.joinToString(" and ")
+      entry[F.AFFILIATION] = affiliations.joinByAnd()
     }
     // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new(@affiliations.join( ' and ' ))
     //   if @affiliations;
@@ -609,8 +607,8 @@ object ScrapeScienceDirect : Scraper {
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Keywords
-    entry[F.KEYWORDS] =
-      driver.findElements(By.cssSelector(".keywords-section > .keyword > span"))
+    entry[F.KEYWORDS] = driver
+      .findElements(By.cssSelector(".keywords-section > .keyword > span"))
       .map { it.innerHtml }
       .joinToString("; ")
     // my Str:D @keywords =
@@ -619,8 +617,8 @@ object ScrapeScienceDirect : Scraper {
     // $entry.fields<keywords> = BibScrape::BibTeX::Value.new(@keywords.join( '; ' ));
 
     // // Abstract
-    val abstract =
-      driver.findElements(By.cssSelector(".abstract > div"))
+    val abstract = driver
+      .findElements(By.cssSelector(".abstract > div"))
       .map { it.innerHtml }
     // my Str:D @abstract =
     //   ($web-driver.find_elements_by_css_selector( '.abstract > div' ))».get_property( 'innerHTML' );

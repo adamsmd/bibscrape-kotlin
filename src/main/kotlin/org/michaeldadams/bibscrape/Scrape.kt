@@ -1,12 +1,11 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-import java.time.Duration
 import java.net.URI
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 data class UnsupportedDomainException(val domain: String, val url: URI) :
-  Exception("Unsupported domain '$domain' while scraping '${url}'")
+  Exception("Unsupported domain '${domain}' while scraping '${url}'")
 
 /** Scraping functions for BibTeX data from publisher websites, but without
  * making an effort to format them nicely. */
