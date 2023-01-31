@@ -1,4 +1,4 @@
-// package com.example
+package org.michaeldadams.bibscrape
 
 // import org.gradle.testkit.runner.BuildResult
 // import org.gradle.testkit.runner.GradleRunner
@@ -7,13 +7,12 @@
 // import org.junit.rules.TemporaryFolder
 // import java.io.File
 
-// abstract class PluginTest {
-
-//     @Rule
-//     @JvmField
-//     val testProjectDir: TemporaryFolder = TemporaryFolder()
-//     protected lateinit var settingsFile: File
-//     protected lateinit var buildFile: File
+abstract class PluginTest {
+    @Rule
+    @JvmField
+    val testProjectDir: TemporaryFolder = TemporaryFolder()
+    protected lateinit var settingsFile: File
+    protected lateinit var buildFile: File
 
 //     @Before
 //     fun setup() {
@@ -39,4 +38,4 @@
 //                 .withPluginClasspath()
 //                 .buildAndFail()
 //     }
-// }
+}
