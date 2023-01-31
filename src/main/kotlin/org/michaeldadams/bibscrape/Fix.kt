@@ -46,75 +46,81 @@ class Fix(
   // has Str:D @.omit-empty is required;
 ) {
 
-// method new(#`(Any:D) *%args --> Fix:D) {
-//   sub string-blocks(Array:D[Str:D] @blocks, Str:D $blocks --> Any:U) {
-//     push @blocks, Array[Str:D].new; # Ensure we are starting a new block
-//     for $blocks.split(rx/ "\r" | "\n" | "\r\n" /) -> Str:D $line is copy {
-//       $line ~~ s/"#".*//; # Remove comments (which start with `#`)
-//       $line ~~ s/\s+ $//; # Remove trailing whitespace
-//       if $line ~~ /^\s*$/ { push @blocks, Array[Str:D].new; } # Start a new block
-//       else { push @blocks[@blocks.end], $line; } # Add to existing block
-//     }
-//     return;
-//   }
-//   sub blocks(Str:D $file-field, Str:D $string-field --> Array:D[Array:D[Str:D]]) {
-//     my Array:D[Str:D] @blocks;
-//     for %args{$string-field} -> Str:D $string is copy {
-//       $string ~~ s:g/ ';' /\n/;
-//       string-blocks(@blocks, $string);
-//     }
-//     for %args{$file-field} -> IO::Path:D $file {
-//       string-blocks(@blocks, $file.slurp);
-//     }
-//     @blocks = @blocks.grep({ .elems > 0 }); # Remove empty blocks
-//     @blocks.Array;
-//   }
-//   my Array:D[Str:D] @name-groups = blocks(<names>, <name>);
-//   my Array:D[Str:D] @noun-groups = blocks(<nouns>, <noun>);
-//   my Str:D @stop-words-strs = blocks(<stop-words>, <stop-word>)[*;*]».fc;
+  // method new(#`(Any:D) *%args --> Fix:D) {
+  //   sub string-blocks(Array:D[Str:D] @blocks, Str:D $blocks --> Any:U) {
+  //     push @blocks, Array[Str:D].new; # Ensure we are starting a new block
+  //     for $blocks.split(rx/ "\r" | "\n" | "\r\n" /) -> Str:D $line is copy {
+  //       $line ~~ s/"#".*//; # Remove comments (which start with `#`)
+  //       $line ~~ s/\s+ $//; # Remove trailing whitespace
+  //       if $line ~~ /^\s*$/ { push @blocks, Array[Str:D].new; } # Start a new block
+  //       else { push @blocks[@blocks.end], $line; } # Add to existing block
+  //     }
+  //     return;
+  //   }
+  //   sub blocks(Str:D $file-field, Str:D $string-field --> Array:D[Array:D[Str:D]]) {
+  //     my Array:D[Str:D] @blocks;
+  //     for %args{$string-field} -> Str:D $string is copy {
+  //       $string ~~ s:g/ ';' /\n/;
+  //       string-blocks(@blocks, $string);
+  //     }
+  //     for %args{$file-field} -> IO::Path:D $file {
+  //       string-blocks(@blocks, $file.slurp);
+  //     }
+  //     @blocks = @blocks.grep({ .elems > 0 }); # Remove empty blocks
+  //     @blocks.Array;
+  //   }
+  //   my Array:D[Str:D] @name-groups = blocks(<names>, <name>);
+  //   my Array:D[Str:D] @noun-groups = blocks(<nouns>, <noun>);
+  //   my Str:D @stop-words-strs = blocks(<stop-words>, <stop-word>)[*;*]».fc;
 
-//   # Note: Coersion to a Map prevents odd double nesting on list arguments
-//   self.bless(:@name-groups, :@noun-groups, :@stop-words-strs, |%args.Map);
-// }
+  //   # Note: Coersion to a Map prevents odd double nesting on list arguments
+  //   self.bless(:@name-groups, :@noun-groups, :@stop-words-strs, |%args.Map);
+  // }
 
   fun fix(oldEntry: BibtexEntry): BibtexEntry {
     val entry = oldEntry.ownerFile.makeEntry(oldEntry.entryType, oldEntry.entryKey)
     oldEntry.fields.forEach { name, value -> entry[name] = value }
 
-// method fix(BibScrape::BibTeX::Entry:D $entry is copy --> BibScrape::BibTeX::Entry:D) {
-//   $entry = $entry.clone;
+    // method fix(BibScrape::BibTeX::Entry:D $entry is copy --> BibScrape::BibTeX::Entry:D) {
+    //   $entry = $entry.clone;
 
     // ///////////////////////////////
     //  Pre-omit fixes              //
     // ///////////////////////////////
 
     // Doi field: remove "http://hostname/" or "DOI: "
-    entry.ifField(F.URL) {
-      if (!entry.contains(F.DOI) && it.string.contains("http s? :// (dx\\.)? doi\\.org/".ri)) {
-//   if not $entry.fields<doi>:exists
-//       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
-        entry[F.DOI] = it
-//     $entry.fields<doi> = $entry.fields<url>;
-        entry.undefineField(F.URL)
-//     $entry.fields<url>:delete;
-      }
+    entry.moveFieldIf(F.URL, F.DOI) {
+      !entry.contains(F.DOI) && it.string.contains("http s? :// (dx\\.)? doi\\.org/".ri)
     }
+    // entry.ifField(F.URL) {
+    //   if (!entry.contains(F.DOI) && it.string.contains("http s? :// (dx\\.)? doi\\.org/".ri)) {
+    //     //   if not $entry.fields<doi>:exists
+    //     //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
+    //     entry[F.DOI] = it
+    //     //     $entry.fields<doi> = $entry.fields<url>;
+    //     entry.undefineField(F.URL)
+    //     //     $entry.fields<url>:delete;
+    //   }
+    // }
 
     // Fix wrong field names (SpringerLink and ACM violate this)
     for ((wrongName, rightName) in listOf("issue" to F.NUMBER, "keyword" to F.KEYWORDS)) {
-      entry.ifField(wrongName) {
-        if (!entry.contains(rightName) || it == entry[rightName]) {
-          //     if $entry.fields{$key}:exists and
-          //         (not $entry.fields{$value}:exists or
-          //           $entry.fields{$key} eq $entry.fields{$value}) {
-          entry[rightName] = it
-          //       $entry.fields{$value} = $entry.fields{$key};
-          entry.undefineField(wrongName)
-          //       $entry.fields{$key}:delete;
-          //     }
-        }
-        //   }
+      entry.moveFieldIf(wrongName, rightName) {
+        !entry.contains(rightName) || it == entry[rightName]
       }
+      // entry.ifField(wrongName) {
+      //   if (!entry.contains(rightName) || it == entry[rightName]) {
+      //     //     if $entry.fields{$key}:exists and
+      //     //         (not $entry.fields{$value}:exists or
+      //     //           $entry.fields{$key} eq $entry.fields{$value}) {
+      //     entry[rightName] = it
+      //     //       $entry.fields{$value} = $entry.fields{$key};
+      //     entry.undefineField(wrongName)
+      //     //       $entry.fields{$key}:delete;
+      //     //     }
+      //   }
+      //   //   }
+      // }
     }
 
     // Fix Springer's use of 'note' to store 'doi'
@@ -344,15 +350,18 @@ class Fix(
 
     // Omit empty fields we don't want
     for (field in omitEmpty) {
-      entry.ifField(field) {
-        //     if $entry.fields{$_}:exists {
-        //       my Str:D $str = $entry.fields{$_}.Str;
-        if (it.toString().contains("^( \\{\\} | \"\" | )$".r)) {
-          //       if $str eq ( '{}' | '""' | '' ) {
-          entry.undefineField(field)
-          //         $entry.fields{$_}:delete;
-        }
+      entry.update(field) {
+        if (it.toString().contains("^( \\{\\} | \"\" | )$".r)) null else it
       }
+      // entry.ifField(field) {
+      //   //     if $entry.fields{$_}:exists {
+      //   //       my Str:D $str = $entry.fields{$_}.Str;
+      //   if (it.toString().contains("^( \\{\\} | \"\" | )$".r)) {
+      //     //       if $str eq ( '{}' | '""' | '' ) {
+      //     entry.undefineField(field)
+      //     //         $entry.fields{$_}:delete;
+      //   }
+      // }
     }
 
     // Generate an entry key

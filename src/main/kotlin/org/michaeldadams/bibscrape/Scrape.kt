@@ -4,6 +4,11 @@ import bibtex.dom.BibtexEntry
 import java.net.URI
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
+/** Exception thrown when asked to scrape a domain for which there is no scraper.
+ *
+ * @property domain the requested domain
+ * @property url the url that resulted in the requested domain
+ */
 data class UnsupportedDomainException(val domain: String, val url: URI) :
   Exception("Unsupported domain '${domain}' while scraping '${url}'")
 

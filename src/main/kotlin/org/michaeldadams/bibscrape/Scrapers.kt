@@ -179,7 +179,6 @@ object ScrapeArxiv : Scraper {
     // // BibTeX object
     val file = BibtexFile()
     val entry = file.makeEntry("misc", "arxiv.${id}")
-    // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new(:type('misc'), :key("arxiv.$id"));
 
     // // Title
     // my Str:D $title = text($xml-entry, 'title');
@@ -262,17 +261,12 @@ object ScrapeCambridge : Scraper {
     driver.awaitFindElement(By.cssSelector("[data-export-type=\"bibtex\"]")).click()
     val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
-    // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
     HtmlMeta.bibtex(entry, meta, F.ABSTRACT to false)
-    // html-meta-bibtex($entry, $meta, :!abstract);
 
     // // Title
     entry[F.TITLE] = driver.awaitFindElement(By.className("article-title")).innerHtml
-    // my Str:D $title =
-    //   await({ $web-driver.find_element_by_class_name( 'article-title' ) }).get_property( 'innerHTML' );
-    // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Abstract
     // my #`(Inline::Python::PythonObject:D) @abstract = $web-driver.find_elements_by_class_name( 'abstract' );
@@ -320,25 +314,17 @@ object ScrapeIeeeComputer : Scraper {
       .findElements(By.cssSelector("a[href^=\"https://www.computer.org/csdl/search/default?type=author&\"]"))
       .map { it.innerHtml }
       .joinByAnd()
-    // my Str:D @authors =
-    //   ($web-driver.find_elements_by_css_selector(
-    //      'a[href^="https://www.computer.org/csdl/search/default?type=author&"]' )
-    //   )».get_property( 'innerHTML' );
-    // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // Affiliation
     val affiliations = driver
       .findElements(By.className("article-author-affiliations"))
       .map { it.innerHtml }
-    // my Str:D @affiliations =
-    //   ($web-driver.find_elements_by_class_name( 'article-author-affiliations' ))».get_property( 'innerHTML' );
     if (!affiliations.isEmpty()) {
       entry[F.AFFILIATION] = affiliations.joinByAnd()
     }
-    // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new(@affiliations.join( ' and ' ))
-    //   if @affiliations;
 
     // // Keywords
+    entry.update(F.KEYWORDS) { it.replace("; \\s*".r, "; ") } // TODO: move to Fix.kt?
     // update($entry, 'keywords', { s:g/ ';' \s* /; / });
 
     return entry
@@ -365,11 +351,13 @@ object ScrapeIeeeExplore : Scraper {
     val body = driver.findElement(By.tagName("body")).innerHtml
 
     // // Keywords
+    entry.update(F.KEYWORDS) { it.replace("; \\s*".r, "; ") } // TODO: move to Fix.kt?
     // my Str:D $keywords = $entry.fields<keywords>.simple-str;
     // $keywords ~~ s:g/ ';' ' '* /; /;
     // $entry.fields<keywords> = BibScrape::BibTeX::Value.new($keywords);
 
     // // Author
+    entry.update(F.AUTHOR) { it.replace("\\{ ([^}]+) \\}".r, "$1") }
     // my Str:D $author = $entry.fields<author>.simple-str;
     // $author ~~ s:g/ '{' (<-[}]>+) '}' /$0/;
     // $entry.fields<author> = BibScrape::BibTeX::Value.new($author);
@@ -428,21 +416,21 @@ object ScrapeIosPress : Scraper {
   override fun scrape(driver: Driver): BibtexEntry {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
-    // await({ $web-driver.find_element_by_class_name( 'p13n-cite' ) }).click;
     driver.awaitFindElement(By.className("btn-clear")).click()
-    // await({ $web-driver.find_element_by_class_name( 'btn-clear' ) }).click;
     // my BibScrape::Ris::Ris:D $ris = ris-parse($web-driver.read-downloads());
+    val entry: BibtexEntry = TODO()
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-of-ris($ris);
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
+    HtmlMeta.bibtex(entry, meta)
     // html-meta-bibtex($entry, $meta);
 
     // // Title
     val title = driver.findElement(By.cssSelector("[data-p13n-title]")).getDomAttribute("data-p13n-title")
     // my Str:D $title =
     //   $web-driver.find_element_by_css_selector( '[data-p13n-title]' ).get_attribute( 'data-p13n-title' );
+    entry[F.TITLE] = title.replace("\\n".r, "")
     // $title ~~ s:g/ "\n" //; # Remove extra newlines
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
@@ -450,6 +438,7 @@ object ScrapeIosPress : Scraper {
     val abstract = driver.findElement(By.cssSelector("[data-abstract]")).getDomAttribute("data-abstract")
     // my Str:D $abstract =
     //   $web-driver.find_element_by_css_selector( '[data-abstract]' ).get_attribute( 'data-abstract' );
+    entry[F.ABSTRACT] = abstract.replace("([.!?]) \\ \\ ".r, "$0\n\n")// Insert missing paragraphs.  This is a heuristic solution.
     // $abstract ~~ s:g/ (<[.!?]>) '  ' /$0\n\n/; # Insert missing paragraphs.  This is a heuristic solution.
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
 
@@ -480,16 +469,14 @@ object ScrapeJstor : Scraper {
     // await({ $web-driver.find_element_by_css_selector( '[data-sc="text link: citation text"]' ) }).click;
     val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
-    // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // my BibScrape::HtmlMeta::HtmlMeta:D $meta = html-meta-parse($web-driver);
     HtmlMeta.bibtex(entry, meta)
-    // html-meta-bibtex($entry, $meta);
 
     // // Title
     // Note that on-campus is different than off-campus
+
     // my Str:D $title =
     //   ($web-driver.find_elements_by_class_name( 'item-title' )
     //     || $web-driver.find_elements_by_class_name( 'title-font' )).head.get_property( 'innerHTML' );
@@ -497,10 +484,9 @@ object ScrapeJstor : Scraper {
 
     // // DOI
     entry[F.DOI] = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
-    // my Str:D $doi = $web-driver.find_element_by_css_selector( '[data-doi]' ).get_attribute( 'data-doi' );
-    // $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi);
 
     // // ISSN
+    entry.update(F.ISSN) { it.replace("^ ([0-9Xx]+) , ([0-9Xx]+) $".r, "$1 (Print) $2 (Online)") }
     // update($entry, 'issn', { s/^ (<[0..9Xx]>+) ', ' (<[0..9Xx]>+) $/$0 (Print) $1 (Online)/ });
 
     // // Month
@@ -529,12 +515,12 @@ object ScrapeJstor : Scraper {
   }
 }
 
-/** Scrape Oxford University Publishing. */
+/** Scrape Oxford University Press. */
 object ScrapeOxford : Scraper {
   override val domains = listOf("oup.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    // TODO: say "WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.";
+    println("WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.")
 
     // // BibTeX
     driver.awaitFindElement(By.className("js-cite-button")).click()
@@ -550,28 +536,26 @@ object ScrapeOxford : Scraper {
     // ).click;
     val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
-    // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
+    HtmlMeta.bibtex(entry, meta, F.MONTH to true, F.YEAR to true)
     // html-meta-bibtex($entry, $meta, :month, :year);
 
     // // Title
     val title = driver.findElement(By.className("article-title-main")).innerHtml
-    // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Abstract
     val abstract = driver.findElement(By.className("abstract")).innerHtml
-    // $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
 
     // // ISSN
     val issn = driver.findElement(By.tagName("body")).innerHtml
-    // my Str:D $issn = $web-driver.find_element_by_tag_name( 'body' ).get_property( 'innerHTML' );
     // my Str:D $pissn = ($issn ~~ / 'Print ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
     // my Str:D $eissn = ($issn ~~ / 'Online ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
     // $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
 
     // // Publisher
+    entry.update(F.PUBLISHER) { it.replace("^ Oxford\\ Academic $".r, "Oxford University Press") }
     // update($entry, 'publisher', { s/^ 'Oxford Academic' $/Oxford University Press/ });
 
     return entry
@@ -585,6 +569,7 @@ object ScrapeScienceDirect : Scraper {
   override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
     driver.await {
+      // TODO: why are these in the same await? This probably breaks the "driver.timeout" model
       it.findElement(By.id("export-citation")).click()
       it.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
     }
@@ -595,40 +580,34 @@ object ScrapeScienceDirect : Scraper {
     // });
     val entry = Bibtex.parseEntries(driver.pageSource).first()
     driver.navigate().back()
-    // my BibScrape::BibTeX::Entry:D $entry = bibtex-parse($web-driver.read-downloads()).items.head;
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
     HtmlMeta.bibtex(entry, meta, "number" to true)
-    // html-meta-bibtex($entry, $meta, :number);
 
     // // Title
     val title = driver.findElement(By.className("title-text")).innerHtml
-    // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
+    entry[F.TITLE] = title
 
     // // Keywords
     entry[F.KEYWORDS] = driver
       .findElements(By.cssSelector(".keywords-section > .keyword > span"))
       .map { it.innerHtml }
       .joinToString("; ")
-    // my Str:D @keywords =
-    //   ($web-driver.find_elements_by_css_selector(
-    //      '.keywords-section > .keyword > span' ))».get_property( 'innerHTML' );
-    // $entry.fields<keywords> = BibScrape::BibTeX::Value.new(@keywords.join( '; ' ));
 
     // // Abstract
     val abstract = driver
       .findElements(By.cssSelector(".abstract > div"))
       .map { it.innerHtml }
+      .firstOrNull()
+      ?.let { entry[F.ABSTRACT] = it }
     // my Str:D @abstract =
     //   ($web-driver.find_elements_by_css_selector( '.abstract > div' ))».get_property( 'innerHTML' );
-    if (!abstract.isEmpty()) {
-      entry[F.ABSTRACT] = abstract.first()
-    }
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new(@abstract.head)
     //   if @abstract;
 
     // // Series
+    entry.moveField(F.NOTE, F.SERIES)
     // if $entry.fields<note> {
     //   $entry.fields<series> = $entry.fields<note>;
     //   $entry.fields<note>:delete;
@@ -662,10 +641,9 @@ object ScrapeSpringer : Scraper {
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    // $entry.type = html-meta-type($meta);
     HtmlMeta.bibtex(entry, meta, "publisher" to true)
-    // html-meta-bibtex($entry, $meta, :publisher);
 
+    entry.ifField(F.EDITOR) { it.string.replace("\\ * \\\n".r, " ") }
     // if $entry.fields<editor>:exists {
     //   my Str:D $names = $entry.fields<editor>.simple-str;
     //   $names ~~ s:g/ ' '* "\n" / /;

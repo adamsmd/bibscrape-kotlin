@@ -9,13 +9,26 @@ import bibtex.parser.BibtexParser
 import java.io.Reader
 import java.io.StringReader
 
+/** Joins a list of strings by the string " and ". */
 fun Iterable<String>.joinByAnd(): String = this.joinToString(" and ")
 
+/** Checks whether [field] exists in a [BibtexEntry].
+ *
+ * @param field the name of the field to check
+ * @return true if the field exists and false if it does not
+ */
 fun BibtexEntry.contains(field: String): Boolean =
   this.fields.containsKey(field)
 
+/** Runs [block] if [field] exists.
+ *
+ * @param field the name of the field to check
+ * @param block the block to run if [field] exists.  Receives the value of the [field] as an argument.
+ * @return the value of the [field] if it exists, otherwise null
+ */
 inline fun <A> BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> A): A? =
   this[field]?.let(block)
+
 
 inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): Unit? =
   this.ifField(field) {
@@ -45,8 +58,19 @@ inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? 
     if (newValue != null) { this.set(field, newValue) } else { this.undefineField(field) }
   }
 
+inline fun BibtexEntry.moveFieldIf(src: String, dst: String, block: (BibtexAbstractValue) -> Boolean): Unit? =
+  this.ifField(src) {
+    if (block(it)) {
+      this[dst] = it
+      this.undefineField(src)
+    }
+  }
+
+fun BibtexEntry.moveField(src: String, dst: String) = this.moveFieldIf(src, dst) { true }
+
 /** BibTeX utility functions. */
 object Bibtex {
+  /** Constants for BibTeX entry types. */
   @Suppress("UndocumentedPublicProperty")
   object Types {
     const val ARTICLE = "article"
@@ -74,6 +98,7 @@ object Bibtex {
     const val UNPUBLISHED = "unpublished"
   }
 
+  /** Constants for BibTeX entry fields. */
   @Suppress("UndocumentedPublicProperty")
   object Fields {
     const val ABSTRACT = "abstract"
