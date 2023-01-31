@@ -8,7 +8,9 @@ plugins {
   kotlin("jvm") version "1.8.0"
   application // To run, do "./gradlew installDist" then "./build/install/bibscrape/bin/bibscrape"
 
-  id("git-version")
+  // id("git-version")
+  // id("myproject-conventions")
+  id("myproject.java-conventions")
 
   // Code Analysis
   id("io.gitlab.arturbosch.detekt") version "1.22.0" // Tasks: detekt
@@ -20,7 +22,7 @@ plugins {
   // Code Style
   // id("com.ncorti.ktfmt.gradle") version "0.11.0" // Tasks: ktfmtCheck (omitted because issues errors not warnings)
   id("org.cqfn.diktat.diktat-gradle-plugin") version "1.2.4.1" // Tasks: diktatCheck
-  id("org.jlleitschuh.gradle.ktlint") version "11.1.0" // Tasks: ktlintCheck
+  // id("org.jlleitschuh.gradle.ktlint") version "11.1.0" // Tasks: ktlintCheck
 
   // Dependency Licenses
   id("com.github.jk1.dependency-license-report") version "2.1" // Tasks: generateLicenseReport
@@ -110,14 +112,14 @@ diktat {
   ignoreFailures = true
 }
 
-ktlint {
-  // Not using 0.48.0+ due to https://github.com/JLLeitschuh/ktlint-gradle/issues/622
-  version.set("0.47.1") // must match versions in gradle-plugins/build.gradle.kts
-  verbose.set(true)
-  ignoreFailures.set(true)
-  enableExperimentalRules.set(true) // TODO: vs .editorconfig
-  disabledRules.set(setOf("string-template"))
-}
+// ktlint {
+//   // Not using 0.48.0+ due to https://github.com/JLLeitschuh/ktlint-gradle/issues/622
+//   version.set("0.47.1") // must match versions in gradle-plugins/build.gradle.kts
+//   verbose.set(true)
+//   ignoreFailures.set(true)
+//   enableExperimentalRules.set(true) // TODO: vs .editorconfig
+//   disabledRules.set(setOf("string-template"))
+// }
 
 // ////////////////////////////////////////////////////////////////
 // Documentation
@@ -132,11 +134,11 @@ tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
 // ////////////////////////////////////////////////////////////////
 // Task Dependencies
 
-tasks.check {
-  dependsOn(gradle.includedBuild("gradle-plugins").task(":clean"))
-  dependsOn(gradle.includedBuild("gradle-plugins").task(":check"))
-  dependsOn(tasks.clean)
-}
+// tasks.check {
+//   dependsOn(gradle.includedBuild("gradle-plugins").task(":clean"))
+//   dependsOn(gradle.includedBuild("gradle-plugins").task(":check"))
+//   dependsOn(tasks.clean)
+// }
 
 // For why we have to fully qualify KotlinCompile see:
 // https://stackoverflow.com/questions/55456176/unresolved-reference-compilekotlin-in-build-gradle-kts
