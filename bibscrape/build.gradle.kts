@@ -1,6 +1,5 @@
 // NOTE: Groups with comment headers are sorted alphabetically by group name (TODO)
 
-group = "org.michaeldadams.bibscrape"
 description = "Collect BibTeX information from publisher pages"
 
 // To see a complete list of tasks, use: ./gradlew tasks
