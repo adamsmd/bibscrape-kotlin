@@ -57,8 +57,8 @@ dependencies {
 // ////////////////////////////////////////////////////////////////
 // Checking
 // tasks.register("checkAll") { // TODO
-//   dependsOn(gradle.includedBuild("gradle-plugins").task(":clean"))
-//   dependsOn(gradle.includedBuild("gradle-plugins").task(":check"))
+//   dependsOn(gradle.includedBuild("bibscrape-gradle-plugins").task(":clean"))
+//   dependsOn(gradle.includedBuild("bibscrape-gradle-plugins").task(":check"))
 //   dependsOn(task("clean"))
 //   dependsOn(task("check"))
 // }
