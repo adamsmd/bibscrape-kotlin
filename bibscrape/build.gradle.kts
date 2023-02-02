@@ -5,7 +5,7 @@ description = "Collect BibTeX information from publisher pages"
 
 // To see a complete list of tasks, use: ./gradlew tasks
 plugins {
-  id("common-settings")
+  id("bibscrape-gradle-settings")
   id("git-version")
   application // Provides "./gradlew installDist" then "./build/install/bibscrape/bin/bibscrape"
 

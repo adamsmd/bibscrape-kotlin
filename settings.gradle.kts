@@ -1,5 +1,5 @@
 rootProject.name = "bibscrape"
 
-includeBuild("common-settings")
+includeBuild("bibscrape-gradle-settings")
 includeBuild("gradle-plugins")
 include("bibscrape")

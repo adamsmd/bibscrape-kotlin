@@ -1,5 +1,7 @@
 // NOTE: Groups with comment headers are sorted alphabetically by group name
 
+group = "org.michaeldadams.bibscrape"
+
 plugins {
   `kotlin-dsl`
   `java-gradle-plugin`
