@@ -567,7 +567,7 @@ class Main : CliktCommand(
     val stopWords: List<String> = listOf()
     // @stop-words = @stop-words.map(default-file('Stop-words', $stop-words-filename));
 
-    val fixer = Fix(
+    val fixer = Fixer(
       names = names,
       nouns = nouns,
       stopWords = stopWords,

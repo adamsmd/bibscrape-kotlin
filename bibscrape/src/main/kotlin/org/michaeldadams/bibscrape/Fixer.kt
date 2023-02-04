@@ -7,7 +7,7 @@ import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 // enum MediaType <print online both>;
 
-class Fix(
+class Fixer(
   // // INPUTS
   val names: List<List<String>>,
   val nouns: List<List<String>>,
