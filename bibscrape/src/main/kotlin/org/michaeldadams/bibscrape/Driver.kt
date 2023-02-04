@@ -23,18 +23,21 @@ import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToLong
 
-// @Suppress("ClassOrdering", "WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
-private const val MILLIS_PER_SECOND = 1_000
+private const val MILLIS_PER_SECOND = 1_000 // TODO: constant from java.time?
 
 /** The `innerHTML` property of a [WebElement]. */
 val WebElement.innerHtml: String
   get() = this.getDomProperty("innerHTML")
 
+/** Wrapper around [WebDriver] providing some extra functionality. */
 class Driver private constructor(
+  /** The [WebDriver] being wrapped. */
   val driver: RemoteWebDriver,
+  /** The proxy used to modify traffic to the [driver]. */
   val proxy: BrowserMobProxyServer
-) : WebDriver by driver, JavascriptExecutor by driver, Closeable {
-  var closed = AtomicBoolean()
+) : Object(), WebDriver by driver, JavascriptExecutor by driver, Closeable {
+  /** Whether this object has already been closed. */
+  private var closed = AtomicBoolean()
 
   override fun close() {
     if (!closed.getAndSet(true)) {
@@ -45,7 +48,9 @@ class Driver private constructor(
     }
   }
 
-  fun finalize() { this.close() }
+  /** Calls [close] when this object is garbage collected in case the user did
+   * not already do so. */
+  protected override fun finalize() { this.close() }
 
   /** Sets the driver's wait time while running a given [block].
    *
@@ -62,7 +67,10 @@ class Driver private constructor(
     return result
   }
 
+  /** Calls [findElement] in an [await] block. */
   fun awaitFindElement(by: By): WebElement = this.await { it.findElement(by) }
+
+  /** Calls [findElements] in an [await] block. */
   fun awaitFindElements(by: By): List<WebElement> = this.await { it.findElements(by) }
 
   // fun <T> await(driver: WebDriver, block: () -> T?, timeout: Double = 30.0, sleep: Double = 0.5): T {
@@ -96,8 +104,12 @@ class Driver private constructor(
 
   companion object {
     // TODO: weak table of drivers
-    val pids = ConcurrentSkipListSet<Int>()
-    val directories = ConcurrentSkipListSet<String>()
+    /** The process of launched drivers. */
+    private val pids = ConcurrentSkipListSet<Int>()
+
+    /** The temporary directories of launched drivers. */
+    private val directories = ConcurrentSkipListSet<String>()
+
     init {
       Runtime.getRuntime().addShutdownHook(
         Thread {
@@ -119,6 +131,13 @@ class Driver private constructor(
       )
     }
 
+    /** Creates a [Driver].
+     *
+     * @param headless whether to run the driver in headless mode (i.e., without a visible window)
+     * @param verbose whether to let the driver print debug output to stderr
+     * @param timeout TODO: not implemented
+     * @return the [Driver] object that is created
+     **/
     fun make(headless: Boolean, verbose: Boolean, timeout: Double): Driver {
       // // Proxy
       // Would prefer to use org.openqa.selenium.remote.http.Filter,
@@ -168,6 +187,7 @@ class Driver private constructor(
       // // Service
       val serviceBuilder = GeckoDriverService.Builder()
       if (!verbose) {
+        // TODO: pipe the output to an OutputStream or something
         // Prevent debugging noise
         val nullFile = if (File.separatorChar == '\\') "NUL" else "/dev/null"
         serviceBuilder.withLogFile(File(nullFile))

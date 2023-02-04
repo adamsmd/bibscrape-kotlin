@@ -3,7 +3,9 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import org.openqa.selenium.By
+import org.w3c.dom.Element
 import java.net.URI
+import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
@@ -155,17 +157,27 @@ object ScrapeArxiv : DomainScraper {
     // #$web-driver.execute_script(
     // #   'window.location.href = arguments[0]', "https://export.arxiv.org/api/query?id_list=$id");
     driver.executeScript("window.open(arguments[0], \"_self\")", "https://export.arxiv.org/api/query?id_list=${id}")
-    val xmlString = driver.pageSource
+    val xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(driver.pageSource).documentElement
     driver.navigate().back()
     // my XML::Document:D $xml = from-xml($xml-string);
 
+    fun Element.getElementListByTagName(tag: String): List<Element> =
+      this.getElementsByTagName(tag).let {
+        (0 until it.length).map { i -> it.item(i) as Element }
+      }
+
+    val doi = xml.getElementListByTagName("arxiv:doi")
     // my XML::Element:D @doi = $xml.getElementsByTagName('arxiv:doi');
     // if @doi and Backtrace.new.map({$_.subname}).grep({$_ eq 'scrape-arxiv'}) <= 1 {
     //   # Use publisher page if it exists
     //   dispatch('doi:' ~ @doi.head.contents».text.join(''));
     // } else {
-    //   my XML::Element:D $xml-entry = $xml.getElementsByTagName('entry').head;
 
+    val xmlEntry: Element = xml.getElementListByTagName("entry")[0]
+    // my XML::Element:D $xml-entry = $xml.getElementsByTagName('entry').head;
+
+    fun Element.text(tag: String): String =
+      this.getElementListByTagName(tag).let { it.getOrNull(0)?.textContent ?: "" }
     // sub text(XML::Element:D $element, Str:D $str --> Str:D) {
     //   my XML::Element:D @elements = $element.getElementsByTagName($str);
     //   if @elements {
@@ -180,26 +192,35 @@ object ScrapeArxiv : DomainScraper {
     val entry = file.makeEntry("misc", "arxiv.${id}")
 
     // // Title
+    entry[F.TITLE] = xmlEntry.text("title")
     // my Str:D $title = text($xml-entry, 'title');
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
+    val authors = xmlEntry.getElementListByTagName("author")
+
     // // Author
+    // author=<author><name>: One for each author. Has child element <name> containing the author name.
+    entry[F.AUTHOR] = authors.map { it.text("name") }.joinByAnd()
     // my XML::Element:D @authors = $xml-entry.getElementsByTagName('author');
     // my Str:D $author = @authors.map({text($_, 'name')}).join( ' and ' );
-    //   # author=<author><name> 	One for each author. Has child element <name> containing the author name.
     // $entry.fields<author> = BibScrape::BibTeX::Value.new($author);
 
     // // Affiliation
+    // affiliation=<author><arxiv:affiliation>:
+    //   The author's affiliation included as a subelement of <author> if present.
+    authors.map { it.text("arxiv:affiliation") }.filter { it != "" }.joinByAnd().let {
+      if (it != "") entry[F.AFFILIATION] = it
+    }
     // my Str:D $affiliation = @authors.map({text($_, 'arxiv:affiliation')}).grep({$_ ne ''}).join( ' and ' );
-    //   # affiliation=<author><arxiv:affiliation>
-    //   // The author's affiliation included as a subelement of <author> if present.
     // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new($affiliation)
     //   if $affiliation ne '';
 
     // // How published
+    entry[F.HOWPUBLISHED] = "arXiv.org"
     // $entry.fields<howpublished> = BibScrape::BibTeX::Value.new('arXiv.org');
 
     // // Year, month and day
+    val published = xmlEntry.text("published")
     // my Str:D $published = text($xml-entry, 'published');
     // $published ~~ /^ (\d ** 4) '-' (\d ** 2) '-' (\d ** 2) 'T'/;
     // my (Str:D $year, Str:D $month, Str:D $day) = ($0.Str, $1.Str, $2.Str);
@@ -215,10 +236,12 @@ object ScrapeArxiv : DomainScraper {
     //   if $doi ne '';
 
     // // Eprint
+    entry[F.EPRINT] = id
     // my Str:D $eprint = $id;
     // $entry.fields<eprint> = BibScrape::BibTeX::Value.new($eprint);
 
     // // Archive prefix
+    entry[F.ARCHIVEPREFIX] = "arXiv"
     // $entry.fields<archiveprefix> = BibScrape::BibTeX::Value.new('arXiv');
 
     // // Primary class
@@ -226,6 +249,7 @@ object ScrapeArxiv : DomainScraper {
     // $entry.fields<primaryclass> = BibScrape::BibTeX::Value.new($primaryClass);
 
     // // Abstract
+    entry[F.ABSTRACT] = xmlEntry.text("summary")
     // my Str:D $abstract = text($xml-entry, 'summary');
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
 
@@ -495,6 +519,9 @@ object ScrapeJstor : DomainScraper {
     // my Str:D $month =
     //   ($web-driver.find_elements_by_css_selector( '.turn-away-content__article-summary-journal a' )
     //     || $web-driver.find_elements_by_class_name( 'src' )).head.get_property( 'innerHTML' );
+    month.find("\\( ([A-Za-z]+) ".r)?.let {
+      entry[F.MONTH] = it.groupValues[1]
+    }
     // if $month ~~ / '(' (<alpha>+) / {
     //   $entry.fields<month> = BibScrape::BibTeX::Value.new($0.Str);
     // }
@@ -555,12 +582,9 @@ object ScrapeOxford : DomainScraper {
 
     // // ISSN
     val issn = driver.findElement(By.tagName("body")).innerHtml
-    val pissn = issn.find("Print\\ ISSN\\ (\\d\\d\\d\\d - \\d\\d\\d [0-9Xx])".r)!!.groupValues[1]
-    // my Str:D $pissn = ($issn ~~ / 'Print ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
-    val eissn = issn.find("Online\\ ISSN\\ (\\d\\d\\d\\d - \\d\\d\\d [0-9Xx])".r)!!.groupValues[1]
-    // my Str:D $eissn = ($issn ~~ / 'Online ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
+    val pissn = issn.find("Print\\ ISSN\\ (${ISSN_REGEX})".r)!!.groupValues[1]
+    val eissn = issn.find("Online\\ ISSN\\ (${ISSN_REGEX})".r)!!.groupValues[1]
     entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
-    // $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
 
     // // Publisher
     entry.update(F.PUBLISHER) { it.replace("^ Oxford\\ Academic $".r, "Oxford University Press") }
@@ -624,7 +648,6 @@ object ScrapeSpringer : DomainScraper {
     // // BibTeX
     val file = BibtexFile()
     val entry = file.makeEntry("", "")
-    // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new();
     // Use the BibTeX download if it is available
     // if $web-driver.find_elements_by_id( 'button-Dropdown-citations-dropdown' ) {
     //   await({
@@ -643,11 +666,6 @@ object ScrapeSpringer : DomainScraper {
     HtmlMeta.bibtex(entry, meta, "publisher" to true)
 
     entry.update(F.EDITOR) { it.replace("\\ *\\\n".r, " ") }
-    // if $entry.fields<editor>:exists {
-    //   my Str:D $names = $entry.fields<editor>.simple-str;
-    //   $names ~~ s:g/ ' '* "\n" / /;
-    //   $entry.fields<editor> = BibScrape::BibTeX::Value.new($names);
-    // }
 
     // // Author
     // my Any:D @authors =
@@ -664,14 +682,15 @@ object ScrapeSpringer : DomainScraper {
 
     // // ISBN
     val pisbn = driver.findElement(By.id("print-isbn"))?.innerHtml
-    // my Str:D @pisbn = $web-driver.find_elements_by_id( 'print-isbn' )».get_property( 'innerHTML' );
     val eisbn = driver.findElement(By.id("electronic-isbn"))?.innerHtml
-    // my Str:D @eisbn = $web-driver.find_elements_by_id( 'electronic-isbn' )».get_property( 'innerHTML' );
     if (pisbn != null && eisbn != null) entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)"
-    // $entry.fields<isbn> = BibScrape::BibTeX::Value.new("{@pisbn.head} (Print) {@eisbn.head} (Online)")
-    //   if @pisbn and @eisbn;
 
     // // ISSN
+    driver.findElement(By.tagName("head"))?.innerHtml
+      ?.find("""\{ "eissn" : " (${ISSN_REGEX}) " , "pissn" : " (${ISSN_REGEX}) " \\}""".r)
+      ?.let {
+        entry[F.ISSN] = "${it.groupValues[2]} (Print) ${it.groupValues[1]} (Online)"
+      }
     // if $web-driver.find_element_by_tag_name( 'head' ).get_property( 'innerHTML' )
     //     ~~ / '{"eissn":"' (\d\d\d\d '-' \d\d\d<[0..9Xx]>) '","pissn":"' (\d\d\d\d '-' \d\d\d<[0..9Xx]>) '"}' / {
     //   $entry.fields<issn> = BibScrape::BibTeX::Value.new("$1 (Print) $0 (Online)");
@@ -682,19 +701,19 @@ object ScrapeSpringer : DomainScraper {
     // Ugh, Springer doesn't have a reliable way to get the series, volume,
     // or ISSN.  Fortunately, this only happens for LNCS, so we hard code
     // it.
-    // if $web-driver.find_element_by_tag_name( 'body' ).get_property( 'innerHTML' ) ~~ / '(LNCS, volume ' (\d*) ')' / {
-    //   $entry.fields<volume> = BibScrape::BibTeX::Value.new($0.Str);
-    //   $entry.fields<series> = BibScrape::BibTeX::Value.new( 'Lecture Notes in Computer Science' );
-    // }
+    driver.findElement(By.tagName("body")).innerHtml.find("\\(LNCS,\\ volume\\ (\\d*) \\)".r)?.let {
+      // if $web-driver.find_element_by_tag_name( 'body' ).get_property( 'innerHTML' ) ~~ / '(LNCS, volume ' (\d*) ')' /
+      entry[F.VOLUME] = it.groupValues[1]
+      //   $entry.fields<volume> = BibScrape::BibTeX::Value.new($0.Str);
+      entry[F.SERIES] = "Lecture Notes in Computer Science"
+      //   $entry.fields<series> = BibScrape::BibTeX::Value.new( 'Lecture Notes in Computer Science' );
+    }
 
     // // Keywords
     entry[F.KEYWORDS] = driver
       .findElements(By.className("c-article-subject-list__subject"))
       .map { it.innerHtml }
       .joinToString("; ")
-    // my Str:D @keywords =
-    //   $web-driver.find_elements_by_class_name( 'c-article-subject-list__subject' )».get_property( 'innerHTML' );
-    // $entry.fields<keywords> = BibScrape::BibTeX::Value.new(@keywords.join( '; ' ));
 
     // // Abstract
     // my #`(Inline::Python::PythonObject:D) @abstract =
@@ -708,6 +727,10 @@ object ScrapeSpringer : DomainScraper {
 
     // // Publisher
     // The publisher field should not include the address
+    entry.update("publisher") {
+      val address = entry[F.ADDRESS]?.string ?: ""
+      if (it == "Springer, ${address}") "Springer" else it
+    }
     // update($entry, 'publisher', {
     //   my Str:D $address = $entry.fields<address>.defined ?? $entry.fields<address>.simple-str !! '';
     //   $_ = 'Springer'
