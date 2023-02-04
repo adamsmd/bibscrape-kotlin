@@ -25,12 +25,6 @@ object HtmlMeta {
    * @param fields TODO: document
    */
   fun bibtex(entry: BibtexEntry, meta: HtmlMetaTable, vararg fields: Pair<String, Boolean>) {
-    //   sub html-meta-bibtex(
-    //     BibScrape::BibTeX::Entry:D $entry,
-    //     HtmlMeta:D $html-meta,
-    //     *%fields where { $_.values.all ~~ Bool:D }
-    //     --> HtmlMeta:D) is export {
-    //   my BibScrape::BibTeX::Value:D %values;
     val values: MutableMap<String, String> = mutableMapOf()
     val fieldsMap = fields.toMap()
     fun getFirst(vararg fields: String): String? =
@@ -88,33 +82,33 @@ object HtmlMeta {
           .joinToString("; ")
       )
     }
-    //   set( 'keywords',
-    //     %meta<citation_keywords>
-    //     .map({ s/^ \s* ';'* //; s/ ';'* \s* $//; $_ })
-    //     .join( '; ' ))
-    //     if %meta<citation_keywords>:exists;
+    // set( 'keywords',
+    //   %meta<citation_keywords>
+    //   .map({ s/^ \s* ';'* //; s/ ';'* \s* $//; $_ })
+    //   .join( '; ' ))
+    //   if %meta<citation_keywords>:exists;
 
     // 'rft_pub' also contains publisher information
     set("publisher", getFirst("citation_publisher", "dc.publisher", "st.publisher"))
 
     // 'dc.date', 'rft_date', 'citation_online_date' also contain date information
-    //   if %meta<citation_publication_date>:exists {
-    //     if (%meta<citation_publication_date>.head ~~ /^ (\d\d\d\d) <[/-]> (\d\d) [ <[/-]> (\d\d) ]? $/) {
-    //       my Str:D ($year, $month) = ($0.Str, $1.Str);
-    //       set( 'year', $year);
-    //       set( 'month', num2month($month));
-    //     }
-    //   } elsif %meta<citation_date>:exists {
-    //     if %meta<citation_date>.head ~~ /^ (\d\d) <[/-]> \d\d <[/-]> (\d\d\d\d) $/ {
-    //       my Str:D ($month, $year) = ($0.Str, $1.Str);
-    //       set( 'year', $year);
-    //       set( 'month', num2month($month));
-    //     } elsif %meta<citation_date>.head ~~ /^ <[\ 0..9-]>*? <wb> (\w+) <wb> <[\ .0..9-]>*? <wb> (\d\d\d\d) <wb> / {
-    //       my Str:D ($month, $year) = ($0.Str, $1.Str);
-    //       set( 'year', $year);
-    //       set( 'month', str2month($month));
-    //     }
+    // if %meta<citation_publication_date>:exists {
+    //   if (%meta<citation_publication_date>.head ~~ /^ (\d\d\d\d) <[/-]> (\d\d) [ <[/-]> (\d\d) ]? $/) {
+    //     my Str:D ($year, $month) = ($0.Str, $1.Str);
+    //     set( 'year', $year);
+    //     set( 'month', num2month($month));
     //   }
+    // } elsif %meta<citation_date>:exists {
+    //   if %meta<citation_date>.head ~~ /^ (\d\d) <[/-]> \d\d <[/-]> (\d\d\d\d) $/ {
+    //     my Str:D ($month, $year) = ($0.Str, $1.Str);
+    //     set( 'year', $year);
+    //     set( 'month', num2month($month));
+    //   } elsif %meta<citation_date>.head ~~ /^ <[\ 0..9-]>*? <wb> (\w+) <wb> <[\ .0..9-]>*? <wb> (\d\d\d\d) <wb> / {
+    //     my Str:D ($month, $year) = ($0.Str, $1.Str);
+    //     set( 'year', $year);
+    //     set( 'month', str2month($month));
+    //   }
+    // }
 
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     val types = listOf(
@@ -135,25 +129,25 @@ object HtmlMeta {
     // elsif %meta<st.title>:exists { set( 'journal', %meta<st.title>.head) }
 
     // 'rft_id' and 'doi' also contain doi information
-    //   if %meta<citation_doi>:exists { set( 'doi', %meta<citation_doi>.head )}
-    //   elsif %meta<st.discriminator>:exists { set( 'doi', %meta<st.discriminator>.head) }
-    //   elsif %meta<dc.identifier>:exists and %meta<dc.identifier>.head ~~ /^ 'doi:' (.+) $/ { set( 'doi', $1) }
+    // if %meta<citation_doi>:exists { set( 'doi', %meta<citation_doi>.head )}
+    // elsif %meta<st.discriminator>:exists { set( 'doi', %meta<st.discriminator>.head) }
+    // elsif %meta<dc.identifier>:exists and %meta<dc.identifier>.head ~~ /^ 'doi:' (.+) $/ { set( 'doi', $1) }
 
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
-    if (meta.getOrDefault("citation_isbn", emptyList()).size == 1) {
-      set("isbn", getFirst("citation_isbn"))
+    meta.getOrDefault("citation_isbn", null)?.let {
+      if (it.size == 1) set("isbn", it.first())
     }
-    //   if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
-    //     set( 'isbn', %meta<citation_isbn>.head);
-    //   }
+    // if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
+    //   set( 'isbn', %meta<citation_isbn>.head);
+    // }
 
     // 'rft_issn' also contains ISSN information
-    //   if %meta<st.printissn>:exists and %meta<st.onlineissn>:exists {
-    //     set( 'issn', %meta<st.printissn>.head ~ ' (Print) ' ~ %meta<st.onlineissn>.head ~ ' (Online)');
-    //   } elsif %meta<citation_issn>:exists and 1 == %meta<citation_issn>.elems {
-    //     set( 'issn', %meta<citation_issn>.head);
-    //   }
+    // if %meta<st.printissn>:exists and %meta<st.onlineissn>:exists {
+    //   set( 'issn', %meta<st.printissn>.head ~ ' (Print) ' ~ %meta<st.onlineissn>.head ~ ' (Online)');
+    // } elsif %meta<citation_issn>:exists and 1 == %meta<citation_issn>.elems {
+    //   set( 'issn', %meta<citation_issn>.head);
+    // }
 
     set("language", getFirst("citation_language", "dc.language"))
 
@@ -163,8 +157,8 @@ object HtmlMeta {
     //         $d.defined and $d !~~ /^ [ '' $ | '****' | 'IEEE Xplore' | 'IEEE Computer Society' ] /;
     //   }
 
-    if (meta.containsKey("citation_author_institution")) {
-      set("affiliation", meta.get("citation_author_institution")!!.joinByAnd())
+    meta.getOrDefault("citation_author_institution", null)?.let {
+      set("affiliation", it.joinByAnd())
     }
     //   set( 'affiliation', %meta<citation_author_institution>.join( ' and ' ))
     //     if %meta<citation_author_institution>:exists;
