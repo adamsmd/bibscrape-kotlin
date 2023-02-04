@@ -49,6 +49,7 @@ class Driver private constructor(
 
   /** Sets the driver's wait time while running a given [block].
    *
+   * @param T the type returned by [block]
    * @param timeout the time to wait in seconds
    * @param block the code to execute and wait on
    * @return the value returned by the [block]
