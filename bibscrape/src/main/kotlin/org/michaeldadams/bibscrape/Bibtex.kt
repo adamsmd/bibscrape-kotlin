@@ -9,7 +9,10 @@ import bibtex.parser.BibtexParser
 import java.io.Reader
 import java.io.StringReader
 
-/** Joins a list of strings by the string " and ". */
+/** Joins a list of strings by the string " and ".
+ *
+ * @return the joined string
+ */
 fun Iterable<String>.joinByAnd(): String = this.joinToString(" and ")
 
 /** Checks whether [field] exists in a [BibtexEntry].
@@ -17,6 +20,7 @@ fun Iterable<String>.joinByAnd(): String = this.joinToString(" and ")
  * @param field the name of the field to check
  * @return `true` if [field] exists in the receiver and `false` if it does not
  */
+@Suppress("FUNCTION_BOOLEAN_PREFIX")
 fun BibtexEntry.contains(field: String): Boolean =
   this.fields.containsKey(field)
 
@@ -50,17 +54,29 @@ inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Bool
 val BibtexAbstractValue.string: String // TODO: return null when not BibtexString
   get() = (this as? BibtexString)?.content ?: this.toString()
 
-/** Gets the value for a given [field] in the receiver. */
+/** Gets the value for a given [field] in the receiver.
+ *
+ * @param field the field for which to get the value
+ * @return the value for the given [field]
+ */
 operator fun BibtexEntry.get(field: String): BibtexAbstractValue? =
   this.getFieldValue(field)
 
-/** Sets the value for [field] in the receiver to be [value]. */
-operator fun BibtexEntry.set(field: String, value: String) {
+/** Sets the value for [field] in the receiver to be [value].
+ *
+ * @param field the field for which to set the value
+ * @param value the value to which to set the field
+ */
+operator fun BibtexEntry.set(field: String, value: String): Unit {
   this.setField(field, this.ownerFile.makeString(value))
 }
 
-/** Sets the value for [field] in the receiver to be [value]. */
-operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue) {
+/** Sets the value for [field] in the receiver to be [value].
+ *
+ * @param field the field for which to set the value
+ * @param value the value to which to set the field
+ */
+operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue): Unit {
   this.setField(field, value)
 }
 
@@ -76,7 +92,7 @@ operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue) {
 inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
   this.ifField(field) {
     val newValue = block(it.string)
-    if (newValue != null) { this.set(field, newValue) } else { this.undefineField(field) }
+    if (newValue != null) this.set(field, newValue) else this.undefineField(field)
   }
 
 /** Moves the value from field [src] to field [dst] in the receiver if [block]

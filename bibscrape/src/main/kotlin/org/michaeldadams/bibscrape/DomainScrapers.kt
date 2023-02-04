@@ -162,8 +162,8 @@ object ScrapeArxiv : DomainScraper {
     // my XML::Document:D $xml = from-xml($xml-string);
 
     fun Element.getElementListByTagName(tag: String): List<Element> =
-      this.getElementsByTagName(tag).let {
-        (0 until it.length).map { i -> it.item(i) as Element }
+      this.getElementsByTagName(tag).let { nodes ->
+        (0 until nodes.length).map { nodes.item(it) as Element }
       }
 
     val doi = xml.getElementListByTagName("arxiv:doi")
@@ -209,7 +209,7 @@ object ScrapeArxiv : DomainScraper {
     // affiliation=<author><arxiv:affiliation>:
     //   The author's affiliation included as a subelement of <author> if present.
     authors.map { it.text("arxiv:affiliation") }.filter { it != "" }.joinByAnd().let {
-      if (it != "") entry[F.AFFILIATION] = it
+      if (it != "") { entry[F.AFFILIATION] = it }
     }
     // my Str:D $affiliation = @authors.map({text($_, 'arxiv:affiliation')}).grep({$_ ne ''}).join( ' and ' );
     // $entry.fields<affiliation> = BibScrape::BibTeX::Value.new($affiliation)
@@ -269,11 +269,11 @@ object ScrapeCambridge : DomainScraper {
   override val domains = listOf("cambridge.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    val m = "^https?://www.cambridge.org/core/services/aop-cambridge-core/content/view/('S'\\d+)\$"
+    val match = "^https?://www.cambridge.org/core/services/aop-cambridge-core/content/view/('S'\\d+)\$"
       .toRegex()
       .matchEntire(driver.currentUrl)
-    if (m != null) {
-      driver.get("https://doi.org/10.1017/${m.groupValues[1]}")
+    if (match != null) {
+      driver.get("https://doi.org/10.1017/${match.groupValues[1]}")
     }
 
     // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box
@@ -342,7 +342,7 @@ object ScrapeIeeeComputer : DomainScraper {
     val affiliations = driver
       .findElements(By.className("article-author-affiliations"))
       .map { it.innerHtml }
-    if (!affiliations.isEmpty()) {
+    if (affiliations.isNotEmpty()) {
       entry[F.AFFILIATION] = affiliations.joinByAnd()
     }
 
@@ -683,7 +683,7 @@ object ScrapeSpringer : DomainScraper {
     // // ISBN
     val pisbn = driver.findElement(By.id("print-isbn"))?.innerHtml
     val eisbn = driver.findElement(By.id("electronic-isbn"))?.innerHtml
-    if (pisbn != null && eisbn != null) entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)"
+    if (pisbn != null && eisbn != null) { entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)" }
 
     // // ISSN
     driver.findElement(By.tagName("head"))?.innerHtml

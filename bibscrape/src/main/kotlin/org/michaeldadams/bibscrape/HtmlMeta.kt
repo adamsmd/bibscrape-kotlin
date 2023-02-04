@@ -30,7 +30,7 @@ object HtmlMeta {
     fun getFirst(vararg fields: String): String? =
       fields.flatMap { meta.getOrDefault(it, emptyList()) }.firstOrNull()
 
-    fun set(field: String, value: String?) {
+    fun set(field: String, value: String?): Unit {
       if (value != null) { values[field] = value }
     }
     //   sub set(Str:D $field, $value where Any:U | Str:_ | BibScrape::BibTeX::Piece:_ --> Any:U) {
@@ -136,7 +136,7 @@ object HtmlMeta {
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
     meta.getOrDefault("citation_isbn", null)?.let {
-      if (it.size == 1) set("isbn", it.first())
+      if (it.size == 1) { set("isbn", it.first()) }
     }
     // if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
     //   set( 'isbn', %meta<citation_isbn>.head);

@@ -55,6 +55,9 @@
 # Inspection that checks if string template has redundant curly braces
 - name: STRING_TEMPLATE_CURLY_BRACES
   enabled: false
+# # Checks that non-empty code blocks with braces follow the K&R style (1TBS or OTBS style)
+# - name: BRACES_BLOCK_STRUTURE_ERROR
+#   enabled: false
 
 ## Rules with custom configurations
 
@@ -63,17 +66,16 @@
   configuration:
     # The indentation size for each file
     indentationSize: 2
+# Checks that line breaks follow code style guide: rule 3.6
+- name: WRONG_NEWLINES
+  configuration:
+    # If the number of parameters on one line is more than this threshold, all parameters will be placed on separate lines.
+    maxParametersInOneLine: 100
+    # 3 by default.
+    maxCallsInOneLine: 100
 
 ## Rules that I am not sure about yet
 
-# # Checks that line breaks follow code style guide: rule 3.6
-# - name: WRONG_NEWLINES
-#   enabled: true
-#   configuration:
-#     # If the number of parameters on one line is more than this threshold, all parameters will be placed on separate lines.
-#     maxParametersInOneLine: 2
-#     # 3 by default.
-#     maxCallsInOneLine: 3
 # # Checks trailing comma
 # - name: TRAILING_COMMA
 #   enabled: true

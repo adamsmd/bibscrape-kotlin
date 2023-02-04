@@ -17,5 +17,9 @@ val String.ri: Regex
   get() = this.toRegex(setOf(RegexOption.COMMENTS, RegexOption.IGNORE_CASE))
 
 /** Runs `regex.find` on the receiver.  This is a convienence, so that, when
- * matching, the regex comes after the string it is matching. */
+ * matching, the regex comes after the string it is matching.
+ *
+ * @param regex the [Regex] to match
+ * @return the result of matching [regex]
+ */
 fun String.find(regex: Regex): MatchResult? = regex.find(this)

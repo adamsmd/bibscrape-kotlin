@@ -58,5 +58,10 @@ ktlint {
   verbose.set(true)
   ignoreFailures.set(true)
   enableExperimentalRules.set(true) // TODO: vs .editorconfig
-  disabledRules.set(setOf("string-template"))
+  disabledRules.set(
+    setOf(
+      "no-unit-return",
+      "string-template",
+    )
+  )
 }

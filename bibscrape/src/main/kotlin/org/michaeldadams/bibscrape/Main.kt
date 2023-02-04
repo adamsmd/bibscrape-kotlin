@@ -19,20 +19,23 @@ import java.nio.file.Path
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 /** Runs the main entry point of the application. */
-fun main(args: Array<String>) { Main().main(args) }
+fun main(args: Array<String>): Unit = Main().main(args)
+
+// TODO: require Unit type on all functions
 
 /** Returns the class of the entry point of the application. */
+@Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
 val mainClass: Class<*> = object {}.javaClass.enclosingClass
 
 // The following enum values are lowercase because their names are used by the CLI
 // TODO: make CLI lowercase the enum constants
 
 /** What type of ISBN or ISSN media type to prefer. */
-@Suppress("EnumNaming", "ENUM_VALUE")
+@Suppress("EnumNaming", "ENUM_VALUE", "BRACES_BLOCK_STRUCTURE_ERROR")
 enum class MediaType { print, online, both } // ktlint-disable enum-entry-name-case
 
 /** What type of ISBN to prefer. */
-@Suppress("EnumNaming", "ENUM_VALUE")
+@Suppress("EnumNaming", "ENUM_VALUE", "BRACES_BLOCK_STRUCTURE_ERROR")
 enum class IsbnType { isbn13, isbn10, preserve } // ktlint-disable enum-entry-name-case
 
 /** Option group controlling configuration inputs. */
@@ -586,14 +589,15 @@ class Main : CliktCommand(
     for (a in args) {
       fun scrape(url: String): BibtexEntry =
         Scraper.scrape(URI(url.replace("^ doi: \\s*".ri, "")), generalOptions.window, generalOptions.timeout)
+
       fun fix(keepKey: Boolean, entry: BibtexEntry) {
-        val e = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
+        val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
         // TODO: setEntryKey lower cases but BibtexEntry() does not
         // TODO: don't keepKey when scraping
-        e.entryKey = key.firstOrNull() ?: if (keepKey) entry.entryKey else e.entryKey
+        newEntry.entryKey = key.firstOrNull() ?: if (keepKey) entry.entryKey else newEntry.entryKey
         key = key.drop(1)
         // if (key != null) { e.entryKey = key }
-        println(e)
+        println(newEntry)
         // sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
         //   if $fix { $entry = $fixer.fix($entry) }
         //   if $key { $entry.key = $key }
@@ -639,11 +643,13 @@ class Main : CliktCommand(
             //   update($item, 'series', { s:g/ '~' / / });
             //   fix($key, $item);
             // fix(keepReadKey, entry)
-          } else if (entry[F.BIB_SCRAPE_URL] != null) { // TODO: entry.ifField
+          } else if (entry[F.BIB_SCRAPE_URL] != null) {
+            // TODO: entry.ifField
             // } elsif $item.fields<bib_scrape_url> {
             fix(keepReadKey, scrape(entry[F.BIB_SCRAPE_URL]!!.string))
             //   fix($key, scr($item.fields<bib_scrape_url>.simple-str));
-          } else if (entry[F.DOI] != null) { // TODO: entry.ifField
+          } else if (entry[F.DOI] != null) {
+            // TODO: entry.ifField
             // } elsif $item.fields<doi> {
             val doi = entry[F.DOI]!!.string
             //   my Str:D $doi = $item.fields<doi>.simple-str;

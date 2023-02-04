@@ -332,10 +332,10 @@ class Fixer(
     // $title = ($title.words.grep({$_.fc ∉ @.stop-words-strs}).head // '').fc;
     // $title = $title ne '' ?? ':' ~ $title !! '';
 
-    val year = entry.ifField(F.YEAR) { ":" + it.string } ?: ""
+    val year = entry.ifField(F.YEAR) { ":${it.string}" } ?: ""
     // my Str:D $year = $entry.fields<year>:exists ?? ':' ~ $entry.fields<year>.simple-str !! '';
 
-    val doi = entry.ifField(F.DOI) { ":" + it.string } ?: ""
+    val doi = entry.ifField(F.DOI) { ":${it.string}" } ?: ""
     // my Str:D $doi = $entry.fields<doi>:exists ?? ':' ~ $entry.fields<doi>.simple-str !! '';
     // if $entry.fields<archiveprefix>:exists
     //     and $entry.fields<archiveprefix>.simple-str eq 'arXiv'
@@ -345,7 +345,7 @@ class Fixer(
     entry.entryKey = name + year + title + doi
 
     val unknownFields = entry.fields.keys subtract field
-    if (!unknownFields.isEmpty()) { TODO("Unknown fields: ${unknownFields}") }
+    if (unknownFields.isNotEmpty()) { TODO("Unknown fields: ${unknownFields}") }
     // TODO: Duplicate fields
     //   # Put fields in a standard order (also cleans out any fields we deleted)
     //   my Int:D %fields = @.field.map(* => 0);

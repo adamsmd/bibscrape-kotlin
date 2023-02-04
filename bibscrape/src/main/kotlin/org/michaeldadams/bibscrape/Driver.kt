@@ -29,13 +29,19 @@ private const val MILLIS_PER_SECOND = 1_000 // TODO: constant from java.time?
 val WebElement.innerHtml: String
   get() = this.getDomProperty("innerHTML")
 
-/** Wrapper around [WebDriver] providing some extra functionality. */
+/** Wrapper around [WebDriver] providing some extra functionality.
+ *
+ * @property driver The [WebDriver] being wrapped.
+ * @property proxy The proxy used to modify traffic to the [driver].
+ */
 class Driver private constructor(
-  /** The [WebDriver] being wrapped. */
   val driver: RemoteWebDriver,
-  /** The proxy used to modify traffic to the [driver]. */
   val proxy: BrowserMobProxyServer
-) : Object(), WebDriver by driver, JavascriptExecutor by driver, Closeable {
+) :
+  Object(),
+  WebDriver by driver,
+  JavascriptExecutor by driver,
+  Closeable {
   /** Whether this object has already been closed. */
   private var closed = AtomicBoolean()
 
@@ -50,7 +56,7 @@ class Driver private constructor(
 
   /** Calls [close] when this object is garbage collected in case the user did
    * not already do so. */
-  protected override fun finalize() { this.close() }
+  protected override fun finalize(): Unit = this.close()
 
   /** Sets the driver's wait time while running a given [block].
    *
@@ -67,10 +73,18 @@ class Driver private constructor(
     return result
   }
 
-  /** Calls [findElement] in an [await] block. */
+  /** Calls [findElement] in an [await] block.
+   *
+   * @param by TODO: document
+   * @return TODO: document
+   */
   fun awaitFindElement(by: By): WebElement = this.await { it.findElement(by) }
 
-  /** Calls [findElements] in an [await] block. */
+  /** Calls [findElements] in an [await] block.
+   *
+   * @param by TODO: document
+   * @return TODO: document
+   */
   fun awaitFindElements(by: By): List<WebElement> = this.await { it.findElements(by) }
 
   // fun <T> await(driver: WebDriver, block: () -> T?, timeout: Double = 30.0, sleep: Double = 0.5): T {
@@ -103,12 +117,11 @@ class Driver private constructor(
   // }
 
   companion object {
-    // TODO: weak table of drivers
     /** The process of launched drivers. */
-    private val pids = ConcurrentSkipListSet<Int>()
+    private val pids: ConcurrentSkipListSet<Int> = ConcurrentSkipListSet() // TODO: weak table of drivers
 
     /** The temporary directories of launched drivers. */
-    private val directories = ConcurrentSkipListSet<String>()
+    private val directories: ConcurrentSkipListSet<String> = ConcurrentSkipListSet()
 
     init {
       Runtime.getRuntime().addShutdownHook(
