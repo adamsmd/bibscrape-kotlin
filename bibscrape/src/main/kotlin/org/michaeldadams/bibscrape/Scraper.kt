@@ -14,7 +14,7 @@ data class UnsupportedDomainException(val domain: String, val url: URI) :
 
 /** Scraping functions for BibTeX data from publisher websites, but without
  * making an effort to format them nicely. */
-object Scrape {
+object Scraper {
   /** Scrapes an arbitrary URL.
    *
    * @param url the URL to scrape
@@ -26,7 +26,7 @@ object Scrape {
     // TODO: option for withLogFile
     // TODO: option for verbose
     Driver.make(headless = !window, verbose = true, timeout = timeout).use { driver ->
-      val entry = Scrape.dispatch(driver, url)
+      val entry = dispatch(driver, url)
       entry[F.BIB_SCRAPE_URL] = url.toString()
       entry
     }

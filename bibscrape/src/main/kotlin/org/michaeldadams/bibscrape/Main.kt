@@ -587,7 +587,7 @@ class Main : CliktCommand(
     val keepReadKey = true
     for (a in args) {
       fun scrape(url: String): BibtexEntry =
-        Scrape.scrape(URI(url.replace("^ doi: \\s*".ri, "")), generalOptions.window, generalOptions.timeout)
+        Scraper.scrape(URI(url.replace("^ doi: \\s*".ri, "")), generalOptions.window, generalOptions.timeout)
       fun fix(keepKey: Boolean, entry: BibtexEntry) {
         val e = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
         // TODO: setEntryKey lower cases but BibtexEntry() does not

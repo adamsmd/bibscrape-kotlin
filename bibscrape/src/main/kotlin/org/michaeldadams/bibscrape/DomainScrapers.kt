@@ -22,7 +22,7 @@ object ScrapeAcm : DomainScraper {
         .mapNotNull { it.getAttribute("href") }
       // TODO: filter to non-acm links
       if (urls.size > 0) {
-        return Scrape.dispatch(driver, URI(urls.first()))
+        return Scraper.dispatch(driver, URI(urls.first()))
       } else {
         TODO("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher")
       }
