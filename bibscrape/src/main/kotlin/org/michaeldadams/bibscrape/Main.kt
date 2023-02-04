@@ -4,22 +4,30 @@ import bibtex.dom.BibtexEntry
 /* ktlint-disable no-wildcard-imports */
 import com.github.ajalt.clikt.completion.completionOption
 import com.github.ajalt.clikt.core.*
+import com.github.ajalt.clikt.output.HelpFormatter
 import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.parameters.arguments.*
 import com.github.ajalt.clikt.parameters.groups.*
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 /* ktlint-enable no-wildcard-imports */
+import org.junit.platform.reporting.legacy.xml.LegacyXmlReportGeneratingListener
+import java.io.File
 import java.io.FileReader
 import java.io.InputStreamReader
+import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.file.Path
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 /** Runs the main entry point of the application. */
-fun main(args: Array<String>) { Main().main(args) }
+fun main(args: Array<String>): Unit = Main().main(args)
 
-// The following enum values are lower case because their names are used by the CLI
+/** Returns the class of the entry point of the application */
+val mainClass: Class<*> = object {}.javaClass.enclosingClass
+
+// The following enum values are lowercase because their names are used by the CLI
+// TODO: make CLI lowercase the enum constants
 
 /** What type of ISBN or ISSN media type to prefer. */
 @Suppress("EnumNaming", "ENUM_VALUE")
@@ -237,6 +245,73 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
   // #={Fields that should be omitted from the output if they are empty.}
 }
 
+class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
+  val test: Boolean by option(
+    helpTags = mapOf(HelpFormatter.Tags.REQUIRED to ""),
+    help = """
+      TODO
+      // # This script is a test driver for bibscrape.
+      // # To run it do:
+      // #
+      // #     $ ./test.sh <flag> ... <filename> ...
+      // #
+      // # where <flag> is a flag to pass to bibscrape and <filename> is the name of a
+      // # test file. The flags end at the first argument to not start with `-` or after
+      // # a `--` argument.
+      // #
+      // # For example, to run all ACM tests while showing the browser window, do:
+      // #
+      // #     $ ./test.sh --window tests/acm-*.t
+      """
+  ).flag()
+
+  val testUrl: Boolean by option(
+    help = """
+      TODO
+      """
+  ).flag("--no-test-url", default = true)
+
+  val testFilename: Boolean by option(
+    help = """
+      TODO
+      """
+  ).flag("--no-test-filename", default = true)
+
+  val testNonscraping: Boolean by option(
+    help = """
+      TODO
+      """
+  ).flag("--no-test-nonscraping", default = true)
+
+  val retries: Int by option(
+    help = """
+      TODO: document
+      TODO: 0 means infinite (dangerous)
+      """
+  ).int().restrictTo(min = 0).default(1)
+
+  val testTimeout: Double by option(
+    help = """
+      TODO: document
+      TODO: 0 means infinite (dangerous)
+      """
+  ).double().restrictTo(min = 0.0).default(60.0)
+
+  val useTestArg: Boolean by option(
+    hidden = true,
+    help = """
+      TODO
+      """
+  ).flag()
+
+  val testArg: List<String> by option(
+    hidden = true,
+    help = """
+      TODO
+      """
+  ).multiple()
+}
+
 /** The main application. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class Main : CliktCommand(
@@ -428,8 +503,20 @@ class Main : CliktCommand(
   val operatingModes by OperatingModes()
   val generalOptions by GeneralOptions()
   val bibtexFieldOptions by BibtexFieldOptions()
+  val testingOptions by TestingOptions().cooccurring()
 
   override fun run() {
+    when {
+      testingOptions == null -> run(arg)
+      testingOptions!!.useTestArg -> {
+        println("test ${testingOptions!!.testArg}")
+        // run(testingOptions!!.testArg)
+      }
+      else -> runTests()
+    }
+  }
+
+  fun run(args: List<String>): Unit {
     //   my IO::Path:D $config-dir-path =
     //   ($*DISTRO.is-win
     //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
@@ -494,7 +581,7 @@ class Main : CliktCommand(
 
     val keepScrapedKey = false
     val keepReadKey = true
-    for (a in arg) {
+    for (a in args) {
       fun scrape(url: String): BibtexEntry =
         Scrape.scrape(URI(url.replace("^ doi: \\s*".ri, "")), generalOptions.window, generalOptions.timeout)
       fun fix(keepKey: Boolean, entry: BibtexEntry) {
@@ -609,6 +696,128 @@ class Main : CliktCommand(
         // TODO: use URI in more places
       }
     }
+  }
+
+  fun runTests(): Unit {
+
+    // # Determine where `bibscrape` is located based on the location of this script
+    val javaExe = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java"
+    val jvmArgs = ManagementFactory.getRuntimeMXBean().inputArguments
+    val classpath = System.getProperty("java.class.path")
+    val mainClassName = mainClass.name
+    val originalArgv = this.currentContext.originalArgv
+    // val command =
+    //   listOf(javaExe) +
+    //   jvmArgs +
+    //   listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", a) +
+    //   originalArgv
+
+    // "javaExe jvmFlags -classpath $classpath $mainClass $args --use-test-arg --test-arg $a"
+    // // this::class.package.mainKt
+    // println("javaBin: $javaBin")
+    // println("classpath: $classpath")
+
+    // // if test $# -eq 0; then
+    // //   echo "ERROR: No test files specified"
+    // //   exit 1
+    // // fi
+
+    // var processBuilder = ProcessBuilder
+    // for (a in arg) {
+    // }
+
+    // COUNT=0
+    // if test 0 -eq "$NO_URL"; then
+    //   run test-url 'URLs' "$@"
+    //   COUNT=$((COUNT+n))
+    // fi
+    // if test 0 -eq "$NO_FILENAME"; then
+    //   run test-filename 'filenames' "$@"
+    //   COUNT=$((COUNT+n))
+    // fi
+    // if test 0 -eq "$NO_WITHOUT_SCRAPING"; then
+    //   run test-without-scraping 'filenames without scraping' "$@"
+    //   COUNT=$((COUNT+n))
+    // fi
+
+    // setup() {
+    //   fail() {
+    //     echo "EXITED ABNORMALLY: $i using a $type"
+    //     exit 1
+    //   }
+    //   trap fail EXIT
+    //   # These variables are for use by the calling function
+    //   type="$1"
+    //   i="$2"
+    //   FLAGS=$(head -n 2 "$i" | tail -1)
+    // }
+
+    // teardown() {
+    //   err="$?"
+    //   trap - EXIT
+    //   return $err
+    // }
+
+    // test-url() {
+    //   setup 'URL' "$@"
+    //   (head -n 3 "$i"; eval "$BIBSCRAPE" $FLAGS "${GLOBAL_FLAGS[@]}" "\"$(head -n 1 "$i")\"" 2>&1) \
+    //     | diff --unified --label "$i using a $type" "$i" - | wdiff -dt
+    //   teardown
+    // }
+
+    // test-filename() {
+    //   setup 'filename' "$@"
+    //   eval "$BIBSCRAPE" $FLAGS "${GLOBAL_FLAGS[@]}" <(grep -v '^WARNING: ' "$i") 2>&1 \
+    //     | diff --unified --label "$i using a $type" "$i" - | wdiff -dt
+    //   teardown
+    // }
+
+    // test-without-scraping() {
+    //   setup 'filename without scraping' "$@"
+    //   eval "$BIBSCRAPE" --/scrape $FLAGS "${GLOBAL_FLAGS[@]}" <(grep -v '^WARNING: ' "$i") 2>&1 \
+    //     | diff --unified --label "$i using a $type" \
+    //         <(grep -v 'WARNING: Oxford imposes rate limiting.' "$i" \
+    //           | grep -v 'WARNING: Non-ACM paper at ACM link') - \
+    //     | wdiff -dt
+    //   teardown
+    // }
+
+    // source "$(which env_parallel.bash)"
+
+    // run() {
+    //   FUNCTION="$1"; shift
+    //   TYPE="$1"; shift
+    //   echo "================================================"
+    //   echo "Testing $TYPE"
+    //   echo "================================================"
+    //   echo
+    //   # Other `parallel` flags we might use:
+    //   #  --progress --eta
+    //   #  --dry-run
+    //   #  --max-procs 8
+    //   #  --keep-order
+    //   #  --nice n
+    //   #  --quote
+    //   #  --no-run-if-empty
+    //   #  --shellquote
+    //   #  --joblog >(cat)
+    //   #  --delay 0.1
+    //   #  --jobs n
+    //   #  --line-buffer
+    //   env_parallel --bar --retries "$RETRIES" --timeout "$TIMEOUT" "$FUNCTION" ::: "$@"
+    //   n="$?"
+    //   echo
+    //   echo "================================================"
+    //   if test 0 -eq "$n"; then
+    //     echo "All tests passed for $TYPE"
+    //   else
+    //     echo "$n tests failed for $TYPE"
+    //   fi
+    //   echo "================================================"
+    //   echo
+    // }
+
+    // exit "$COUNT"
   }
 }
 

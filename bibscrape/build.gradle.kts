@@ -36,6 +36,9 @@ dependencies {
   implementation("ch.difty.kris:kris-core:0.4.1")
   implementation("ch.difty.kris:kris-io:0.4.1")
 
+  // Test-report generation
+  implementation("org.junit.platform:junit-platform-reporting:1.9.2")
+
   // WebDriver
   // implementation("org.seleniumhq.selenium:selenium-java:4.8.0") // depends on version of io.netty incompatible with browsermob-core
   implementation("org.seleniumhq.selenium:selenium-api:4.8.0")
