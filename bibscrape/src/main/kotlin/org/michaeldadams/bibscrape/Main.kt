@@ -4,8 +4,8 @@ import bibtex.dom.BibtexEntry
 /* ktlint-disable no-wildcard-imports */
 import com.github.ajalt.clikt.completion.completionOption
 import com.github.ajalt.clikt.core.*
-import com.github.ajalt.clikt.output.HelpFormatter
 import com.github.ajalt.clikt.output.CliktHelpFormatter
+import com.github.ajalt.clikt.output.HelpFormatter
 import com.github.ajalt.clikt.parameters.arguments.*
 import com.github.ajalt.clikt.parameters.groups.*
 import com.github.ajalt.clikt.parameters.options.*
@@ -21,9 +21,9 @@ import java.nio.file.Path
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 /** Runs the main entry point of the application. */
-fun main(args: Array<String>): Unit = Main().main(args)
+fun main(args: Array<String>) { Main().main(args) }
 
-/** Returns the class of the entry point of the application */
+/** Returns the class of the entry point of the application. */
 val mainClass: Class<*> = object {}.javaClass.enclosingClass
 
 // The following enum values are lowercase because their names are used by the CLI
@@ -222,7 +222,8 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
     F.ORGANIZATION, F.PUBLISHER, F.ADDRESS,
     F.LANGUAGE, F.ISBN, F.ISSN, F.DOI, F.URL, F.EPRINT, F.ARCHIVEPREFIX, F.PRIMARYCLASS,
     F.BIB_SCRAPE_URL,
-    F.NOTE, F.ANNOTE, F.KEYWORDS, F.ABSTRACT)
+    F.NOTE, F.ANNOTE, F.KEYWORDS, F.ABSTRACT
+  )
 
   // Str:D :f(:@field) = Array[Str:D](<...>) but Sep[','],
   // #={The order that fields should placed in the output.}
@@ -245,6 +246,8 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
   // #={Fields that should be omitted from the output if they are empty.}
 }
 
+/** Option group for running self tests. */
+@Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
   val test: Boolean by option(
     helpTags = mapOf(HelpFormatter.Tags.REQUIRED to ""),
@@ -267,32 +270,32 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
 
   val testUrl: Boolean by option(
     help = """
-      TODO
+      TODO: document --test-url
       """
   ).flag("--no-test-url", default = true)
 
   val testFilename: Boolean by option(
     help = """
-      TODO
+      TODO: document --test-filename
       """
   ).flag("--no-test-filename", default = true)
 
   val testNonscraping: Boolean by option(
     help = """
-      TODO
+      TODO: document --test-nonscraping
       """
   ).flag("--no-test-nonscraping", default = true)
 
   val retries: Int by option(
     help = """
-      TODO: document
+      TODO: document --test-retries
       TODO: 0 means infinite (dangerous)
       """
   ).int().restrictTo(min = 0).default(1)
 
   val testTimeout: Double by option(
     help = """
-      TODO: document
+      TODO: document --test-timeout
       TODO: 0 means infinite (dangerous)
       """
   ).double().restrictTo(min = 0.0).default(60.0)
@@ -300,14 +303,14 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
   val useTestArg: Boolean by option(
     hidden = true,
     help = """
-      TODO
+      TODO: document --use-test-arg
       """
   ).flag()
 
   val testArg: List<String> by option(
     hidden = true,
     help = """
-      TODO
+      TODO: document --test-arg
       """
   ).multiple()
 }
@@ -516,7 +519,7 @@ class Main : CliktCommand(
     }
   }
 
-  fun run(args: List<String>): Unit {
+  fun run(args: List<String>) {
     //   my IO::Path:D $config-dir-path =
     //   ($*DISTRO.is-win
     //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
@@ -577,7 +580,8 @@ class Main : CliktCommand(
       noEncode = bibtexFieldOptions.noEncode,
       noCollapse = bibtexFieldOptions.noCollapse,
       omit = bibtexFieldOptions.omit,
-      omitEmpty = bibtexFieldOptions.omitEmpty)
+      omitEmpty = bibtexFieldOptions.omitEmpty
+    )
 
     val keepScrapedKey = false
     val keepReadKey = true
@@ -592,16 +596,16 @@ class Main : CliktCommand(
         key = key.drop(1)
         // if (key != null) { e.entryKey = key }
         println(e)
-        //   sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
-        //     if $fix { $entry = $fixer.fix($entry) }
-        //     if $key { $entry.key = $key }
-        //     print $entry.Str;
-        //     return;
-        //   }
+        // sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
+        //   if $fix { $entry = $fixer.fix($entry) }
+        //   if $key { $entry.key = $key }
+        //   print $entry.Str;
+        //   return;
+        // }
       }
 
       if (a.contains("^ http: | https: | doi: ".ri)) {
-        //   if $arg ~~ m:i/^ 'http:' | 'https:' | 'doi:' / {
+        // if $arg ~~ m:i/^ 'http:' | 'https:' | 'doi:' / {
         // It's a URL
         if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: ${a}") }
         fix(keepScrapedKey, scrape(a))
@@ -612,8 +616,8 @@ class Main : CliktCommand(
           (if (a == "-") InputStreamReader(System.`in`) else FileReader(a))
             .use(Bibtex::parse)
             .entries
-            //     my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
-            //     my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
+        // my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
+        // my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
 
         ENTRY@for (entry in entries) {
           if (entry !is BibtexEntry) {
@@ -698,9 +702,7 @@ class Main : CliktCommand(
     }
   }
 
-  fun runTests(): Unit {
-
-    // # Determine where `bibscrape` is located based on the location of this script
+  fun runTests() {
     val javaExe = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java"
     val jvmArgs = ManagementFactory.getRuntimeMXBean().inputArguments
     val classpath = System.getProperty("java.class.path")

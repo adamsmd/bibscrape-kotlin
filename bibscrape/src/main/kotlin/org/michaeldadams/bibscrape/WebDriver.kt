@@ -32,8 +32,8 @@ val WebElement.innerHtml: String
 
 class Driver private constructor(
   val driver: RemoteWebDriver,
-  val proxy: BrowserMobProxyServer) :
-  WebDriver by driver, JavascriptExecutor by driver, Closeable {
+  val proxy: BrowserMobProxyServer
+) : WebDriver by driver, JavascriptExecutor by driver, Closeable {
   var closed = AtomicBoolean()
 
   override fun close() {
@@ -98,22 +98,24 @@ class Driver private constructor(
     val pids = ConcurrentSkipListSet<Int>()
     val directories = ConcurrentSkipListSet<String>()
     init {
-      Runtime.getRuntime().addShutdownHook(Thread {
-        for (pid in pids) {
-          try {
-          // TODO: process kill
-          } catch (e: Throwable) {
-            // Print stack trace unless exception is that pid not exist
+      Runtime.getRuntime().addShutdownHook(
+        Thread {
+          for (pid in pids) {
+            try {
+              // TODO: process kill
+            } catch (e: Throwable) {
+              // Print stack trace unless exception is that pid not exist
+            }
           }
+          // for (directory in directories) {
+          //   try {
+          //     directory.deleteRecursively()
+          //   } catch (e: Throwable) {
+          //     // Print stack trace unless exception is that pid not exist
+          //   }
+          // }
         }
-        // for (directory in directories) {
-        //   try {
-        //     directory.deleteRecursively()
-        //   } catch (e: Throwable) {
-        //     // Print stack trace unless exception is that pid not exist
-        //   }
-        // }
-      })
+      )
     }
 
     fun make(headless: Boolean, verbose: Boolean, timeout: Double): Driver {

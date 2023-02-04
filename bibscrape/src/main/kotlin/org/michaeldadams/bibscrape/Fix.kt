@@ -30,9 +30,8 @@ class Fix(
   val noEncode: List<String>,
   val noCollapse: List<String>,
   val omit: List<String>,
-  val omitEmpty: List<String>,
+  val omitEmpty: List<String>
 ) {
-
   // method new(#`(Any:D) *%args --> Fix:D) {
   //   sub string-blocks(Array:D[Str:D] @blocks, Str:D $blocks --> Any:U) {
   //     push @blocks, Array[Str:D].new; # Ensure we are starting a new block
@@ -189,6 +188,7 @@ class Fix(
     }
 
     entry.check(F.VOLUME, "Possibly incorrect volume") {
+      /* ktlint-disable indent */
       it.contains("^ \\d+          $".r) ||
       it.contains("^ \\d+  - \\d+  $".r) ||
       it.contains("^ [A-Z] - \\d+  $".r) ||
@@ -196,6 +196,8 @@ class Fix(
     }
 
     entry.check(F.NUMBER, "Possibly incorrect number") {
+      // TODO: is this the right syntax for ktlint-disable or is this disabling all rules?
+      /* ktlint-disable indent */
       it.contains("^   \\d+           $".r) ||
       it.contains("^   \\d+ -- \\d+   $".r) ||
       it.contains("^   \\d+ (/ \\d+)* $".r) || // TODO: separator operator
@@ -203,6 +205,7 @@ class Fix(
       it.contains("^ S \\d+           $".r) ||
       it.contains("^   [A-Z]+         $".r) || // PACMPL conference abbreviations (e.g., ICFP)
       it.contains("^ Special\\ Issue\\ \\d+ (--\\d+)? $".r)
+      /* ktlint-enable indent */
     }
 
     // self.isbn($entry, 'issn', $.issn-media, &canonical-issn);
@@ -249,7 +252,8 @@ class Fix(
     // ///////////////////////////////
 
     // Canonicalize series: PEPM'97 -> PEPM~'97.  After Unicode encoding so that "'" doesn't get encoded.
-    // TODO: entry.update(F.SERIES) { it.replace("^ ([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d\\d) $".r, "$1~'$3") }
+    // TODO: entry.update(F.SERIES)
+    //     { it.replace("^ ([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d\\d) $".r, "$1~'$3") }
     entry.update(F.SERIES) { it.replace("([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d+)".r, "$1~'$3") }
 
     // Collapse spaces and newlines.  After Unicode encoding so stuff from XML is caught.

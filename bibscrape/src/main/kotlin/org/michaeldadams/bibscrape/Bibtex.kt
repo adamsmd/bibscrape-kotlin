@@ -15,21 +15,29 @@ fun Iterable<String>.joinByAnd(): String = this.joinToString(" and ")
 /** Checks whether [field] exists in a [BibtexEntry].
  *
  * @param field the name of the field to check
- * @return true if the field exists and false if it does not
+ * @return `true` if [field] exists in the receiver and `false` if it does not
  */
 fun BibtexEntry.contains(field: String): Boolean =
   this.fields.containsKey(field)
 
-/** Runs [block] if [field] exists.
+/** Runs [block] on the value of [field] if [field] exists in the receiver.
  *
+ * @param A the type returned by [block]
  * @param field the name of the field to check
- * @param block the block to run if [field] exists.  Receives the value of the [field] as an argument.
- * @return the value of the [field] if it exists, otherwise null
+ * @param block the function to run if [field] exists.  Receives the value of the [field] as an argument.
+ * @return the value returned by [block] if [field] exists in the receiver, otherwise `null`
  */
 inline fun <A> BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> A): A? =
   this[field]?.let(block)
 
-
+/** Prints a warning if [field] exists in the receiver, but [block] returns
+ * `false` on the value of that field.
+ *
+ * @param field the name of the field to check
+ * @param msg the message to use in the warning
+ * @param block the predicate to apply to the value of [field]
+ * @return [Unit] if [block] returns `true`, otherwise `null`
+ */
 inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): Unit? =
   this.ifField(field) {
     val value = it.string
@@ -38,26 +46,49 @@ inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Bool
     }
   }
 
+/** Gets a simple string representation of a [BibtexAbstractValue]. */
 val BibtexAbstractValue.string: String // TODO: return null when not BibtexString
   get() = (this as? BibtexString)?.content ?: this.toString()
 
+/** Gets the value for a given [field] in the receiver. */
 operator fun BibtexEntry.get(field: String): BibtexAbstractValue? =
   this.getFieldValue(field)
 
+/** Sets the value for [field] in the receiver to be [value]. */
 operator fun BibtexEntry.set(field: String, value: String) {
   this.setField(field, this.ownerFile.makeString(value))
 }
 
+/** Sets the value for [field] in the receiver to be [value]. */
 operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue) {
   this.setField(field, value)
 }
 
+/** Sets the value for [field] in the receiver to be the result of applying [block]
+ * to the previous value for [field] in the receiver.  If [block] returns `null`,
+ * then [field] is removed from the receiver. If [field] does not exist in the
+ * receiver, [block] is not called, and the value of [field] is not modified.
+ *
+ * @param field the name of the field to update
+ * @param block the function to run on the value of [field]
+ * @return [Unit] if [field] existed in the receiver, otherwise `null`
+ */
 inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
   this.ifField(field) {
     val newValue = block(it.string)
     if (newValue != null) { this.set(field, newValue) } else { this.undefineField(field) }
   }
 
+/** Moves the value from field [src] to field [dst] in the receiver if [block]
+ * returns `true` on the value of field [src].  If there is no [src] field,
+ * then nothing is done.  If [src] is moved to [dst], then [src] is removed
+ * from the receiver (i.e., this is "move", not "copy").
+ *
+ * @param src the field to move from
+ * @param dst the field to move to
+ * @param block the predicate to determine whether to do the move
+ * @return [Unit] if field [src] existed in the receiver, otherwise `null`
+ */
 inline fun BibtexEntry.moveFieldIf(src: String, dst: String, block: (BibtexAbstractValue) -> Boolean): Unit? =
   this.ifField(src) {
     if (block(it)) {
@@ -66,8 +97,23 @@ inline fun BibtexEntry.moveFieldIf(src: String, dst: String, block: (BibtexAbstr
     }
   }
 
-fun BibtexEntry.moveField(src: String, dst: String) = this.moveFieldIf(src, dst) { true }
+/** Moves the value from field [src] to field [dst] in the receiver.  If there
+ * is no [src] field, then nothing is done.  If [src] is moved to [dst], then
+ * [src] is removed from the receiver (i.e., this is "move", not "copy").
+ *
+ * @param src the field to move from
+ * @param dst the field to move to
+ * @return [Unit] if field [src] existed in the receiver, otherwise `null`
+ */
+fun BibtexEntry.moveField(src: String, dst: String): Unit? = this.moveFieldIf(src, dst) { true }
 
+/** Remove [field] from the receiver if [block] returns `true` on the existing value of [field].
+ * If [field] does not exist in the receiver, then nothing is done.
+ *
+ * @param field the name of the field to remove
+ * @param block the predicate to determine whether to remove [field]
+ * @return [Unit] if [field] existed in the receiver, otherwise `null`
+ */
 inline fun BibtexEntry.removeIf(field: String, block: (String) -> Boolean): Unit? =
   this.update(field) { if (block(it)) null else it }
 
@@ -160,13 +206,18 @@ object Bibtex {
       (longNames zip macroNames)
     ).toMap()
 
+  /** Parses a [string] as a BibTeX file and returns the [BibtexEntry] values in it.
+   *
+   * @param string the string to parse
+   * @return the [BibtexEntry] values in the parse result
+   */
   fun parseEntries(string: String): List<BibtexEntry> =
     parse(string).entries.filterIsInstance<BibtexEntry>()
 
-  /** Parses a [string] into its constituent BibTeX entries.
+  /** Parses a [string] as a BibTeX file.
    *
    * @param string the string to parse
-   * @return the entries that were succesfully parsed
+   * @return the parse result
    */
   fun parse(string: String): BibtexFile = StringReader(string).use(::parse)
 

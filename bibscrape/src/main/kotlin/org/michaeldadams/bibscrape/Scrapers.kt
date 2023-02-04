@@ -21,8 +21,11 @@ object ScrapeAcm : Scraper {
         .findElements(By.className("issue-item__doi"))
         .mapNotNull { it.getAttribute("href") }
       // TODO: filter to non-acm links
-      if (urls.size > 0) { return Scrape.dispatch(driver, URI(urls.first())) }
-      else { TODO("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher") }
+      if (urls.size > 0) {
+        return Scrape.dispatch(driver, URI(urls.first()))
+      } else {
+        TODO("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher")
+      }
     }
 
     // // BibTeX
@@ -151,8 +154,7 @@ object ScrapeArxiv : Scraper {
     // #$web-driver.get("https://export.arxiv.org/api/query?id_list=$id"); # Causes a timeout
     // #$web-driver.execute_script(
     // #   'window.location.href = arguments[0]', "https://export.arxiv.org/api/query?id_list=$id");
-    driver.executeScript("window.open(arguments[0], \"_self\")",
-      "https://export.arxiv.org/api/query?id_list=${id}")
+    driver.executeScript("window.open(arguments[0], \"_self\")", "https://export.arxiv.org/api/query?id_list=${id}")
     val xmlString = driver.pageSource
     driver.navigate().back()
     // my XML::Document:D $xml = from-xml($xml-string);
@@ -486,9 +488,10 @@ object ScrapeJstor : Scraper {
     entry.update(F.ISSN) { it.replace("^ ([0-9Xx]+) ,\\ ([0-9Xx]+) $".r, "$1 (Print) $2 (Online)") }
 
     // // Month
-    val month =
-      (driver.findElements(By.cssSelector(".turn-away-content__article-summary-journal a")) +
-        driver.findElements(By.className("src"))).first().innerHtml
+    val month = (
+      driver.findElements(By.cssSelector(".turn-away-content__article-summary-journal a")) +
+        driver.findElements(By.className("src"))
+      ).first().innerHtml
     // my Str:D $month =
     //   ($web-driver.find_elements_by_css_selector( '.turn-away-content__article-summary-journal a' )
     //     || $web-driver.find_elements_by_class_name( 'src' )).head.get_property( 'innerHTML' );
@@ -501,8 +504,7 @@ object ScrapeJstor : Scraper {
     entry[F.PUBLISHER] =
       driver.findElement(By.className("turn-away-content__article-summary-journal"))?.let {
         it.innerHtml.find("Published\\ By:\\ ([^<]*)".r)!!.groupValues[1]
-      } ?:
-      driver.findElement(By.className("publisher-link")).innerHtml
+      } ?: driver.findElement(By.className("publisher-link")).innerHtml
     // my Str:D $publisher =
     //   do if $web-driver.find_elements_by_class_name( 'turn-away-content__article-summary-journal' ) {
     //     my Str:D $text =
@@ -665,7 +667,7 @@ object ScrapeSpringer : Scraper {
     // my Str:D @pisbn = $web-driver.find_elements_by_id( 'print-isbn' )».get_property( 'innerHTML' );
     val eisbn = driver.findElement(By.id("electronic-isbn"))?.innerHtml
     // my Str:D @eisbn = $web-driver.find_elements_by_id( 'electronic-isbn' )».get_property( 'innerHTML' );
-    if (pisbn != null && eisbn != null) entry[F.ISBN] = "${pisbn} (Print) {$eisbn} (Online)"
+    if (pisbn != null && eisbn != null) entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)"
     // $entry.fields<isbn> = BibScrape::BibTeX::Value.new("{@pisbn.head} (Print) {@eisbn.head} (Online)")
     //   if @pisbn and @eisbn;
 
