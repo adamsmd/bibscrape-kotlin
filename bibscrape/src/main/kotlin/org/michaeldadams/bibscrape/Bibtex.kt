@@ -68,6 +68,9 @@ inline fun BibtexEntry.moveFieldIf(src: String, dst: String, block: (BibtexAbstr
 
 fun BibtexEntry.moveField(src: String, dst: String) = this.moveFieldIf(src, dst) { true }
 
+inline fun BibtexEntry.removeIf(field: String, block: (String) -> Boolean): Unit? =
+  this.update(field) { if (block(it)) null else it }
+
 /** BibTeX utility functions. */
 object Bibtex {
   /** Constants for BibTeX entry types. */

@@ -153,11 +153,8 @@ object ScrapeArxiv : Scraper {
     // #   'window.location.href = arguments[0]', "https://export.arxiv.org/api/query?id_list=$id");
     driver.executeScript("window.open(arguments[0], \"_self\")",
       "https://export.arxiv.org/api/query?id_list=${id}")
-    // $web-driver.execute_script( 'window.open(arguments[0], "_self")',
-    //   "https://export.arxiv.org/api/query?id_list=$id");
     val xmlString = driver.pageSource
     driver.navigate().back()
-    // my Str:D $xml-string = $web-driver.read-downloads();
     // my XML::Document:D $xml = from-xml($xml-string);
 
     // my XML::Element:D @doi = $xml.getElementsByTagName('arxiv:doi');
@@ -324,8 +321,8 @@ object ScrapeIeeeComputer : Scraper {
     }
 
     // // Keywords
+    // TODO(?): entry.update(F.KEYWORDS) { it.replace("\\s* ; \\s*".r, "; ") } // TODO: move to Fix.kt?
     entry.update(F.KEYWORDS) { it.replace("; \\s*".r, "; ") } // TODO: move to Fix.kt?
-    // update($entry, 'keywords', { s:g/ ';' \s* /; / });
 
     return entry
   }
@@ -352,15 +349,9 @@ object ScrapeIeeeExplore : Scraper {
 
     // // Keywords
     entry.update(F.KEYWORDS) { it.replace("; \\s*".r, "; ") } // TODO: move to Fix.kt?
-    // my Str:D $keywords = $entry.fields<keywords>.simple-str;
-    // $keywords ~~ s:g/ ';' ' '* /; /;
-    // $entry.fields<keywords> = BibScrape::BibTeX::Value.new($keywords);
 
     // // Author
     entry.update(F.AUTHOR) { it.replace("\\{ ([^}]+) \\}".r, "$1") }
-    // my Str:D $author = $entry.fields<author>.simple-str;
-    // $author ~~ s:g/ '{' (<-[}]>+) '}' /$0/;
-    // $entry.fields<author> = BibScrape::BibTeX::Value.new($author);
 
     // // ISSN
     // if $body ~~ /
@@ -377,6 +368,8 @@ object ScrapeIeeeExplore : Scraper {
     // }
 
     // // Publisher
+    entry[F.PUBLISHER] =
+      driver.findElement(By.cssSelector(".publisher-info-container > span > span > span + span")).innerHtml
     // my Str:D $publisher =
     //   $web-driver
     //   .find_element_by_css_selector( '.publisher-info-container > span > span > span + span' )
@@ -403,6 +396,7 @@ object ScrapeIeeeExplore : Scraper {
     // $entry.fields<conference_date> = BibScrape::BibTeX::Value.new($0.Str) if $0;
 
     // // Abstract
+    entry.update(F.ABSTRACT) { it.replace("&lt;&gt; $".r, "") }
     // update($entry, 'abstract', { s/ '&lt;&gt;' $// });
 
     return entry
@@ -424,21 +418,24 @@ object ScrapeIosPress : Scraper {
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
     HtmlMeta.bibtex(entry, meta)
-    // html-meta-bibtex($entry, $meta);
 
     // // Title
-    val title = driver.findElement(By.cssSelector("[data-p13n-title]")).getDomAttribute("data-p13n-title")
+    entry[F.TITLE] = driver
+      .findElement(By.cssSelector("[data-p13n-title]"))
+      .getDomAttribute("data-p13n-title")
+      .replace("\\\\n".r, "")
     // my Str:D $title =
     //   $web-driver.find_element_by_css_selector( '[data-p13n-title]' ).get_attribute( 'data-p13n-title' );
-    entry[F.TITLE] = title.replace("\\n".r, "")
     // $title ~~ s:g/ "\n" //; # Remove extra newlines
     // $entry.fields<title> = BibScrape::BibTeX::Value.new($title);
 
     // // Abstract
-    val abstract = driver.findElement(By.cssSelector("[data-abstract]")).getDomAttribute("data-abstract")
+    entry[F.ABSTRACT] = driver
+      .findElement(By.cssSelector("[data-abstract]"))
+      .getDomAttribute("data-abstract")
+      .replace("([.!?]) \\ \\ ".r, "$0\n\n") // Insert missing paragraphs.  This is a heuristic solution.
     // my Str:D $abstract =
     //   $web-driver.find_element_by_css_selector( '[data-abstract]' ).get_attribute( 'data-abstract' );
-    entry[F.ABSTRACT] = abstract.replace("([.!?]) \\ \\ ".r, "$0\n\n")// Insert missing paragraphs.  This is a heuristic solution.
     // $abstract ~~ s:g/ (<[.!?]>) '  ' /$0\n\n/; # Insert missing paragraphs.  This is a heuristic solution.
     // $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
 
@@ -449,7 +446,7 @@ object ScrapeIosPress : Scraper {
     //   $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
     // }
 
-    TODO()
+    return entry
   }
 }
 
@@ -486,10 +483,12 @@ object ScrapeJstor : Scraper {
     entry[F.DOI] = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
 
     // // ISSN
-    entry.update(F.ISSN) { it.replace("^ ([0-9Xx]+) , ([0-9Xx]+) $".r, "$1 (Print) $2 (Online)") }
-    // update($entry, 'issn', { s/^ (<[0..9Xx]>+) ', ' (<[0..9Xx]>+) $/$0 (Print) $1 (Online)/ });
+    entry.update(F.ISSN) { it.replace("^ ([0-9Xx]+) ,\\ ([0-9Xx]+) $".r, "$1 (Print) $2 (Online)") }
 
     // // Month
+    val month =
+      (driver.findElements(By.cssSelector(".turn-away-content__article-summary-journal a")) +
+        driver.findElements(By.className("src"))).first().innerHtml
     // my Str:D $month =
     //   ($web-driver.find_elements_by_css_selector( '.turn-away-content__article-summary-journal a' )
     //     || $web-driver.find_elements_by_class_name( 'src' )).head.get_property( 'innerHTML' );
@@ -499,6 +498,11 @@ object ScrapeJstor : Scraper {
 
     // // Publisher
     // Note that on-campus is different than off-campus
+    entry[F.PUBLISHER] =
+      driver.findElement(By.className("turn-away-content__article-summary-journal"))?.let {
+        it.innerHtml.find("Published\\ By:\\ ([^<]*)".r)!!.groupValues[1]
+      } ?:
+      driver.findElement(By.className("publisher-link")).innerHtml
     // my Str:D $publisher =
     //   do if $web-driver.find_elements_by_class_name( 'turn-away-content__article-summary-journal' ) {
     //     my Str:D $text =
@@ -540,7 +544,6 @@ object ScrapeOxford : Scraper {
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
     HtmlMeta.bibtex(entry, meta, F.MONTH to true, F.YEAR to true)
-    // html-meta-bibtex($entry, $meta, :month, :year);
 
     // // Title
     val title = driver.findElement(By.className("article-title-main")).innerHtml
@@ -550,13 +553,15 @@ object ScrapeOxford : Scraper {
 
     // // ISSN
     val issn = driver.findElement(By.tagName("body")).innerHtml
+    val pissn = issn.find("Print\\ ISSN\\ (\\d\\d\\d\\d - \\d\\d\\d [0-9Xx])".r)!!.groupValues[1]
     // my Str:D $pissn = ($issn ~~ / 'Print ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
+    val eissn = issn.find("Online\\ ISSN\\ (\\d\\d\\d\\d - \\d\\d\\d [0-9Xx])".r)!!.groupValues[1]
     // my Str:D $eissn = ($issn ~~ / 'Online ISSN ' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)/)[0].Str;
+    entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
     // $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
 
     // // Publisher
     entry.update(F.PUBLISHER) { it.replace("^ Oxford\\ Academic $".r, "Oxford University Press") }
-    // update($entry, 'publisher', { s/^ 'Oxford Academic' $/Oxford University Press/ });
 
     return entry
   }
@@ -601,17 +606,9 @@ object ScrapeScienceDirect : Scraper {
       .map { it.innerHtml }
       .firstOrNull()
       ?.let { entry[F.ABSTRACT] = it }
-    // my Str:D @abstract =
-    //   ($web-driver.find_elements_by_css_selector( '.abstract > div' ))».get_property( 'innerHTML' );
-    // $entry.fields<abstract> = BibScrape::BibTeX::Value.new(@abstract.head)
-    //   if @abstract;
 
     // // Series
     entry.moveField(F.NOTE, F.SERIES)
-    // if $entry.fields<note> {
-    //   $entry.fields<series> = $entry.fields<note>;
-    //   $entry.fields<note>:delete;
-    // }
 
     return entry
   }
@@ -643,7 +640,7 @@ object ScrapeSpringer : Scraper {
     val meta = HtmlMeta.parse(driver)
     HtmlMeta.bibtex(entry, meta, "publisher" to true)
 
-    entry.ifField(F.EDITOR) { it.string.replace("\\ * \\\n".r, " ") }
+    entry.update(F.EDITOR) { it.replace("\\ *\\\n".r, " ") }
     // if $entry.fields<editor>:exists {
     //   my Str:D $names = $entry.fields<editor>.simple-str;
     //   $names ~~ s:g/ ' '* "\n" / /;
@@ -664,8 +661,11 @@ object ScrapeSpringer : Scraper {
     // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // ISBN
+    val pisbn = driver.findElement(By.id("print-isbn"))?.innerHtml
     // my Str:D @pisbn = $web-driver.find_elements_by_id( 'print-isbn' )».get_property( 'innerHTML' );
+    val eisbn = driver.findElement(By.id("electronic-isbn"))?.innerHtml
     // my Str:D @eisbn = $web-driver.find_elements_by_id( 'electronic-isbn' )».get_property( 'innerHTML' );
+    if (pisbn != null && eisbn != null) entry[F.ISBN] = "${pisbn} (Print) {$eisbn} (Online)"
     // $entry.fields<isbn> = BibScrape::BibTeX::Value.new("{@pisbn.head} (Print) {@eisbn.head} (Online)")
     //   if @pisbn and @eisbn;
 
@@ -686,6 +686,10 @@ object ScrapeSpringer : Scraper {
     // }
 
     // // Keywords
+    entry[F.KEYWORDS] = driver
+      .findElements(By.className("c-article-subject-list__subject"))
+      .map { it.innerHtml }
+      .joinToString("; ")
     // my Str:D @keywords =
     //   $web-driver.find_elements_by_class_name( 'c-article-subject-list__subject' )».get_property( 'innerHTML' );
     // $entry.fields<keywords> = BibScrape::BibTeX::Value.new(@keywords.join( '; ' ));
