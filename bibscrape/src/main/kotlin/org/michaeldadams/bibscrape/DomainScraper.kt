@@ -3,8 +3,8 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexEntry
 
 /** Scrapes BibTeX data for the specified [domains]. */
-interface Scraper {
-  /** The domains implemented by this scraper. */
+interface DomainScraper {
+  /** The domains implemented by this domain scraper. */
   val domains: List<String>
 
   /** Scrapes the given [domain] assuming [driver] is already pointing at the

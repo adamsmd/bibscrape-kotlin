@@ -8,7 +8,7 @@ import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 /** Scrapes the ACM Digital Library. */
-object ScrapeAcm : Scraper {
+object ScrapeAcm : DomainScraper {
   override val domains = listOf("acm.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -133,7 +133,7 @@ object ScrapeAcm : Scraper {
 }
 
 /** Scrapes the arXiv repository. */
-object ScrapeArxiv : Scraper {
+object ScrapeArxiv : DomainScraper {
   override val domains = listOf("arxiv.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -241,7 +241,7 @@ object ScrapeArxiv : Scraper {
 }
 
 /** Scrapes Cambridge University Press. */
-object ScrapeCambridge : Scraper {
+object ScrapeCambridge : DomainScraper {
   override val domains = listOf("cambridge.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -289,7 +289,7 @@ object ScrapeCambridge : Scraper {
 }
 
 /** Scrapes IEEE Computer. */
-object ScrapeIeeeComputer : Scraper {
+object ScrapeIeeeComputer : DomainScraper {
   override val domains = listOf("computer.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -331,7 +331,7 @@ object ScrapeIeeeComputer : Scraper {
 }
 
 /** Scrapes IEEE Explore. */
-object ScrapeIeeeExplore : Scraper {
+object ScrapeIeeeExplore : DomainScraper {
   override val domains = listOf("ieeexplore.ieee.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -406,7 +406,7 @@ object ScrapeIeeeExplore : Scraper {
 }
 
 /** Scrapes IOS Press. */
-object ScrapeIosPress : Scraper {
+object ScrapeIosPress : DomainScraper {
   override val domains = listOf("iospress.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -453,7 +453,7 @@ object ScrapeIosPress : Scraper {
 }
 
 /** Scrape JStor. */
-object ScrapeJstor : Scraper {
+object ScrapeJstor : DomainScraper {
   override val domains = listOf("jstor.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -522,7 +522,7 @@ object ScrapeJstor : Scraper {
 }
 
 /** Scrape Oxford University Press. */
-object ScrapeOxford : Scraper {
+object ScrapeOxford : DomainScraper {
   override val domains = listOf("oup.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -570,7 +570,7 @@ object ScrapeOxford : Scraper {
 }
 
 /** Scrape Science Direct. */
-object ScrapeScienceDirect : Scraper {
+object ScrapeScienceDirect : DomainScraper {
   override val domains = listOf("sciencedirect.com", "elsevier.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
@@ -617,7 +617,7 @@ object ScrapeScienceDirect : Scraper {
 }
 
 /** Scrape Springer. */
-object ScrapeSpringer : Scraper {
+object ScrapeSpringer : DomainScraper {
   override val domains = listOf("link.springer.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
