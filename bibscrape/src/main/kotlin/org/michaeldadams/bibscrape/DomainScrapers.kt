@@ -380,6 +380,14 @@ object ScrapeIeeeExplore : DomainScraper {
     entry.update(F.AUTHOR) { it.replace("\\{ ([^}]+) \\}".r, "$1") }
 
     // // ISSN
+    val issnsRegex = """
+      "issn:[
+        \{"format":"Print ISSN","value":" (${ISSN_REGEX}) "\},
+        \{"format":"Electronic ISSN","value":" (${ISSN_REGEX}) "\}]
+    """.trimIndent().r
+    body.find(issnsRegex)?.let {
+      entry[F.ISSN] = "${it.groupValues[1]} (Print) ${it.groupValues[2]} (Online)"
+    }
     // if $body ~~ /
     //     '"issn":[{"format":"Print ISSN","value":"' (\d\d\d\d '-' \d\d\d<[0..9Xx]>)
     //     '"},{"format":"Electronic ISSN","value":"' (\d\d\d\d '-' \d\d\d<[0..9Xx]>) '"}]' / {
@@ -387,6 +395,14 @@ object ScrapeIeeeExplore : DomainScraper {
     // }
 
     // // ISBN
+    val isbnsRegex = """
+      "isbn:[
+        \{"format":"Print ISBN","value":" (${ISBN_REGEX}) ","isbnType":""\},
+        \{"format":"CD","value":" (${ISBN_REGEX}) "\}] ","isbnType":""\}]
+    """.trimIndent().r
+    body.find(isbnsRegex)?.let {
+      entry[F.ISBN] = "${it.groupValues[1]} (Print) ${it.groupValues[2]} (Online)"
+    }
     // if $body ~~ /
     //     '"isbn":[{"format":"Print ISBN","value":"' (<[-0..9Xx]>+)
     //     '","isbnType":""},{"format":"CD","value":"' (<[-0..9Xx]>+) '","isbnType":""}]' / {
@@ -418,6 +434,9 @@ object ScrapeIeeeExplore : DomainScraper {
     // }
 
     // // Conference date
+    body.find("\"conferenceDate\":\" ([^\"]+) \"".r)?.let {
+      entry[F.CONFERENCE_DATE] = it.groupValues[1]
+    }
     // $body ~~ / '"conferenceDate":"' (<-["]>+) '"' /;
     // $entry.fields<conference_date> = BibScrape::BibTeX::Value.new($0.Str) if $0;
 
@@ -499,7 +518,10 @@ object ScrapeJstor : DomainScraper {
 
     // // Title
     // Note that on-campus is different than off-campus
-
+    entry[F.TITLE] = (
+      driver.findElement(By.className("item-title"))
+        ?: driver.findElement(By.className("title-font"))
+      )!!.innerHtml
     // my Str:D $title =
     //   ($web-driver.find_elements_by_class_name( 'item-title' )
     //     || $web-driver.find_elements_by_class_name( 'title-font' )).head.get_property( 'innerHTML' );
