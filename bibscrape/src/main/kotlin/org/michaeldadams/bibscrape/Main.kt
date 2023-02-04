@@ -1,16 +1,14 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-/* ktlint-disable no-wildcard-imports */
 import com.github.ajalt.clikt.completion.completionOption
-import com.github.ajalt.clikt.core.*
+import com.github.ajalt.clikt.core.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.output.HelpFormatter
-import com.github.ajalt.clikt.parameters.arguments.*
-import com.github.ajalt.clikt.parameters.groups.*
-import com.github.ajalt.clikt.parameters.options.*
-import com.github.ajalt.clikt.parameters.types.*
-/* ktlint-enable no-wildcard-imports */
+import com.github.ajalt.clikt.parameters.arguments.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.parameters.groups.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.parameters.options.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.parameters.types.* // ktlint-disable no-wildcard-imports
 import org.junit.platform.reporting.legacy.xml.LegacyXmlReportGeneratingListener
 import java.io.File
 import java.io.FileReader
