@@ -121,7 +121,7 @@ object HtmlMeta {
       "citation_conference" to "booktitle",
       "citation_journal_title" to "journal",
       "citation_inbook_title" to "booktitle",
-      "citation_inbook_title" to "journal",
+      "st.title" to "journal",
     )
     for ((k, b) in types) {
       if (meta.containsKey(k)) {
