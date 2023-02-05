@@ -75,7 +75,7 @@ object ScrapeAcm : DomainScraper {
     }
     entry.ifField(F.ISSUE_DATE) {
       val month = it.string.split("\\s+").first()
-      if (Bibtex.str2month(entry.ownerFile, month) != null) {
+      if (Bibtex.Months.str2month(entry.ownerFile, month) != null) {
         entry[F.MONTH] = month
       }
     }

@@ -1,6 +1,7 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
+import bibtex.dom.BibtexPerson
 import com.github.ajalt.clikt.completion.completionOption
 import com.github.ajalt.clikt.core.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.output.CliktHelpFormatter
@@ -17,6 +18,7 @@ import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.file.Path
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.michaeldadams.bibscrape.Bibtex.Names as N
 
 /** Runs the main entry point of the application. */
 fun main(args: Array<String>): Unit = Main().main(args)
@@ -105,6 +107,52 @@ class Inputs : OptionGroup(name = "INPUTS") {
       Semicolons in <Str> are interpreted as newlines.
       """
   ).split(";".r).multiple()
+
+  companion object {
+    fun parseBlocks(string: String): List<List<String>> {
+      var blocks: List<List<String>> = emptyList()
+      var block: List<String> = emptyList()
+
+      val lines = string.split("\\R".r)
+      for (line in lines) {
+        if (line.matches("^ \\s* $".r)) {
+          blocks += listOf(block)
+          block = emptyList()
+        }
+
+        block += line.replace("# .*".r, "").replace("\\s+$".r, "")
+      }
+
+      blocks += listOf(block)
+
+      return blocks.filter { it.isNotEmpty() }
+    }
+
+    fun <A, B, C> blocksToMap(makeKey: (A) -> B, makeValue: (A) -> C):
+      (List<List<A>>, Map<B, C>) -> Map<B, C> = {
+      blocks, initialMap ->
+        var map: Map<B, C> = initialMap
+        for (block in blocks) {
+          val value = makeValue(block.first())
+          for (key in block.map(makeKey)) {
+            map += key to value
+          }
+        }
+        map
+      }
+
+    fun <B, C> parseBlocksToMap(makeKey: (String) -> B, makeValue: (String) -> C): (String, Map<B, C>) -> Map<B, C> =
+      { string, initialMap -> blocksToMap(makeKey, makeValue)(parseBlocks(string), initialMap) }
+
+    val parseNames: (String, Map<String, BibtexPerson>) -> Map<String, BibtexPerson> =
+      parseBlocksToMap({ N.simpleName(N.bibtexPerson(it, "TODO")).lowercase() }, { N.bibtexPerson(it, "TODO") })
+
+    val parseNouns: (String, Map<String, String>) -> Map<String, String> =
+      parseBlocksToMap({ it.lowercase() }, { it })
+
+    val parseStopWords: (String, Set<String>) -> Set<String> =
+      { string, initialSet -> initialSet + parseBlocks(string).flatten().map { it.lowercase() }.toSet() }
+  }
 }
 
 /** Option group controlling what major modes of work is actually done. */
@@ -569,20 +617,21 @@ class Main : CliktCommand(
     // @stop-words = @stop-words.map(default-file('Stop-words', $stop-words-filename));
 
     val fixer = Fixer(
-      names = names,
-      nouns = nouns,
-      stopWords = stopWords,
+      names = emptyMap(),
+      nouns = emptyMap(),
+      stopWords = emptySet(),
       escapeAcronyms = generalOptions.escapeAcronyms,
       issnMedia = generalOptions.issnMedia,
       isbnMedia = generalOptions.isbnMedia,
       isbnType = generalOptions.isbnType,
       isbnSep = generalOptions.isbnSep,
-      field = bibtexFieldOptions.field,
       noEncode = bibtexFieldOptions.noEncode,
       noCollapse = bibtexFieldOptions.noCollapse,
       omit = bibtexFieldOptions.omit,
       omitEmpty = bibtexFieldOptions.omitEmpty
     )
+
+    val printer = BibtexPrinter(bibtexFieldOptions.field)
 
     val keepScrapedKey = false
     val keepReadKey = true
@@ -591,13 +640,15 @@ class Main : CliktCommand(
         Scraper.scrape(URI(url.replace("^ doi: \\s*".ri, "")), generalOptions.window, generalOptions.timeout)
 
       fun fix(keepKey: Boolean, entry: BibtexEntry) {
+        println(entry)
         val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
         // TODO: setEntryKey lower cases but BibtexEntry() does not
         // TODO: don't keepKey when scraping
+
         newEntry.entryKey = key.firstOrNull() ?: if (keepKey) entry.entryKey else newEntry.entryKey
         key = key.drop(1)
         // if (key != null) { e.entryKey = key }
-        println(newEntry)
+        printer.print(System.out, newEntry)
         // sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
         //   if $fix { $entry = $fixer.fix($entry) }
         //   if $key { $entry.key = $key }

@@ -1,17 +1,28 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
+import bibtex.dom.BibtexPerson
+import bibtex.dom.BibtexString
+import bibtex.dom.BibtexFile
+import bibtex.dom.BibtexPersonList
+import bibtex.expansions.PersonListExpander
+// import bibtex.expansions.BibtexPersonListParser
+// import org.bibsonomy.model.util.PersonNameParser
 import java.util.Locale
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Types as T
+import org.michaeldadams.bibscrape.Bibtex.Names as N
 
 // enum MediaType <print online both>;
+typealias NameMap = Map<String, BibtexPerson>
+typealias NounMap = Map<String, String>
+typealias StopWordSet = Set<String>
 
 class Fixer(
   // // INPUTS
-  val names: List<List<String>>,
-  val nouns: List<List<String>>,
-  val stopWords: List<String>,
+  val names: NameMap,
+  val nouns: NounMap,
+  val stopWords: StopWordSet,
 
   // // OPERATING MODES
   // has Bool:D $.scrape is required;
@@ -26,43 +37,12 @@ class Fixer(
   // # has Bool:D $.verbose is required;
 
   // // FIELD OPTIONS
-  val field: List<String>,
+  // val field: List<String>,
   val noEncode: List<String>,
   val noCollapse: List<String>,
   val omit: List<String>,
   val omitEmpty: List<String>
 ) {
-  // method new(#`(Any:D) *%args --> Fix:D) {
-  //   sub string-blocks(Array:D[Str:D] @blocks, Str:D $blocks --> Any:U) {
-  //     push @blocks, Array[Str:D].new; # Ensure we are starting a new block
-  //     for $blocks.split(rx/ "\r" | "\n" | "\r\n" /) -> Str:D $line is copy {
-  //       $line ~~ s/"#".*//; # Remove comments (which start with `#`)
-  //       $line ~~ s/\s+ $//; # Remove trailing whitespace
-  //       if $line ~~ /^\s*$/ { push @blocks, Array[Str:D].new; } # Start a new block
-  //       else { push @blocks[@blocks.end], $line; } # Add to existing block
-  //     }
-  //     return;
-  //   }
-  //   sub blocks(Str:D $file-field, Str:D $string-field --> Array:D[Array:D[Str:D]]) {
-  //     my Array:D[Str:D] @blocks;
-  //     for %args{$string-field} -> Str:D $string is copy {
-  //       $string ~~ s:g/ ';' /\n/;
-  //       string-blocks(@blocks, $string);
-  //     }
-  //     for %args{$file-field} -> IO::Path:D $file {
-  //       string-blocks(@blocks, $file.slurp);
-  //     }
-  //     @blocks = @blocks.grep({ .elems > 0 }); # Remove empty blocks
-  //     @blocks.Array;
-  //   }
-  //   my Array:D[Str:D] @name-groups = blocks(<names>, <name>);
-  //   my Array:D[Str:D] @noun-groups = blocks(<nouns>, <noun>);
-  //   my Str:D @stop-words-strs = blocks(<stop-words>, <stop-word>)[*;*]».fc;
-
-  //   # Note: Coersion to a Map prevents odd double nesting on list arguments
-  //   self.bless(:@name-groups, :@noun-groups, :@stop-words-strs, |%args.Map);
-  // }
-
   fun fix(oldEntry: BibtexEntry): BibtexEntry {
     val entry = oldEntry.ownerFile.makeEntry(oldEntry.entryType, oldEntry.entryKey)
     oldEntry.fields.forEach { name, value -> entry[name] = value }
@@ -75,16 +55,6 @@ class Fixer(
     entry.moveFieldIf(F.URL, F.DOI) {
       !entry.contains(F.DOI) && it.string.contains("http s? :// (dx\\.)? doi\\.org/".ri)
     }
-    // entry.ifField(F.URL) {
-    //   if (!entry.contains(F.DOI) && it.string.contains("http s? :// (dx\\.)? doi\\.org/".ri)) {
-    //     //   if not $entry.fields<doi>:exists
-    //     //       and ($entry.fields<url> // "") ~~ /^ "http" "s"? "://" "dx."? "doi.org/"/ {
-    //     entry[F.DOI] = it
-    //     //     $entry.fields<doi> = $entry.fields<url>;
-    //     entry.undefineField(F.URL)
-    //     //     $entry.fields<url>:delete;
-    //   }
-    // }
 
     // Fix wrong field names (SpringerLink and ACM violate this)
     for ((wrongName, rightName) in listOf("issue" to F.NUMBER, "keyword" to F.KEYWORDS)) {
@@ -120,8 +90,7 @@ class Fixer(
 
       entry.update(field) { it.replace("\\s* (- | \\N{EN DASH} | \\N{EM DASH})+ \\s*".ri, dash) }
       entry.update(field) { it.replace("n/a -- n/a".ri, "") }
-      entry.removeIf(field) { it == "" } // TODO: let omit-if-empty handle this?
-      // update($entry, $key, { s:i:g/ 'n/a--n/a' //; $_ = Str if !$_ });
+      entry.removeIf(field) { it.isEmpty() } // TODO: let omit-if-empty handle this?
       entry.update(field) { it.replace("\\b (\\w+) -- \\1".ri, "$1") }
       entry.update(field) { it.replace("(^|\\ ) (\\w+)--(\\w+)--(\\w+)--(\\w+) ($|,)".ri, "$1$2-$3--$4-$5$6") }
       entry.update(field) { it.replace("\\s+ , \\s+".ri, ", ") }
@@ -129,23 +98,23 @@ class Fixer(
 
     entry.check(F.PAGES, "Possibly incorrect page number") {
       val page = """
-        # Simple digits
+        # Arabic-digits
         \d+ |
         \d+ -- \d+ |
 
-        # Roman digits
+        # Roman-digits
         [XVIxvi]+ |
         [XVIxvi]+ -- [XVIxvi]+ |
 
-        # Roman digits then dash then digits
+        # Roman-digits dash Arabic-digits
         [XVIxvi]+ - \d+ |
         [XVIxvi]+ - \d+ -- [XVIxvi]+ - \d+ |
 
-        # Digits plus letter
+        # Arabic-Digits letter
         \d+ [a-z] |
         \d+ [a-z] -- \d+ [a-z] |
 
-        # Digits then a separator then Digits
+        # Arabic-digits separator Arabic-digits
         \d+ [.:/] \d+ |
         \d+ ([.:/]) \d+ -- \d+ \1 \d+ |
 
@@ -156,35 +125,7 @@ class Fixer(
         # "es" as ending number
         \d+ -- es
       """.trimIndent()
-      //   check($entry, 'pages', 'Possibly incorrect page number', {
-      //     my Regex:D $page = rx[
-      //       # Simple digits
-      //       \d+ |
-      //       \d+ "--" \d+ |
-
-      //       # Roman digits
-      //       <[XVIxvi]>+ |
-      //       <[XVIxvi]>+ "--" <[XVIxvi]>+ |
-      //       # Roman digits dash digits
-      //       <[XVIxvi]>+ "-" \d+ |
-      //       <[XVIxvi]>+ "-" \d+ "--" <[XVIxvi]>+ "-" \d+ |
-
-      //       # Digits plus letter
-      //       \d+ <[a..z]> |
-      //       \d+ <[a..z]> "--" \d+ <[a..z]> |
-      //       # Digits sep Digits
-      //       \d+ <[.:/]> \d+ |
-      //       \d+ (<[.:/]>) \d+ "--" \d+ $0 \d+ |
-
-      //       # "Front" page
-      //       "f" \d+ |
-      //       "f" \d+ "--" f\d+ |
-
-      //       # "es" as ending number
-      //       \d+ "--" "es" ];
-      it.contains("^ ${page} (, ${page})* $".r) // TODO: separator operator
-      //     /^ $page+ % "," $/;
-      //   });
+      it.contains("^ ${page} (, ${page})* $".r)
     }
 
     entry.check(F.VOLUME, "Possibly incorrect volume") {
@@ -193,6 +134,7 @@ class Fixer(
       it.contains("^ \\d+  - \\d+  $".r) ||
       it.contains("^ [A-Z] - \\d+  $".r) ||
       it.contains("^ \\d+  - [A-Z] $".r)
+      /* ktlint-enable indent */
     }
 
     entry.check(F.NUMBER, "Possibly incorrect number") {
@@ -200,7 +142,7 @@ class Fixer(
       /* ktlint-disable indent */
       it.contains("^   \\d+           $".r) ||
       it.contains("^   \\d+ -- \\d+   $".r) ||
-      it.contains("^   \\d+ (/ \\d+)* $".r) || // TODO: separator operator
+      it.contains("^   \\d+ (/ \\d+)* $".r) ||
       it.contains("^   \\d+ es        $".r) ||
       it.contains("^ S \\d+           $".r) ||
       it.contains("^   [A-Z]+         $".r) || // PACMPL conference abbreviations (e.g., ICFP)
@@ -215,7 +157,9 @@ class Fixer(
     // Change language codes (e.g., "en") to proper terms (e.g., "English")
     entry.update(F.LANGUAGE) { Locale.forLanguageTag(it)?.displayLanguage ?: it }
 
+    entry.update(F.AUTHOR) { fixNames(it, entry.entryKey) }
     // if ($entry.fields<author>:exists) { $entry.fields<author> = $.canonical-names($entry.fields<author>) }
+    entry.update(F.EDITOR) { fixNames(it, entry.entryKey) }
     // if ($entry.fields<editor>:exists) { $entry.fields<editor> = $.canonical-names($entry.fields<editor>) }
 
     // Don't include pointless URLs to publisher's page
@@ -258,26 +202,15 @@ class Fixer(
 
     // Collapse spaces and newlines.  After Unicode encoding so stuff from XML is caught.
     for (field in entry.fields.keys) {
-      // for $entry.fields.pairs -> Pair:D $pair {
       if (!noCollapse.contains(field)) {
-        // unless $pair.key ∈ $.no-collapse {
         entry.update(field) {
-          // update($entry, $pair.key, {
           var v = it
           v = v.replace("\\s+ $".r, "") // Remove trailing whitespace
-          // s/ \s* $//; # remove trailing whitespace
           v = v.replace("^ \\s+".r, "") // Remove leading whitespace
-          // s/^ \s* //; # remove leading whitespace
-          // TODO
-          // s:g/ (\n ' '*) ** 2..* /\{\\par}/; # BibTeX eats whitespace so convert "\n\n" to paragraph break
-          v = v.replace("^ \\s* \\\\n \\s*".r, "") // Remove extra line breaks
-          // s:g/ \s* \n \s* / /; # Remove extra line breaks
-          v = v.replace(" ( \\s | \\{~\\} )* \\s ( \\s | \\{~\\} )* ".r, "") // Remove duplicate whitespace
-          // s:g/ [\s | '{~}']* \s [\s | '{~}']* / /; # Remove duplicate whitespace
+          v = v.replace("(\\n\\ *){2,}", "{\\par}") // BibTeX eats whitespace so convert "\n\n" to paragraph break
+          v = v.replace("^ \\s* \\n \\s*".r, " ") // Remove extra line breaks
+          v = v.replace(" ( \\s | \\{~\\} )* \\s ( \\s | \\{~\\} )* ".r, " ") // Remove duplicate whitespace
           v = v.replace(" \\s* \\{\\\\par\\} \\s* ".r, "\n{\\par}\n") // Nicely format paragraph breaks
-          // s:g/ \s* "\{\\par\}" \s* /\n\{\\par\}\n/; # Nicely format paragraph breaks
-          // v = v.raplace(" (\\s | \\{~\\})* \\s (\\s | \\{~\\})* ", " ") // Remove duplicate whitespace
-          // #s:g/ [\s | '{~}']+ \s [\s | '{~}']* / /; # Remove duplicate whitespace
           v
         }
       }
@@ -290,9 +223,6 @@ class Fixer(
         println("WARNING: 'A' may need to be wrapped in curly braces if it needs to stay capitalized")
       }
     }
-    // say "WARNING: 'A' may need to be wrapped in curly braces if it needs to stay capitalized"
-    //   if $.escape-acronyms
-    //     and $entry.fields<title>.simple-str ~~ / ' A ' /;
 
     // Use bibtex month macros.  After Unicode encoding because it uses macros.
     // update($entry, 'month', {
@@ -344,8 +274,8 @@ class Fixer(
     // }
     entry.entryKey = name + year + title + doi
 
-    val unknownFields = entry.fields.keys subtract field
-    if (unknownFields.isNotEmpty()) { TODO("Unknown fields: ${unknownFields}") }
+    // val unknownFields = entry.fields.keys subtract field
+    // if (unknownFields.isNotEmpty()) { TODO("Unknown fields: ${unknownFields}") }
     // TODO: Duplicate fields
     //   # Put fields in a standard order (also cleans out any fields we deleted)
     //   my Int:D %fields = @.field.map(* => 0);
@@ -359,37 +289,126 @@ class Fixer(
     return entry
   }
 
-  // method isbn(BibScrape::BibTeX::Entry:D $entry, Str:D $field, MediaType:D $print_or_online, &canonical --> Any:U) {
-  //   update($entry, $field, {
-  //     if m/^$/ {
-  //       $_ = Str
-  //     } elsif m:i/^ (<[0..9x\-\ ]>+) " (Print) " (<[0..9x\-\ ]>+) " (Online)" $/ {
-  //       $_ = do given $print_or_online {
-  //         when print {
-  //           &canonical($0.Str, $.isbn-type, $.isbn-sep);
-  //         }
-  //         when online {
-  //           &canonical($1.Str, $.isbn-type, $.isbn-sep);
-  //         }
-  //         when both {
-  //           &canonical($0.Str, $.isbn-type, $.isbn-sep)
-  //             ~ ' (Print) '
-  //             ~ &canonical($1.Str, $.isbn-type, $.isbn-sep)
-  //             ~ ' (Online)';
-  //         }
-  //       }
+  // // method isbn(BibScrape::BibTeX::Entry:D $entry, Str:D $field, MediaType:D $print_or_online, &canonical --> Any:U) {
+  // fun isbn(entry: BibtexEntry, field: String, mediaType: MediaType, canonicalize: (String, MediaType, String) -> String): Unit {
+  //   //   update($entry, $field, {
+  //   entry.update(field) { value ->
+  //     if (value.isEmpty) {
+  //       null
   //     } else {
-  //       $_ = &canonical($_, $.isbn-type, $.isbn-sep);
-  //     }
-  //   });
+  //       value.find("^ ([0-9X- ]+) \\ \\(Print\\)\\ ([0-9X- ]+) \\ \\(Online\\) $".ri) {
+  //         when (type) {
+  //           MediaType.print => canonicalize(it.groupValues[1], mediaType)
+  //           MediaType.online => canonicalize(it.groupValues[1], mediaType)
+  //           MediaType.both =>
+  //             canonicalize(it.groupValues[1], mediaType) + " (Print) "
+  //               canonicalize(it.groupValues[2], mediaType) + " (Online) "
+  //         }
+  //       } ?: canonicalize(value, type, sep)
+
+  //   //     if m/^$/ {
+  //   //       $_ = Str
+  //   //     } elsif m:i/^ (<[0..9x\-\ ]>+) " (Print) " (<[0..9x\-\ ]>+) " (Online)" $/ {
+  //   //       $_ = do given $print_or_online {
+  //   //         when print {
+  //   //           &canonical($0.Str, $.isbn-type, $.isbn-sep);
+  //   //         }
+  //   //         when online {
+  //   //           &canonical($1.Str, $.isbn-type, $.isbn-sep);
+  //   //         }
+  //   //         when both {
+  //   //           &canonical($0.Str, $.isbn-type, $.isbn-sep)
+  //   //             ~ ' (Print) '
+  //   //             ~ &canonical($1.Str, $.isbn-type, $.isbn-sep)
+  //   //             ~ ' (Online)';
+  //   //         }
+  //   //       }
+  //   //     } else {
+  //   //       $_ = &canonical($_, $.isbn-type, $.isbn-sep);
+  //   //     }
+  //   //   });
+  //   // }
   // }
 
-  // method canonical-names(BibScrape::BibTeX::Value:D $value --> BibScrape::BibTeX::Value:D) {
-  //   my Str:D @names = split-names($value.simple-str);
+  fun fixPerson(person: BibtexPerson): BibtexPerson =
+    N.simpleName(person).let { name ->
+      names[name] ?: run {
+        // Check for and warn about names the publishers might have messed up
+        val first = """
+            \p\{Upper\}\p\{Lower\}+                           # Simple name
+          | \p\{Upper\}\p\{Lower\}+ - \p\{Upper\}\p\{Lower\}+ # Hyphenated name with upper
+          | \p\{Upper\}\p\{Lower\}+ - \p\{Lower\}\p\{Lower\}+ # Hyphenated name with lower
+          | \p\{Upper\}\p\{Lower\}+   \p\{Upper\}\p\{Lower\}+ # "Asian" name (e.g. XiaoLin)
+          # We could allow the following but publishers often abriviate
+          # names when the actual paper doesn't
+          # | \p\{Upper\} \.                                  # Initial
+          # | \p\{Upper\} \. - \p\{Upper\} \.                 # Double initial
+        """.trimIndent().r
+        val middle = """\p\{Upper\} \."""                     // Middle initial
+        val last = """
+            \p\{Upper\}\p\{Lower\}+                           # Simple name
+          | \p\{Upper\}\p\{Lower\}+ - \p\{Upper\}\p\{Lower\}+ # Hyphenated name with upper
+          | ( d' | D' | de | De | Di | Du | La | Le | Mac | Mc | O' | Van )
+            \p\{Upper}\p\{Lower\}+                            # Name with prefix
+        """.trimIndent().r
+        if (!name.matches("^ \\s* ${first} \\s+ (${middle} \\s+)? ${last} \\s* $".r)) {
+          println("WARNING: Possibly incorrect name: ${name}")
+        }
 
-  //   my Str:D @new-names;
-  //   NAME:
-  //   for @names -> Str:D $name {
+        person
+      }
+    }
+
+  // // method canonical-names(BibScrape::BibTeX::Value:D $value --> BibScrape::BibTeX::Value:D) {
+  fun fixNames(names: String, entryKey: String): String {
+    val persons = N.bibtexPersons(names, entryKey).map(::fixPerson)
+
+    // Warn about duplicate names
+    persons.groupingBy(N::simpleName).eachCount().forEach {
+      if (it.value > 1) { println("WARNING: Duplicate name: ${it.key}") }
+    }
+
+    return persons.map { it.toString() }.joinByAnd()
+  }
+
+  //   my Int:D %seen;
+  //   %seen{$_}++ and say "WARNING: Duplicate name: $_" for @new-names;
+    //   my Str:D @names = split-names($value.simple-str);
+
+    // val newNames = mutable.emptyList()
+  //   NAME@for (name in names) {
+  //     // Format name for lookup in name lookup
+  //     val flatName =
+  //       if (name.others) {
+  //         Bibtex.Names.OTHERS
+  //       } else {
+  //         "${name.namefirst} ${name.preLast} ${name.last) ${name.lineage}"
+  //       }
+
+  //     // Apply name rewrites from name-groups
+  //     for (nameGroup in nameGroups) {
+  //       for (n in nameGroup) {
+  //         if (
+  //       }
+  //     }
+
+  //   // Warn about (non-rewritten) suspect names
+
+  //   // Warn about duplicates
+
+  //   // Use resulting names
+
+  //   // 
+
+  //   //   my Str:D @new-names;
+  //   //   NAME:
+  //   //   for @names -> Str:D $name {
+  //   for (name in names) {
+
+  //   }
+
+  // }
+
   //     my Str:D $flattened-name = flatten-name($name);
   //     for @.name-groups -> Str:D @name-group {
   //       for @name-group -> Str:D $n {

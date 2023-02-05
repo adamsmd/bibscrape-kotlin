@@ -26,3 +26,5 @@ val String.ri: Regex
  * @return the result of matching [regex]
  */
 fun String.find(regex: Regex): MatchResult? = regex.find(this)
+
+fun String.split(regex: Regex): List<String> = regex.split(this)

@@ -5,6 +5,9 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexMacroReference
 import bibtex.dom.BibtexString
+import bibtex.dom.BibtexPerson
+import bibtex.dom.BibtexPersonList
+import bibtex.expansions.PersonListExpander
 import bibtex.parser.BibtexParser
 import java.io.Reader
 import java.io.StringReader
@@ -13,7 +16,7 @@ import java.io.StringReader
  *
  * @return the joined string
  */
-fun Iterable<String>.joinByAnd(): String = this.joinToString(" and ")
+fun Iterable<String>.joinByAnd(): String = this.joinToString(Bibtex.Names.AND)
 
 /** Checks whether [field] exists in a [BibtexEntry].
  *
@@ -211,16 +214,75 @@ object Bibtex {
     const val YEAR = "year"
   }
 
-  private val longNames =
-    "january february march april may june july august september october november december".split(" ")
-  private val macroNames =
-    "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
+  object Names {
+    const val AND = " and "
+    const val OTHERS = "others"
 
-  private val months = (
-    listOf("sept" to "sep") +
-      (macroNames zip macroNames) +
-      (longNames zip macroNames)
-    ).toMap()
+    fun bibtexPersons(string: String, entryKey: String): List<BibtexPerson> {
+      // bibtex.expansions.BibtexPersonListParser is not public so we have to go
+      // through PersonListExpander
+      val file = BibtexFile()
+      val entry = file.makeEntry("", entryKey)
+      entry[Fields.AUTHOR] = string
+      PersonListExpander(true, true).expand(file)
+      return (entry[Fields.AUTHOR] as BibtexPersonList).list as List<BibtexPerson>
+    }
+
+    fun bibtexPerson(string: String, entryKey: String): BibtexPerson = TODO()
+
+    fun simpleName(person: BibtexPerson): String =
+      if (person.isOthers()) {
+        Bibtex.Names.OTHERS
+      } else {
+        "${person.first} ${person.preLast} ${person.last} ${person.lineage}"
+          .replace("\\s+", " ")
+          .replace("^ \\s+", "")
+          .replace("\\s+ $", "")
+      }
+  }
+
+  object Months {
+    private val longNames =
+      "january february march april may june july august september october november december".split(" ")
+    private val macroNames =
+      "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
+
+    private val months = (
+      listOf("sept" to "sep") +
+        (macroNames zip macroNames) +
+        (longNames zip macroNames)
+      ).toMap()
+
+
+    private fun wrap(bibtexFile: BibtexFile, macro: String?): BibtexMacroReference? {
+      if (macro == null) {
+        return null
+      } else {
+        return bibtexFile.makeMacroReference(macro)
+      }
+    }
+
+    // sub num2month(Str:D $num --> BibScrape::BibTeX::Piece:D) is export {
+    //   $num ~~ m/^ \d+ $/
+    //     ?? wrap(@macro-names[$num-1])
+    //     !! die "Invalid month number: $num"
+    // }
+
+    /** Converts a string containing a month to the BibTeX macro for that month if it exists.
+     *
+     * @param bibtexFile the [BibTexFile] to use as the factory for the [BibtexMacroReference]
+     * @param string the [String] to parse as a month name
+     * @return a [BibtexMacroReference] for the given month or [null] if parsing failed
+     */
+    fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
+      val month: String? = months[string.lowercase()]
+      if (month == null) {
+        return null
+      } else {
+        return wrap(bibtexFile, month)
+      }
+    }
+  }
 
   /** Parses a [string] as a BibTeX file and returns the [BibtexEntry] values in it.
    *
@@ -247,34 +309,5 @@ object Bibtex {
     val parser = BibtexParser(false) // false => don't throw parse exceptions
     parser.parse(bibtexFile, reader)
     return bibtexFile
-  }
-
-  private fun wrap(bibtexFile: BibtexFile, macro: String?): BibtexMacroReference? {
-    if (macro == null) {
-      return null
-    } else {
-      return bibtexFile.makeMacroReference(macro)
-    }
-  }
-
-  // sub num2month(Str:D $num --> BibScrape::BibTeX::Piece:D) is export {
-  //   $num ~~ m/^ \d+ $/
-  //     ?? wrap(@macro-names[$num-1])
-  //     !! die "Invalid month number: $num"
-  // }
-
-  /** Converts a string containing a month to the BibTeX macro for that month if it exists.
-   *
-   * @param bibtexFile the [BibTexFile] to use as the factory for the [BibtexMacroReference]
-   * @param string the [String] to parse as a month name
-   * @return a [BibtexMacroReference] for the given month or [null] if parsing failed
-   */
-  fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
-    val month: String? = months[string.lowercase()]
-    if (month == null) {
-      return null
-    } else {
-      return wrap(bibtexFile, month)
-    }
   }
 }
