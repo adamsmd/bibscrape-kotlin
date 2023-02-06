@@ -569,6 +569,10 @@ class Main : CliktCommand(
   }
 
   fun run(args: List<String>) {
+    // val configDirPath =
+    //   (if (windows) System.getenv("APPDATA") ?: System.getenv("APPDATA") + "/AppData/Roaming"
+    //   else System.getenv("XDG_CONFIG_HOME") ?: System.getenv("HOME") + "/.config")
+    //   + "/bibscrape"
     //   my IO::Path:D $config-dir-path =
     //   ($*DISTRO.is-win
     //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
@@ -578,8 +582,8 @@ class Main : CliktCommand(
     // my Str:D constant $nouns-filename = 'nouns.cfg';
     // my Str:D constant $stop-words-filename = 'stop-words.cfg';
 
-    // if $config-dir {
-    //   say "User-configuration directory: $config-dir-path";
+    // if (configDir) {
+    //   println("User-configuration directory: $configDirPath")
     // }
 
     // if $init {
@@ -608,13 +612,24 @@ class Main : CliktCommand(
     //     }
     //   }
     // }
+    // val nameActions: List<Pair<Boolean, String>> = emptyList()
+    // var names: Map<String, BibtexPersion> = emptyMap()
+    // for ((isFile, value) in nameActions) {
+    //   names =
+    //     if (isFile) parseNames(File(value).readText(), names)
+    //     else names = parseNames(value.replace(";".r, "\n"), names)
+    //     // if $x ne '.' {
+    //     //   $x
+    //     // } else {
+    //     //   my IO::Path:D $io = $config-dir-path.add($file);
+    //     //   if !$io.IO.e {
+    //     //     die "$type file does not exist: $file.  Invoke bibscrape with --init to automatically create it.";
+    //     //   }
+    //     //   $io
+    //     // }
+    // }
+
     var key: List<String> = inputs.key.flatten()
-    val names: List<List<String>> = listOf()
-    // @names = @names.map(default-file('Names', $names-filename));
-    val nouns: List<List<String>> = listOf()
-    // @nouns = @nouns.map(default-file('Nouns', $nouns-filename));
-    val stopWords: List<String> = listOf()
-    // @stop-words = @stop-words.map(default-file('Stop-words', $stop-words-filename));
 
     val fixer = Fixer(
       names = emptyMap(),
