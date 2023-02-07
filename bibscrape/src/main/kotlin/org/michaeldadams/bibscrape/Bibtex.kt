@@ -247,7 +247,7 @@ object Bibtex {
     private val macroNames =
       "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
 
-    private val months = (
+    private val monthMap = (
       listOf("sept" to "sep") +
         (macroNames zip macroNames) +
         (longNames zip macroNames)
@@ -275,7 +275,7 @@ object Bibtex {
      * @return a [BibtexMacroReference] for the given month or [null] if parsing failed
      */
     fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
-      val month: String? = months[string.lowercase()]
+      val month: String? = monthMap[string.lowercase()]
       if (month == null) {
         return null
       } else {
