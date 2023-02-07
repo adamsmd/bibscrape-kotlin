@@ -40,8 +40,6 @@ enum class MediaType { PRINT, ONLINE, BOTH }
 @Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
 enum class IsbnType { ISBN13, ISBN10, PRESERVE }
 
-fun <T : Enum<T>> enumLowercase(value: T): String = value.name.lowercase()
-
 /** Option group controlling configuration inputs. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class Inputs : OptionGroup(name = "INPUTS") {
@@ -218,11 +216,11 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
 
   val issnMedia: MediaType by option(
     help = mediaHelpString("ISSN")
-  ).enum<MediaType>(key = ::enumLowercase).default(MediaType.BOTH)
+  ).lowercaseEnum<MediaType>().default(MediaType.BOTH)
 
   val isbnMedia: MediaType by option(
     help = mediaHelpString("ISBN")
-  ).enum<MediaType>(key = ::enumLowercase).default(MediaType.BOTH)
+  ).lowercaseEnum<MediaType>().default(MediaType.BOTH)
 
   val isbnType: IsbnType by option(
     help = """
@@ -234,7 +232,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       - If <IsbnType> is "preserve", do not convert ISBNs.
       ```
       """
-  ).enum<IsbnType>(key = ::enumLowercase).default(IsbnType.PRESERVE)
+  ).lowercaseEnum<IsbnType>().default(IsbnType.PRESERVE)
 
   val isbnSep: String by option(
     help = """
@@ -382,10 +380,10 @@ class Main : CliktCommand(
     ------------------------
     ```
 
-    Use --flag, --flag=true, --flag=yes, --flag=y, --flag=on or --flag=1
+    Use --flag, --flag=true, --flag=t, --flag=1, --flag=yes, --flag=y or --flag=on
     to set a boolean flag to True.
 
-    Use --/flag, --flag=false, --flag=no, --flag=n, --flag=off or --flag=0
+    Use --/flag, --flag=false, --flag=t, --flag=0, --flag=no, --flag=n or --flag=off
     to set a boolean flag to False.
 
     Arguments to boolean flags (e.g., 'true', 'yes', etc.) are case insensitive.
