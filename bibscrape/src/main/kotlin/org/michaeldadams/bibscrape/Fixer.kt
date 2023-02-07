@@ -225,6 +225,22 @@ class Fixer(
     }
 
     // Use bibtex month macros.  After Unicode encoding because it uses macros.
+    // entry.update(F.MONTH) { month ->
+    //   val parts = month
+    //     .replace("\\. ($ | -)".r, "$1") // Remove dots due to abbriviations
+    //     .split("\\b".r)
+    //     .filter(::isNotEmpty)
+    //     .map {
+    //       (if (it.matches("/ | - | --")) BibtexString(it) else null) ?:
+    //       (M.str2month(it)?.let(::BibtexString)) ?:
+    //       (if it.matches("^ \\d+ $") num2month(it) else null) ?:
+    //       run {
+    //         println("WARNING: Possibly incorrect month: ${month}")
+    //         BibtexString(it)
+    //       }
+    //     }
+    //   BibtexAppend(parts)
+    // }
     // update($entry, 'month', {
     //   s/ "." ($|"-") /$0/; # Remove dots due to abbriviations
     //   my BibScrape::BibTeX::Piece:D @x =
@@ -247,14 +263,28 @@ class Fixer(
     }
 
     // Generate an entry key
-    val name = "TODO"
+    val name =
+      N.bibtexPersons(
+        (entry[F.AUTHOR]?.string ?: entry[F.EDITOR]?.string ?: "anon"),
+        entry.entryKey
+      ).first()
+      .last
+      .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
+      .replace("[^A-Za-z0-9]".r, "")
+
     // my BibScrape::BibTeX::Value:_ $name-value =
     //   $entry.fields<author> // $entry.fields<editor> // BibScrape::BibTeX::Value;
     // my Str:D $name = $name-value.defined ?? last-name(split-names($name-value.simple-str).head) !! 'anon';
     // $name ~~ s:g/ '\\' <-[{}\\]>+ '{' /\{/; # Remove codes that add accents
     // $name ~~ s:g/ <-[A..Za..z0..9]> //; # Remove non-alphanum
 
-    val title = ":TODO"
+    val titleWord = (entry[F.TITLE]?.string ?: "")
+      .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
+      // .replace("[-\\ ^A-Za-z0-9]".r, "") // Remove non-alphanum, space or hyphen
+      .split("\\W+".r)
+      .filter { !stopWords.contains(it.lowercase()) }
+      .firstOrNull()
+    val title = if (titleWord == null) "" else ":${titleWord}"
     // my BibScrape::BibTeX::Value:_ $title-value = $entry.fields<title>;
     // my Str:D $title = $title-value.defined ?? $title-value.simple-str !! '';
     // $title ~~ s:g/ '\\' <-[{}\\]>+ '{' /\{/; # Remove codes that add accents
@@ -263,9 +293,13 @@ class Fixer(
     // $title = $title ne '' ?? ':' ~ $title !! '';
 
     val year = entry.ifField(F.YEAR) { ":${it.string}" } ?: ""
-    // my Str:D $year = $entry.fields<year>:exists ?? ':' ~ $entry.fields<year>.simple-str !! '';
 
-    val doi = entry.ifField(F.DOI) { ":${it.string}" } ?: ""
+    val doi =
+      entry.ifField(F.ARCHIVEPREFIX) { archiveprefix ->
+        entry.ifField(F.EPRINT) { eprint ->
+          if (archiveprefix.string == "arXiv") ":arXiv.${eprint.string}" else null
+        }
+      } ?: entry.ifField(F.DOI) { ":${it.string}" } ?: ""
     // my Str:D $doi = $entry.fields<doi>:exists ?? ':' ~ $entry.fields<doi>.simple-str !! '';
     // if $entry.fields<archiveprefix>:exists
     //     and $entry.fields<archiveprefix>.simple-str eq 'arXiv'
@@ -332,24 +366,24 @@ class Fixer(
 
   fun fixPerson(person: BibtexPerson): BibtexPerson =
     N.simpleName(person).let { name ->
-      names[name] ?: run {
+      names[name.lowercase()] ?: run {
         // Check for and warn about names the publishers might have messed up
         val first = """
-            \p\{Upper\}\p\{Lower\}+                           # Simple name
-          | \p\{Upper\}\p\{Lower\}+ - \p\{Upper\}\p\{Lower\}+ # Hyphenated name with upper
-          | \p\{Upper\}\p\{Lower\}+ - \p\{Lower\}\p\{Lower\}+ # Hyphenated name with lower
-          | \p\{Upper\}\p\{Lower\}+   \p\{Upper\}\p\{Lower\}+ # "Asian" name (e.g. XiaoLin)
+            \p{Upper}\p{Lower}+                       # Simple name
+          | \p{Upper}\p{Lower}+ - \p{Upper}\p{Lower}+ # Hyphenated name with upper
+          | \p{Upper}\p{Lower}+ - \p{Lower}\p{Lower}+ # Hyphenated name with lower
+          | \p{Upper}\p{Lower}+   \p{Upper}\p{Lower}+ # "Asian" name (e.g. XiaoLin)
           # We could allow the following but publishers often abriviate
           # names when the actual paper doesn't
-          # | \p\{Upper\} \.                                  # Initial
-          # | \p\{Upper\} \. - \p\{Upper\} \.                 # Double initial
+          # | \p{Upper} \.                            # Initial
+          # | \p{Upper} \. - \p{Upper} \.             # Double initial
         """.trimIndent().r
-        val middle = """\p\{Upper\} \."""                     // Middle initial
+        val middle = """\p{Upper} \.                  # Middle initial"""
         val last = """
-            \p\{Upper\}\p\{Lower\}+                           # Simple name
-          | \p\{Upper\}\p\{Lower\}+ - \p\{Upper\}\p\{Lower\}+ # Hyphenated name with upper
+            \p{Upper}\p{Lower}+                       # Simple name
+          | \p{Upper}\p{Lower}+ - \p{Upper}\p{Lower}+ # Hyphenated name with upper
           | ( d' | D' | de | De | Di | Du | La | Le | Mac | Mc | O' | Van )
-            \p\{Upper}\p\{Lower\}+                            # Name with prefix
+            \p{Upper}\p{Lower}+                       # Name with prefix
         """.trimIndent().r
         if (!name.matches("^ \\s* ${first} \\s+ (${middle} \\s+)? ${last} \\s* $".r)) {
           println("WARNING: Possibly incorrect name: ${name}")
@@ -370,85 +404,6 @@ class Fixer(
 
     return persons.map { it.toString() }.joinByAnd()
   }
-
-  //   my Int:D %seen;
-  //   %seen{$_}++ and say "WARNING: Duplicate name: $_" for @new-names;
-    //   my Str:D @names = split-names($value.simple-str);
-
-    // val newNames = mutable.emptyList()
-  //   NAME@for (name in names) {
-  //     // Format name for lookup in name lookup
-  //     val flatName =
-  //       if (name.others) {
-  //         Bibtex.Names.OTHERS
-  //       } else {
-  //         "${name.namefirst} ${name.preLast} ${name.last) ${name.lineage}"
-  //       }
-
-  //     // Apply name rewrites from name-groups
-  //     for (nameGroup in nameGroups) {
-  //       for (n in nameGroup) {
-  //         if (
-  //       }
-  //     }
-
-  //   // Warn about (non-rewritten) suspect names
-
-  //   // Warn about duplicates
-
-  //   // Use resulting names
-
-  //   // 
-
-  //   //   my Str:D @new-names;
-  //   //   NAME:
-  //   //   for @names -> Str:D $name {
-  //   for (name in names) {
-
-  //   }
-
-  // }
-
-  //     my Str:D $flattened-name = flatten-name($name);
-  //     for @.name-groups -> Str:D @name-group {
-  //       for @name-group -> Str:D $n {
-  //         if $flattened-name.fc eq flatten-name($n).fc {
-  //           push @new-names, @name-group.head.Str;
-  //           next NAME;
-  //         }
-  //       }
-  //     }
-
-  //     my Regex:D $first = rx/
-  //         <upper><lower>+                     # Simple name
-  //       | <upper><lower>+ '-' <upper><lower>+ # Hyphenated name with upper
-  //       | <upper><lower>+ '-' <lower><lower>+ # Hyphenated name with lower
-  //       | <upper><lower>+     <upper><lower>+ # "Asian" name (e.g. XiaoLin)
-  //       # We could allow the following but publishers often abriviate
-  //       # names when the actual paper doesn't
-  //       # | <upper> '.'                       # Initial
-  //       # | <upper> '.-' <upper> '.'          # Double initial
-  //       /;
-  //     my Regex:D $middle = rx/<upper>\./; # Allow for a middle initial
-  //     my Regex:D $last = rx/
-  //         <upper><lower>+                     # Simple name
-  //       | <upper><lower>+ '-' <upper><lower>+ # Hyphenated name with upper
-  //       | ["d'"|"D'"|"de"|"De"|"Di"|"Du"|"La"|"Le"|"Mac"|"Mc"|"O'"|"Van"]
-  //         <upper><lower>+                     # Name with prefix
-  //       /;
-  //     unless $flattened-name ~~ /^ \s* $first \s+ [$middle \s+]? $last \s* $/ {
-  //       say "WARNING: Possibly incorrect name: {order-name($name)}"
-  //     }
-
-  //     push @new-names, order-name($name);
-  //   }
-
-  //   # Warn about duplicate names
-  //   my Int:D %seen;
-  //   %seen{$_}++ and say "WARNING: Duplicate name: $_" for @new-names;
-
-  //   BibScrape::BibTeX::Value.new(@new-names.join( ' and ' ));
-  // }
 
   // method text(Bool:D $is-title, Str:D $str is copy, Bool:D :$math --> Str:D) {
   //   if $is-title {

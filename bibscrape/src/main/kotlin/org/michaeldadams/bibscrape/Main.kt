@@ -130,10 +130,9 @@ class Inputs : OptionGroup(name = "INPUTS") {
       return blocks.filter { it.isNotEmpty() }
     }
 
-    fun <A, B, C> blocksToMap(makeKey: (A) -> B, makeValue: (A) -> C):
-      (List<List<A>>, Map<B, C>) -> Map<B, C> = {
-      blocks, initialMap ->
-        var map: Map<B, C> = initialMap
+    fun <A, K, V> blocksToMap(makeKey: (A) -> K, makeValue: (A) -> V): (List<List<A>>, Map<K, V>) -> Map<K, V> =
+      { blocks, initialMap ->
+        var map: Map<K, V> = initialMap
         for (block in blocks) {
           val value = makeValue(block.first())
           for (key in block.map(makeKey)) {

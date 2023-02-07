@@ -223,6 +223,7 @@ object Bibtex {
       // through PersonListExpander
       val file = BibtexFile()
       val entry = file.makeEntry("", entryKey)
+      file.addEntry(entry)
       entry[Fields.AUTHOR] = string
       PersonListExpander(true, true).expand(file)
       return (entry[Fields.AUTHOR] as BibtexPersonList).list as List<BibtexPerson>
