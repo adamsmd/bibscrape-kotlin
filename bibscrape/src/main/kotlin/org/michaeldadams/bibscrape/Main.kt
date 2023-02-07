@@ -33,12 +33,14 @@ val mainClass: Class<*> = object {}.javaClass.enclosingClass
 // TODO: make CLI lowercase the enum constants
 
 /** What type of ISBN or ISSN media type to prefer. */
-@Suppress("EnumNaming", "ENUM_VALUE", "BRACES_BLOCK_STRUCTURE_ERROR")
-enum class MediaType { print, online, both } // ktlint-disable enum-entry-name-case
+@Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
+enum class MediaType { PRINT, ONLINE, BOTH }
 
 /** What type of ISBN to prefer. */
-@Suppress("EnumNaming", "ENUM_VALUE", "BRACES_BLOCK_STRUCTURE_ERROR")
-enum class IsbnType { isbn13, isbn10, preserve } // ktlint-disable enum-entry-name-case
+@Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
+enum class IsbnType { ISBN13, ISBN10, PRESERVE }
+
+fun <T : Enum<T>> enumLowercase(value: T): String = value.name.lowercase()
 
 /** Option group controlling configuration inputs. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
@@ -217,11 +219,11 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
 
   val issnMedia: MediaType by option(
     help = mediaHelpString("ISSN")
-  ).enum<MediaType>().default(MediaType.both)
+  ).enum<MediaType>(key = ::enumLowercase).default(MediaType.BOTH)
 
   val isbnMedia: MediaType by option(
     help = mediaHelpString("ISBN")
-  ).enum<MediaType>().default(MediaType.both)
+  ).enum<MediaType>(key = ::enumLowercase).default(MediaType.BOTH)
 
   val isbnType: IsbnType by option(
     help = """
@@ -233,7 +235,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       - If <IsbnType> is "preserve", do not convert ISBNs.
       ```
       """
-  ).enum<IsbnType>().default(IsbnType.preserve)
+  ).enum<IsbnType>(key = ::enumLowercase).default(IsbnType.PRESERVE)
 
   val isbnSep: String by option(
     help = """
