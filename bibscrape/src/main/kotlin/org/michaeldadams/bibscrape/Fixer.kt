@@ -230,9 +230,9 @@ class Fixer(
     //     .split("\\b".r)
     //     .filter(::isNotEmpty)
     //     .map {
-    //       (if (it.matches("/ | - | --")) BibtexString(it) else null) ?:
+    //       (if (it.contains("/ | - | --")) BibtexString(it) else null) ?:
     //       (M.str2month(it)?.let(::BibtexString)) ?:
-    //       (if it.matches("^ \\d+ $") num2month(it) else null) ?:
+    //       (if it.contains("^ \\d+ $") num2month(it) else null) ?:
     //       run {
     //         println("WARNING: Possibly incorrect month: ${month}")
     //         BibtexString(it)
@@ -377,8 +377,8 @@ class Fixer(
             \p{Upper}\p{Lower}+                       # Name with prefix
 
         """.trimIndent()
-        if (!name.matches("^ \\s* (${first}) \\s+ ((${middle}) \\s+)? (${last}) \\s* $".r)) {
-          println("WARNING: Publishers may report names like this in mangled form: ${name}")
+        if (!name.contains("^ \\s* (${first}) \\s+ ((${middle}) \\s+)? (${last}) \\s* $".r)) {
+          println("WARNING: Publishers sometimes mangle names like this: ${name}")
         }
 
         person
