@@ -47,9 +47,9 @@ object ScrapeAcm : DomainScraper {
     // // Abstract
     val abstract = driver
       .findElements(By.cssSelector(".abstractSection.abstractInFull"))
-      .last()
-      .innerHtml
-    if (abstract != "<p>No abstract available.</p>") {
+      .lastOrNull()
+      ?.innerHtml
+    if (abstract != null && abstract != "<p>No abstract available.</p>") {
       entry[F.ABSTRACT] = abstract
     }
 

@@ -177,6 +177,16 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
       """
   ).flag("-/S", "--no-scrape", default = true)
 
+  val examplez by this.option(
+    "-x",
+    "--xx",
+    )
+    .flag("+x",
+    "++xx")
+    .boolean()
+    // override val parser: OptionParser = FFlagOptionParser
+
+
   val fix: Boolean by option(
     "-F",
     "--fix",
@@ -197,6 +207,14 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       determining why BibScrape hangs on a particular publisher's page.
       """
   ).flag("--no-window")
+
+  val verbose: Boolean by option(
+    "-v",
+    "--verbose",
+    help = """
+      TODO
+      """
+  ).flag("--no-verbose")
 
   @Suppress("MagicNumber", "MAGIC_NUMBER")
   val timeout: Double by option(
@@ -557,11 +575,15 @@ class Main : CliktCommand(
   val testingOptions by TestingOptions().cooccurring()
 
   override fun run() {
+    // println("example2: ${operatingModes.exampley}")
+    println("examplez: ${operatingModes.examplez}")
+    // TODO: warn if no args
+
     when {
       testingOptions == null -> run(arg)
       testingOptions!!.useTestArg -> {
-        println("test ${testingOptions!!.testArg}")
-        // run(testingOptions!!.testArg)
+        // println("test ${testingOptions!!.testArg}")
+        run(testingOptions!!.testArg)
       }
       else -> runTests()
     }
@@ -651,10 +673,13 @@ class Main : CliktCommand(
     val keepReadKey = true
     for (a in args) {
       fun scrape(url: String): BibtexEntry =
-        Scraper.scrape(URI(url.replace("^ doi: \\s*".ri, "")), generalOptions.window, generalOptions.timeout)
+        Scraper.scrape(
+          URI(url.replace("^ doi: \\s*".ri, "")),
+          generalOptions.window,
+          generalOptions.verbose,
+          generalOptions.timeout)
 
       fun fix(keepKey: Boolean, entry: BibtexEntry) {
-        println(entry)
         val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
         // TODO: setEntryKey lower cases but BibtexEntry() does not
         // TODO: don't keepKey when scraping
@@ -777,11 +802,6 @@ class Main : CliktCommand(
     val classpath = System.getProperty("java.class.path")
     val mainClassName = mainClass.name
     val originalArgv = this.currentContext.originalArgv
-    // val command =
-    //   listOf(javaExe) +
-    //   jvmArgs +
-    //   listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", a) +
-    //   originalArgv
 
     // "javaExe jvmFlags -classpath $classpath $mainClass $args --use-test-arg --test-arg $a"
     // // this::class.package.mainKt
@@ -793,9 +813,20 @@ class Main : CliktCommand(
     // //   exit 1
     // // fi
 
-    // var processBuilder = ProcessBuilder
-    // for (a in arg) {
-    // }
+    for (a in arg) {
+      val command =
+        listOf(javaExe) +
+        jvmArgs +
+        listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", a) +
+        originalArgv
+      val process = ProcessBuilder(command)
+        .redirectErrorStream(true)
+        .start()
+      val output = String(process.inputStream.readAllBytes())
+      println("<${output}>")
+      // process.waitFor(60, TimeUnit.SECONDS)
+
+    }
 
     // COUNT=0
     // if test 0 -eq "$NO_URL"; then

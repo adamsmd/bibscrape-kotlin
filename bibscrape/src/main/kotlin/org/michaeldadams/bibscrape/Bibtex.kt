@@ -235,10 +235,9 @@ object Bibtex {
       if (person.isOthers()) {
         Bibtex.Names.OTHERS
       } else {
-        "${person.first} ${person.preLast} ${person.last} ${person.lineage}"
-          .replace("\\s+", " ")
-          .replace("^ \\s+", "")
-          .replace("\\s+ $", "")
+        listOf(person.first, person.preLast, person.last, person.lineage)
+          .filterNotNull()
+          .joinToString(" ")
       }
   }
 

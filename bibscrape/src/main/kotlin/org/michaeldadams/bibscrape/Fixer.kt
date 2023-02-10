@@ -377,16 +377,20 @@ class Fixer(
           # names when the actual paper doesn't
           # | \p{Upper} \.                            # Initial
           # | \p{Upper} \. - \p{Upper} \.             # Double initial
-        """.trimIndent().r
-        val middle = """\p{Upper} \.                  # Middle initial"""
+
+        """.trimIndent()
+        val middle = """\p{Upper} \.                  # Middle initial
+
+        """.trimIndent()
         val last = """
             \p{Upper}\p{Lower}+                       # Simple name
           | \p{Upper}\p{Lower}+ - \p{Upper}\p{Lower}+ # Hyphenated name with upper
           | ( d' | D' | de | De | Di | Du | La | Le | Mac | Mc | O' | Van )
             \p{Upper}\p{Lower}+                       # Name with prefix
-        """.trimIndent().r
-        if (!name.matches("^ \\s* ${first} \\s+ (${middle} \\s+)? ${last} \\s* $".r)) {
-          println("WARNING: Possibly incorrect name: ${name}")
+
+        """.trimIndent()
+        if (!name.matches("^ \\s* (${first}) \\s+ ((${middle}) \\s+)? (${last}) \\s* $".r)) {
+          println("WARNING: Publishers may report names like this in mangled form: ${name}")
         }
 
         person

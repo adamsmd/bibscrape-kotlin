@@ -19,13 +19,14 @@ object Scraper {
    *
    * @param url the URL to scrape
    * @param window whether to show the browser window while scraping
+   * @param verbose whether to print debugging output
    * @param timeout the timeout in seconds to use
    * @return the [BibtexEntry] that was scraped
    */
-  fun scrape(url: URI, window: Boolean, timeout: Double): BibtexEntry =
+  fun scrape(url: URI, window: Boolean, verbose: Boolean, timeout: Double): BibtexEntry =
     // TODO: option for withLogFile
     // TODO: option for verbose
-    Driver.make(headless = !window, verbose = true, timeout = timeout).use { driver ->
+    Driver.make(headless = !window, verbose = verbose, timeout = timeout).use { driver ->
       val entry = dispatch(driver, url)
       entry[F.BIB_SCRAPE_URL] = url.toString()
       entry
