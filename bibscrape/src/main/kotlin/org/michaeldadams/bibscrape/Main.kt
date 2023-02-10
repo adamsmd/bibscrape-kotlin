@@ -16,7 +16,6 @@ import java.io.FileReader
 import java.io.InputStreamReader
 import java.lang.management.ManagementFactory
 import java.net.URI
-import java.nio.file.Path
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Names as N
 
@@ -635,7 +634,8 @@ class Main : CliktCommand(
           URI(url.replace("^ doi: \\s*".ri, "")),
           generalOptions.window,
           generalOptions.verbose,
-          generalOptions.timeout)
+          generalOptions.timeout
+        )
 
       fun fix(keepKey: Boolean, entry: BibtexEntry) {
         val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
@@ -774,16 +774,15 @@ class Main : CliktCommand(
     for (a in arg) {
       val command =
         listOf(javaExe) +
-        jvmArgs +
-        listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", a) +
-        originalArgv
+          jvmArgs +
+          listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", a) +
+          originalArgv
       val process = ProcessBuilder(command)
         .redirectErrorStream(true)
         .start()
       val output = String(process.inputStream.readAllBytes())
       println("<${output}>")
       // process.waitFor(60, TimeUnit.SECONDS)
-
     }
 
     // COUNT=0

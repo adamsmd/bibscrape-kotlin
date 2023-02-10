@@ -4,9 +4,9 @@ import bibtex.dom.BibtexAbstractValue
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexMacroReference
-import bibtex.dom.BibtexString
 import bibtex.dom.BibtexPerson
 import bibtex.dom.BibtexPersonList
+import bibtex.dom.BibtexString
 import bibtex.expansions.PersonListExpander
 import bibtex.parser.BibtexParser
 import java.io.Reader
@@ -214,10 +214,20 @@ object Bibtex {
     const val YEAR = "year"
   }
 
+  /** Constants and functions for BibTeX author and editor fields. */
   object Names {
+    /** The string used by BibTex to separate names in author and editor fields. */
     const val AND = " and "
+
+    /** The string used by BibTeX to represent "et al.". */
     const val OTHERS = "others"
 
+    /** Parses a [String] containing BibTeX names.
+     *
+     * @param string the names to parse
+     * @param entryKey the BibTex key to use in parse errors
+     * @return the list of persons parsed from [string]
+     */
     fun bibtexPersons(string: String, entryKey: String): List<BibtexPerson> {
       // bibtex.expansions.BibtexPersonListParser is not public so we have to go
       // through PersonListExpander
@@ -229,8 +239,24 @@ object Bibtex {
       return (entry[Fields.AUTHOR] as BibtexPersonList).list as List<BibtexPerson>
     }
 
-    fun bibtexPerson(string: String, entryKey: String): BibtexPerson = TODO()
+    /** Parses a [String] containing a single BibTeX name.
+     *
+     * @param string the name to parse
+     * @param entryKey the BibTex key to use in parse errors
+     * @return the person produced by parsing
+     */
+    fun bibtexPerson(string: String, entryKey: String): BibtexPerson {
+      val persons = bibtexPersons(string, entryKey)
+      if (persons.size != 1) TODO()
+      return persons.first()
+    }
 
+    /** Returns a name of a [BibtexPerson] as a simple [String] in "First von
+     * Last Jr." order.
+     *
+     * @param person the [BibtexPerson] for which to produce the name
+     * @return the [String] representing the name
+     */
     fun simpleName(person: BibtexPerson): String =
       if (person.isOthers()) {
         Bibtex.Names.OTHERS
@@ -241,6 +267,7 @@ object Bibtex {
       }
   }
 
+  /** Constants and functions for the BibTeX month field. */
   object Months {
     private val longNames =
       "january february march april may june july august september october november december".split(" ")
@@ -252,7 +279,6 @@ object Bibtex {
         (macroNames zip macroNames) +
         (longNames zip macroNames)
       ).toMap()
-
 
     private fun wrap(bibtexFile: BibtexFile, macro: String?): BibtexMacroReference? {
       if (macro == null) {

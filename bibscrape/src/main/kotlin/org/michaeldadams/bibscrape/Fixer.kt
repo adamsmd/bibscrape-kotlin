@@ -2,16 +2,10 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
-import bibtex.dom.BibtexString
-import bibtex.dom.BibtexFile
-import bibtex.dom.BibtexPersonList
-import bibtex.expansions.PersonListExpander
-// import bibtex.expansions.BibtexPersonListParser
-// import org.bibsonomy.model.util.PersonNameParser
 import java.util.Locale
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
-import org.michaeldadams.bibscrape.Bibtex.Types as T
 import org.michaeldadams.bibscrape.Bibtex.Names as N
+import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 // enum MediaType <print online both>;
 typealias NameMap = Map<String, BibtexPerson>
@@ -158,9 +152,7 @@ class Fixer(
     entry.update(F.LANGUAGE) { Locale.forLanguageTag(it)?.displayLanguage ?: it }
 
     entry.update(F.AUTHOR) { fixNames(it, entry.entryKey) }
-    // if ($entry.fields<author>:exists) { $entry.fields<author> = $.canonical-names($entry.fields<author>) }
     entry.update(F.EDITOR) { fixNames(it, entry.entryKey) }
-    // if ($entry.fields<editor>:exists) { $entry.fields<editor> = $.canonical-names($entry.fields<editor>) }
 
     // Don't include pointless URLs to publisher's page
     // TODO: check if should use \\. instead of \.
@@ -265,22 +257,16 @@ class Fixer(
     // Generate an entry key
     val name =
       N.bibtexPersons(
-        (entry[F.AUTHOR]?.string ?: entry[F.EDITOR]?.string ?: "anon"),
+        entry[F.AUTHOR]?.string ?: entry[F.EDITOR]?.string ?: "anon",
         entry.entryKey
       ).first()
-      .last
-      .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
-      .replace("[^A-Za-z0-9]".r, "")
-
-    // my BibScrape::BibTeX::Value:_ $name-value =
-    //   $entry.fields<author> // $entry.fields<editor> // BibScrape::BibTeX::Value;
-    // my Str:D $name = $name-value.defined ?? last-name(split-names($name-value.simple-str).head) !! 'anon';
-    // $name ~~ s:g/ '\\' <-[{}\\]>+ '{' /\{/; # Remove codes that add accents
-    // $name ~~ s:g/ <-[A..Za..z0..9]> //; # Remove non-alphanum
+        .last
+        .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
+        .replace("[^A-Za-z0-9]".r, "") // Remove non-alphanum
 
     val titleWord = (entry[F.TITLE]?.string ?: "")
       .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
-      // .replace("[-\\ ^A-Za-z0-9]".r, "") // Remove non-alphanum, space or hyphen
+      .replace("[-\\ ^A-Za-z0-9]".r, "") // Remove non-alphanum, space or hyphen
       .split("\\W+".r)
       .filter { !stopWords.contains(it.lowercase()) }
       .firstOrNull()
@@ -300,12 +286,6 @@ class Fixer(
           if (archiveprefix.string == "arXiv") ":arXiv.${eprint.string}" else null
         }
       } ?: entry.ifField(F.DOI) { ":${it.string}" } ?: ""
-    // my Str:D $doi = $entry.fields<doi>:exists ?? ':' ~ $entry.fields<doi>.simple-str !! '';
-    // if $entry.fields<archiveprefix>:exists
-    //     and $entry.fields<archiveprefix>.simple-str eq 'arXiv'
-    //     and $entry.fields<eprint>:exists {
-    //   $doi = ':arXiv.' ~ $entry.fields<eprint>.simple-str;
-    // }
     entry.entryKey = name + year + title + doi
 
     // val unknownFields = entry.fields.keys subtract field
@@ -379,7 +359,8 @@ class Fixer(
           # | \p{Upper} \. - \p{Upper} \.             # Double initial
 
         """.trimIndent()
-        val middle = """\p{Upper} \.                  # Middle initial
+        val middle = """
+            \p{Upper} \.                              # Middle initial
 
         """.trimIndent()
         val last = """

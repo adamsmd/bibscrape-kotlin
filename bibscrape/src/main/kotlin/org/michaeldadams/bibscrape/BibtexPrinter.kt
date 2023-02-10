@@ -1,13 +1,6 @@
 package org.michaeldadams.bibscrape
 
-import bibtex.dom.BibtexAbstractValue
 import bibtex.dom.BibtexEntry
-import bibtex.dom.BibtexFile
-import bibtex.dom.BibtexMacroReference
-import bibtex.dom.BibtexString
-import bibtex.parser.BibtexParser
-import java.io.Reader
-import java.io.StringReader
 import java.io.PrintStream
 
 /** BibTeX utility functions. */
