@@ -289,7 +289,7 @@ class Fixer(
     entry.entryKey = name + year + title + doi
 
     // val unknownFields = entry.fields.keys subtract field
-    // if (unknownFields.isNotEmpty()) { TODO("Unknown fields: ${unknownFields}") }
+    // if (unknownFields.isNotEmpty) { TODO("Unknown fields: ${unknownFields}") }
     // TODO: Duplicate fields
     //   # Put fields in a standard order (also cleans out any fields we deleted)
     //   my Int:D %fields = @.field.map(* => 0);

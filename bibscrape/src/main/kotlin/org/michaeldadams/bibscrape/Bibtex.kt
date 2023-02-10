@@ -258,7 +258,7 @@ object Bibtex {
      * @return the [String] representing the name
      */
     fun simpleName(person: BibtexPerson): String =
-      if (person.isOthers()) {
+      if (person.isOthers) {
         Bibtex.Names.OTHERS
       } else {
         listOf(person.first, person.preLast, person.last, person.lineage)
