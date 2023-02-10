@@ -28,17 +28,6 @@ fun main(args: Array<String>): Unit = Main().main(args)
 @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
 val mainClass: Class<*> = object {}.javaClass.enclosingClass
 
-// The following enum values are lowercase because their names are used by the CLI
-// TODO: make CLI lowercase the enum constants
-
-/** What type of ISBN or ISSN media type to prefer. */
-@Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
-enum class MediaType { PRINT, ONLINE, BOTH }
-
-/** What type of ISBN to prefer. */
-@Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
-enum class IsbnType { ISBN13, ISBN10, PRESERVE }
-
 /** Option group controlling configuration inputs. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class Inputs : OptionGroup(name = "INPUTS") {

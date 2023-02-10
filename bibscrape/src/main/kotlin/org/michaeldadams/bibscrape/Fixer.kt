@@ -7,10 +7,17 @@ import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Names as N
 import org.michaeldadams.bibscrape.Bibtex.Types as T
 
-// enum MediaType <print online both>;
 typealias NameMap = Map<String, BibtexPerson>
 typealias NounMap = Map<String, String>
 typealias StopWordSet = Set<String>
+
+/** What type of ISBN or ISSN media type to prefer. */
+@Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
+enum class MediaType { PRINT, ONLINE, BOTH }
+
+/** What type of ISBN to prefer. */
+@Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
+enum class IsbnType { ISBN13, ISBN10, PRESERVE }
 
 class Fixer(
   // // INPUTS
