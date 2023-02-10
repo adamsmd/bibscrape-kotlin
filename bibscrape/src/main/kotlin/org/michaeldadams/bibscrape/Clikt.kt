@@ -16,6 +16,9 @@ import com.github.ajalt.clikt.parsers.*
 import kotlin.reflect.KProperty
 import com.github.ajalt.clikt.output.HelpFormatter
 import kotlin.properties.ReadOnlyProperty
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import com.github.ajalt.clikt.completion.*
 import com.github.ajalt.clikt.parameters.groups.*
 
@@ -73,20 +76,103 @@ object BooleanFlagOptionParser : OptionParser {
   }
 }
 
-// TODO: FileList
+// // Collection flags (e.g., Map, List and Set)
 
-// TODO: word lists: -x,x,,.,@file,-@file
-// fun OptionWithValues<List<String>>.list(
-//   sep: String = ","
-// ): OptionsWithValues<List<String>> =
-//   this.copy(transformAll = { values ->
-//     var results
-//   }
-//   )
+private fun <A, F, L> parseBlocks(
+  empty: () -> A,
+  default: () -> String,
+  parseFirst: (String) -> F,
+  parseLine: (String) -> L,
+  add: (A, L, F) -> A,
+  remove: (A, L) -> A): (A, String) -> A = { initial, string ->
+  var acc = initial
+  var first: F? = null
+  fun go(dir: Path, string: String) {
+    val lines = string
+      .split("\\R".r)
+      .map { it.replace("\\s* # .* $".r, "").replace("^ \\s+".r, "") }
+    for (line in lines) {
+      when {
+        line.isEmpty() ->
+          first = null
+        line.startsWith('@') ->
+          dir.resolve(line.substring(1)).let {
+            go(it.parent, String(Files.readAllBytes(it)))
+          }
+        line == "-" ->
+          acc = empty()
+        line == "--" ->
+          go(dir, default())
+        else -> {
+          val minus = line.startsWith("-")
+          val trimmedLine = if (minus) line.substring(1) else line
+          val l = parseLine(trimmedLine)
+          if (first == null) first = parseFirst(trimmedLine)
+          acc = if (minus) remove(acc, l) else add(acc, l, first!!)
+          //   if (line.startsWith('-')) 
+          //   val v = parse(line.substring(1)) // TODO: substring(1)
+          //   if (first == null) first = v
+          //   acc = remove(acc, v)
+          // }
+          // else -> {
+          //   val v = parse(line.substring(1)) // TODO: substring(1)
+          //   if (first == null) first = parseFirst(line)
+          //   acc = add(acc, parse(line), first!!)
+          // }
+        }
+      }
+    }
+  }
 
-// fun transformallListOptionWithValues(old: List<String>, add: Boolean, arg: String): List<String> {
-//   if (arg.startsWith("-"))
-// }
+  go(Paths.get("."), string)
+  acc
+}
 
-// TODO: block lists: john;Johne;;jane;jannet;@file;-john;-@file
-// : CallsTransformer<EachT, AllT>, 
+fun <A, F, L> NullableOption<String, String>.collection(
+  empty: () -> A,
+  default: () -> String,
+  parseFirst: (String) -> F,
+  parseLine: (String) -> L,
+  add: (A, L, F) -> A,
+  remove: (A, L) -> A): OptionWithValues<A, String, String> =
+  this.transformAll { strings ->
+    val run = parseBlocks(empty, default, parseFirst, parseLine, add, remove)
+    strings.map { it.replace(";", "\n") }.fold(run(empty(), default()), run)
+  }
+
+fun <K, V> NullableOption<String, String>.map(
+  default: () -> String,
+  parseFirst: (String) -> V,
+  parseLine: (String) -> K): OptionWithValues<Map<K, V>, String, String> =
+  this.collection(
+    ::emptyMap,
+    default,
+    parseFirst,
+    parseLine,
+    { a, l, f -> a + (l to f) },
+    { a, l -> a - l }
+  )
+
+fun <A> NullableOption<String, String>.list(
+  default: () -> String,
+  parseLine: (String) -> A): OptionWithValues<List<A>, String, String> =
+  this.collection(
+    ::emptyList,
+    default,
+    parseLine,
+    parseLine,
+    { a, l, _ -> a + l },
+    { a, l -> a - l }
+  )
+
+fun <A> NullableOption<String, String>.set(
+  default: () -> String,
+  parseLine: (String) -> A): OptionWithValues<Set<A>, String, String> =
+  this.collection(
+    ::emptySet,
+    default,
+    parseLine,
+    parseLine,
+    { a, l, _ -> a + l },
+    { a, l -> a - l }
+  )

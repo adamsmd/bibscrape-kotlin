@@ -43,7 +43,7 @@ enum class IsbnType { ISBN13, ISBN10, PRESERVE }
 /** Option group controlling configuration inputs. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class Inputs : OptionGroup(name = "INPUTS") {
-  val key: List<List<String>> by option(
+  val key: List<String> by option(
     "-k",
     "--key",
     help = """
@@ -55,103 +55,53 @@ class Inputs : OptionGroup(name = "INPUTS") {
       BibTeX entry or automatically generated if there is no existing BibTeX
       entry.
       """
-  ).split(",".r).multiple()
+  ).list({ "" }, { it })
 
-  val names: List<List<Path>> by option(
+  val name: Map<String, BibtexPerson> by option(
     help = """
+      TODO:
+
       The names files to use.
       See the NAMES FILES and LIST FLAGS sections for details.
       The file name "." means "names.cfg" in the user-configuration directory.
-      """
-  ).path(mustExist = true, canBeDir = false).split(";".r).multiple()
-  // TODO: default to "." and support "."
 
-  val name: List<List<String>> by option(
-    help = """
       Treat <Str> as if it were the content of a names file.
       See the NAMES FILES section for details about names files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).split(";".r).multiple()
+  ).map(
+    { "" }, // TODO(),
+    { N.bibtexPerson(it, "TODO") },
+    { N.simpleName(N.bibtexPerson(it, "TODO")).lowercase() }
+  )
 
-  val nouns: List<List<Path>> by option(
+  val noun: Map<String, String> by option(
     help = """
+      TODO:
+
       The nouns files to use.
       See the NOUNS FILES and LIST FLAGS sections for details.
       The file name "." means "nouns.cfg" in the user-configuration directory.
-      """
-  ).path(mustExist = true, canBeDir = false).split(";".r).multiple()
-  // TODO: default to "." and support "."
 
-  val noun: List<List<String>> by option(
-    help = """
       Treat <Str> as if it were the content of a nouns file.
       See the NOUNS FILES section for details about nouns files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).split(";".r).multiple()
+  ).map({ "" } /* TODO */, { it }, { it.lowercase() })
 
-  val stopWords: List<List<Path>> by option(
+  val stopWord: Set<String> by option(
     help = """
+      TODO:
+
       The nouns files to use.
       See the STOP-WORDS FILES and LIST FLAGS sections for details.
       The file name "." means "stop-words.cfg" in the user-configuration directory.
-      """
-  ).path(mustExist = true, canBeDir = false).split(";".r).multiple()
-  // TODO: default to "." and support "."
 
-  val stopWord: List<List<String>> by option(
-    help = """
       Treat <Str> as if it were the content of a stop-words file.
       See the STOP-WORDS FILES section for details about stop-words files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).split(";".r).multiple()
-
-  companion object {
-    fun parseBlocks(string: String): List<List<String>> {
-      var blocks: List<List<String>> = emptyList()
-      var block: List<String> = emptyList()
-
-      val lines = string.split("\\R".r)
-      for (line in lines) {
-        if (line.matches("^ \\s* $".r)) {
-          blocks += listOf(block)
-          block = emptyList()
-        }
-
-        block += line.replace("# .*".r, "").replace("\\s+$".r, "")
-      }
-
-      blocks += listOf(block)
-
-      return blocks.filter { it.isNotEmpty() }
-    }
-
-    fun <A, K, V> blocksToMap(makeKey: (A) -> K, makeValue: (A) -> V): (List<List<A>>, Map<K, V>) -> Map<K, V> =
-      { blocks, initialMap ->
-        var map: Map<K, V> = initialMap
-        for (block in blocks) {
-          val value = makeValue(block.first())
-          for (key in block.map(makeKey)) {
-            map += key to value
-          }
-        }
-        map
-      }
-
-    fun <B, C> parseBlocksToMap(makeKey: (String) -> B, makeValue: (String) -> C): (String, Map<B, C>) -> Map<B, C> =
-      { string, initialMap -> blocksToMap(makeKey, makeValue)(parseBlocks(string), initialMap) }
-
-    val parseNames: (String, Map<String, BibtexPerson>) -> Map<String, BibtexPerson> =
-      parseBlocksToMap({ N.simpleName(N.bibtexPerson(it, "TODO")).lowercase() }, { N.bibtexPerson(it, "TODO") })
-
-    val parseNouns: (String, Map<String, String>) -> Map<String, String> =
-      parseBlocksToMap({ it.lowercase() }, { it })
-
-    val parseStopWords: (String, Set<String>) -> Set<String> =
-      { string, initialSet -> initialSet + parseBlocks(string).flatten().map { it.lowercase() }.toSet() }
-  }
+  ).set({ "" } /* TODO() */, { it.lowercase() })
 }
 
 /** Option group controlling what major modes of work is actually done. */
@@ -177,15 +127,14 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
       """
   ).flag("-/S", "--no-scrape", default = true)
 
-  val examplez by this.option(
-    "-x",
-    "--xx",
-    )
-    .flag("+x",
-    "++xx")
-    .boolean()
-    // override val parser: OptionParser = FFlagOptionParser
-
+  // val examplez by this.option(
+  //   "-x",
+  //   "--xx",
+  //   )
+  //   .flag("+x",
+  //   "++xx")
+  //   .boolean()
+  //   // override val parser: OptionParser = FFlagOptionParser
 
   val fix: Boolean by option(
     "-F",
@@ -279,37 +228,46 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
 /** Option group controlling BibTeX fields. */
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
-  val field: List<String> = listOf(
-    F.KEY, F.AUTHOR, F.EDITOR, F.AFFILIATION, F.TITLE,
-    F.HOWPUBLISHED, F.BOOKTITLE, F.JOURNAL, F.VOLUME, F.NUMBER, F.SERIES,
-    F.TYPE, F.SCHOOL, F.INSTITUTION, F.LOCATION, F.CONFERENCE_DATE,
-    F.CHAPTER, F.PAGES, F.ARTICLENO, F.NUMPAGES,
-    F.EDITION, F.DAY, F.MONTH, F.YEAR, F.ISSUE_DATE,
-    F.ORGANIZATION, F.PUBLISHER, F.ADDRESS,
-    F.LANGUAGE, F.ISBN, F.ISSN, F.DOI, F.URL, F.EPRINT, F.ARCHIVEPREFIX, F.PRIMARYCLASS,
-    F.BIB_SCRAPE_URL,
-    F.NOTE, F.ANNOTE, F.KEYWORDS, F.ABSTRACT
+  val field: List<String> by option(
+    help = """The order that fields should placed in the output.""",
+  ).list(
+    {
+      listOf(
+        F.KEY, F.AUTHOR, F.EDITOR, F.AFFILIATION, F.TITLE,
+        F.HOWPUBLISHED, F.BOOKTITLE, F.JOURNAL, F.VOLUME, F.NUMBER, F.SERIES,
+        F.TYPE, F.SCHOOL, F.INSTITUTION, F.LOCATION, F.CONFERENCE_DATE,
+        F.CHAPTER, F.PAGES, F.ARTICLENO, F.NUMPAGES,
+        F.EDITION, F.DAY, F.MONTH, F.YEAR, F.ISSUE_DATE,
+        F.ORGANIZATION, F.PUBLISHER, F.ADDRESS,
+        F.LANGUAGE, F.ISBN, F.ISSN, F.DOI, F.URL, F.EPRINT, F.ARCHIVEPREFIX, F.PRIMARYCLASS,
+        F.BIB_SCRAPE_URL,
+        F.NOTE, F.ANNOTE, F.KEYWORDS, F.ABSTRACT
+      ).joinToString("\n")
+    },
+    { it } // TODO: lowercase?
   )
 
-  // Str:D :f(:@field) = Array[Str:D](<...>) but Sep[','],
-  // #={The order that fields should placed in the output.}
+  val noEncode: List<String> by option(
+    help = """Fields that should not be LaTeX encoded."""
+  ).list(
+    { listOf(F.DOI, F.URL, F.EPRINT, F.BIB_SCRAPE_URL).joinToString("\n") },
+    { it } // TODO: lowercase?
+  )
 
-  val noEncode: List<String> = listOf(F.DOI, F.URL, F.EPRINT, F.BIB_SCRAPE_URL)
-  // Str:D :@no-encode = Array[Str:D](<...>) but Sep[','],
-  // #={Fields that should not be LaTeX encoded.}
+  val noCollapse: List<String> by option(
+    help = """Fields that should not have multiple successive whitespaces collapsed into a single whitespace.""",
+  ).list({ "" }, { it }) // TODO: lowercase?
 
-  val noCollapse: List<String> = listOf()
-  // Str:D :@no-collapse = Array[Str:D](< >) but Sep[','],
-  // #={Fields that should not have multiple successive whitespaces collapsed into a
-  // single whitespace.}
+  val omit: List<String> by option(
+    help = """Fields that should be omitted from the output.""",
+  ).list({ "" }, { it }) // TODO: lowercase?
 
-  val omit: List<String> = listOf()
-  // Str:D :o(:@omit) = Array[Str:D](< >) but Sep[','],
-  // #={Fields that should be omitted from the output.}
-
-  val omitEmpty: List<String> = listOf(F.ABSTRACT, F.ISSN, F.DOI, F.KEYWORDS)
-  // Str:D :@omit-empty = Array[Str:D](<...>) but Sep[','],
-  // #={Fields that should be omitted from the output if they are empty.}
+  val omitEmpty: List<String> by option(
+    help = """Fields that should be omitted from the output if they are empty.""",
+  ).list(
+    { listOf(F.ABSTRACT, F.ISSN, F.DOI, F.KEYWORDS).joinToString("\n") },
+    { it } // TODO: lowercase?
+  )
 }
 
 /** Option group for running self tests. */
@@ -576,7 +534,7 @@ class Main : CliktCommand(
 
   override fun run() {
     // println("example2: ${operatingModes.exampley}")
-    println("examplez: ${operatingModes.examplez}")
+    // println("examplez: ${operatingModes.examplez}")
     // TODO: warn if no args
 
     when {
@@ -650,12 +608,12 @@ class Main : CliktCommand(
     //     // }
     // }
 
-    var key: List<String> = inputs.key.flatten()
+    var key: List<String> = inputs.key
 
     val fixer = Fixer(
-      names = emptyMap(),
-      nouns = emptyMap(),
-      stopWords = emptySet(),
+      names = inputs.name,
+      nouns = inputs.noun,
+      stopWords = inputs.stopWord,
       escapeAcronyms = generalOptions.escapeAcronyms,
       issnMedia = generalOptions.issnMedia,
       isbnMedia = generalOptions.isbnMedia,
