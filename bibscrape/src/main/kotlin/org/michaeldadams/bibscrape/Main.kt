@@ -16,6 +16,9 @@ import java.io.FileReader
 import java.io.InputStreamReader
 import java.lang.management.ManagementFactory
 import java.net.URI
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Names as N
 
@@ -536,6 +539,7 @@ class Main : CliktCommand(
   }
 
   fun run(args: List<String>) {
+    val windows = File.separator == "\\"
     // val configDirPath =
     //   (if (windows) System.getenv("APPDATA") ?: System.getenv("APPDATA") + "/AppData/Roaming"
     //   else System.getenv("XDG_CONFIG_HOME") ?: System.getenv("HOME") + "/.config")
@@ -545,12 +549,15 @@ class Main : CliktCommand(
     //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
     //     !! %*ENV<XDG_CONFIG_HOME> // %*ENV<HOME> ~ </.config>).IO
     //     .add(<BibScrape>);
+    // const val namesFilename = "names.cfg"
     // my Str:D constant $names-filename = 'names.cfg';
+    // const val nounsFilename = "nouns.cfg"
     // my Str:D constant $nouns-filename = 'nouns.cfg';
+    // const val stopWordsFilename = "stop-words.cfg"
     // my Str:D constant $stop-words-filename = 'stop-words.cfg';
 
     // if (configDir) {
-    //   println("User-configuration directory: $configDirPath")
+    //   println("User-configuration directory: ${configDirPath}")
     // }
 
     // if $init {
@@ -731,27 +738,54 @@ class Main : CliktCommand(
     val mainClassName = mainClass.name
     val originalArgv = this.currentContext.originalArgv
 
-    // "javaExe jvmFlags -classpath $classpath $mainClass $args --use-test-arg --test-arg $a"
-    // // this::class.package.mainKt
-    // println("javaBin: $javaBin")
-    // println("classpath: $classpath")
-
-    // // if test $# -eq 0; then
-    // //   echo "ERROR: No test files specified"
-    // //   exit 1
-    // // fi
+    // if test $# -eq 0; then
+    //   echo "ERROR: No test files specified"
+    //   exit 1
+    // fi
 
     for (a in arg) {
+      val lines = File(a).readLines()
+      val url = lines[0]
+      val flags = lines[2]
       val command =
         listOf(javaExe) +
           jvmArgs +
-          listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", a) +
+          listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", url) +
+          // flags + // TODO: shell style splitting
           originalArgv
       val process = ProcessBuilder(command)
         .redirectErrorStream(true)
         .start()
-      val output = String(process.inputStream.readAllBytes())
-      println("<${output}>")
+      var output: AtomicReference<String?> = AtomicReference()
+      var reader = thread { output.set(String(process.inputStream.readAllBytes())) }
+      if (!process.waitFor(60, TimeUnit.SECONDS)) {
+        println("destory")
+        process.destroy()
+        if (!process.waitFor(60, TimeUnit.SECONDS)) {
+          println("destroyForcibly")
+          process.destroyForcibly()
+        }
+      }
+      process.waitFor()
+      reader.join()
+
+      if (process.exitValue() != 0){
+        // println("EXITED ABNORMALLY: $i using a $type")
+      }
+      // TODO: destroy process children
+
+      // var endMillis = System.currentTimeMillis() + 60_000
+      // while (process.isRunning && System.currentTimeMillis() < endMillis) {
+      //   Thread.sleep(10)
+      // }
+      // if (process.isRunning) { process.stop() }
+      // reader.join()
+      // if (reader.isAlive) { reader.interrupt() }
+      // val isAlive = reader.isAlive
+      // try {
+      //   reader.join(60_000)
+      // } catch {
+      println("<${output.get()} ${process.exitValue()}>")
       // process.waitFor(60, TimeUnit.SECONDS)
     }
 
@@ -768,24 +802,6 @@ class Main : CliktCommand(
     //   run test-without-scraping 'filenames without scraping' "$@"
     //   COUNT=$((COUNT+n))
     // fi
-
-    // setup() {
-    //   fail() {
-    //     echo "EXITED ABNORMALLY: $i using a $type"
-    //     exit 1
-    //   }
-    //   trap fail EXIT
-    //   # These variables are for use by the calling function
-    //   type="$1"
-    //   i="$2"
-    //   FLAGS=$(head -n 2 "$i" | tail -1)
-    // }
-
-    // teardown() {
-    //   err="$?"
-    //   trap - EXIT
-    //   return $err
-    // }
 
     // test-url() {
     //   setup 'URL' "$@"
