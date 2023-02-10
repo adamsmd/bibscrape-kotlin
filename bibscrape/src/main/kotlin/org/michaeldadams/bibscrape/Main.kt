@@ -265,18 +265,18 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
     helpTags = mapOf(HelpFormatter.Tags.REQUIRED to ""),
     help = """
       TODO
-      // # This script is a test driver for bibscrape.
-      // # To run it do:
-      // #
-      // #     $ ./test.sh <flag> ... <filename> ...
-      // #
-      // # where <flag> is a flag to pass to bibscrape and <filename> is the name of a
-      // # test file. The flags end at the first argument to not start with `-` or after
-      // # a `--` argument.
-      // #
-      // # For example, to run all ACM tests while showing the browser window, do:
-      // #
-      // #     $ ./test.sh --window tests/acm-*.t
+      # This script is a test driver for bibscrape.
+      # To run it do:
+      #
+      #     $ ./test.sh <flag> ... <filename> ...
+      #
+      # where <flag> is a flag to pass to bibscrape and <filename> is the name of a
+      # test file. The flags end at the first argument to not start with `-` or after
+      # a `--` argument.
+      #
+      # For example, to run all ACM tests while showing the browser window, do:
+      #
+      #     $ ./test.sh --window tests/acm-*.t
       """
   ).flag()
 
@@ -644,7 +644,6 @@ class Main : CliktCommand(
       }
 
       if (a.contains("^ http: | https: | doi: ".ri)) {
-        // if $arg ~~ m:i/^ 'http:' | 'https:' | 'doi:' / {
         // It's a URL
         if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: ${a}") }
         fix(keepScrapedKey, scrape(a))
@@ -655,17 +654,11 @@ class Main : CliktCommand(
           (if (a == "-") InputStreamReader(System.`in`) else FileReader(a))
             .use(Bibtex::parse)
             .entries
-        // my Str:D $str = ($arg eq '-' ?? $*IN !! $arg.IO).slurp;
-        // my BibScrape::BibTeX::Database:D $bibtex = bibtex-parse($str);
 
         ENTRY@for (entry in entries) {
           if (entry !is BibtexEntry) {
             println(entry)
-            //     ITEM: for $bibtex.items -> BibScrape::BibTeX::Item:D $item {
-            //       if $item !~~ BibScrape::BibTeX::Entry:D {
-            //         print $item.Str;
           } else if (!operatingModes.scrape) {
-            //       } else {
             //         my $key = @key.shift || $item.key;
             // if !$scrape {
             // Undo any encoding that could get double encoded
@@ -682,24 +675,15 @@ class Main : CliktCommand(
             // fix(keepReadKey, entry)
           } else if (entry[F.BIB_SCRAPE_URL] != null) {
             // TODO: entry.ifField
-            // } elsif $item.fields<bib_scrape_url> {
             fix(keepReadKey, scrape(entry[F.BIB_SCRAPE_URL]!!.string))
-            //   fix($key, scr($item.fields<bib_scrape_url>.simple-str));
           } else if (entry[F.DOI] != null) {
             // TODO: entry.ifField
-            // } elsif $item.fields<doi> {
             val doi = entry[F.DOI]!!.string
-            //   my Str:D $doi = $item.fields<doi>.simple-str;
-            //   $doi = "doi:$doi"
-            //     unless $doi ~~ m:i/^ 'doi:' /;
             val prefixedDoi =
               if (doi.startsWith("doi:", ignoreCase = true)) doi else "doi:${doi}"
-            //   fix($key, scr($doi));
             fix(keepReadKey, scrape(prefixedDoi))
           } else {
-            // } else {
             for (field in listOf(F.URL, F.HOWPUBLISHED)) {
-              // for <url howpublished> -> Str:D $field {
               val newEntry = entry.ifField(field) {
                 runCatching { scrape(it.string) }.getOrNull()
               }
@@ -727,12 +711,9 @@ class Main : CliktCommand(
               //     next ITEM;
               //   }
             }
-            // }
+
             println("WARNING: Not changing entry '${entry.entryKey}' because could not find publisher URL")
             println(entry)
-            //
-            // say "WARNING: Not changing entry '{$item.key}' because could not find publisher URL";
-            // print $item.Str;
           }
         }
         // val scrapedBibtex = Scrape.scrape(a, generalOptions.window, generalOptions.timeout)
