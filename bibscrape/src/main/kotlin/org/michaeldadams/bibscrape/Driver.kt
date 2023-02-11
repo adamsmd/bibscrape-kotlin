@@ -123,26 +123,27 @@ class Driver private constructor(
     /** The temporary directories of launched drivers. */
     private val directories: ConcurrentSkipListSet<String> = ConcurrentSkipListSet()
 
-    init {
-      Runtime.getRuntime().addShutdownHook(
-        Thread {
-          for (pid in pids) {
-            try {
-              // TODO: process kill
-            } catch (e: Throwable) {
-              // Print stack trace unless exception is that pid not exist
-            }
-          }
-          // for (directory in directories) {
-          //   try {
-          //     directory.deleteRecursively()
-          //   } catch (e: Throwable) {
-          //     // Print stack trace unless exception is that pid not exist
-          //   }
-          // }
-        }
-      )
-    }
+    // init {
+    //   Runtime.getRuntime().addShutdownHook(
+    //     Thread {
+    //       for (pid in pids) {
+    //         // runCatching { ... }.getOrNull() // Intentionally ignore if fails
+    //         try {
+    //           // TODO: process kill
+    //         } catch (e: Throwable) {
+    //           // Print stack trace unless exception is that pid not exist
+    //         }
+    //       }
+    //       // for (directory in directories) {
+    //       //   try {
+    //       //     directory.deleteRecursively()
+    //       //   } catch (e: Throwable) {
+    //       //     // Print stack trace unless exception is that pid not exist
+    //       //   }
+    //       // }
+    //     }
+    //   )
+    // }
 
     /** Creates a [Driver].
      *
