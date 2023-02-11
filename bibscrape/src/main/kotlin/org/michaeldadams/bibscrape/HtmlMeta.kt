@@ -24,7 +24,7 @@ object HtmlMeta {
    * @param meta the meta values returned by [parse]
    * @param fields TODO: document
    */
-  fun bibtex(entry: BibtexEntry, meta: HtmlMetaTable, vararg fields: Pair<String, Boolean>) {
+  fun bibtex(entry: BibtexEntry, meta: HtmlMetaTable, vararg fields: Pair<String, Boolean>): Unit {
     val values: MutableMap<String, String> = mutableMapOf()
     val fieldsMap = fields.toMap()
     fun getFirst(vararg fields: String): String? =

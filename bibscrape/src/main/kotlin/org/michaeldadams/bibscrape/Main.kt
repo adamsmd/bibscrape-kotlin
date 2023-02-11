@@ -546,7 +546,7 @@ class Main : CliktCommand(
   val bibtexFieldOptions by BibtexFieldOptions()
   val testingOptions by TestingOptions().cooccurring()
 
-  override fun run() {
+  override fun run(): Unit {
     // println("example2: ${operatingModes.exampley}")
     // println("examplez: ${operatingModes.examplez}")
     // TODO: warn if no args
@@ -561,7 +561,7 @@ class Main : CliktCommand(
     }
   }
 
-  fun run(args: List<String>) {
+  fun run(args: List<String>): Unit {
     if (operatingModes.printConfigDir) {
       println("User-configuration directory: ${Inputs.bibscrapeConfigDir}")
     }
@@ -705,7 +705,7 @@ class Main : CliktCommand(
     }
   }
 
-  fun runTests() {
+  fun runTests(): Unit {
     val javaExe = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java"
     val jvmArgs = ManagementFactory.getRuntimeMXBean().inputArguments
     val classpath = System.getProperty("java.class.path")
@@ -743,7 +743,7 @@ class Main : CliktCommand(
       process.waitFor()
       reader.join()
 
-      if (process.exitValue() != 0){
+      if (process.exitValue() != 0) {
         // println("EXITED ABNORMALLY: $i using a $type")
       }
       // TODO: destroy process children

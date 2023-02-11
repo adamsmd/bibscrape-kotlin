@@ -1,16 +1,9 @@
 package org.michaeldadams.bibscrape
 
 import com.pinterest.ktlint.core.Rule
-import com.pinterest.ktlint.core.RuleProvider
-import com.pinterest.ktlint.core.RuleSetProviderV2
 import com.pinterest.ktlint.core.ast.ElementType
 import com.pinterest.ktlint.ruleset.standard.StringTemplateRule
 import org.jetbrains.kotlin.com.intellij.lang.ASTNode
-
-class LongStringTemplateRuleSetProvider : RuleSetProviderV2("local-rules", RuleSetProviderV2.NO_ABOUT) {
-  override fun getRuleProviders(): Set<RuleProvider> =
-    setOf(RuleProvider { LongStringTemplateRule() })
-}
 
 class LongStringTemplateRule : Rule("long-string-template") {
   val stringTemplateRule = StringTemplateRule()

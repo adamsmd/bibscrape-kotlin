@@ -35,7 +35,7 @@ class BooleanFlag(val that: FlagOption<Boolean>) : OptionDelegate<Boolean> by th
   override val parser: OptionParser
     get() = BooleanFlagOptionParser
 
-  override fun finalize(context: Context, invocations: List<OptionParser.Invocation>) {
+  override fun finalize(context: Context, invocations: List<OptionParser.Invocation>): Unit {
     if (invocations.size > 0) {
       val values = invocations.last().values
       if (values.size == 1) {
@@ -92,7 +92,7 @@ private fun <A, F, L> parseBlocks(
 ): (A, String) -> A = { initial, string ->
   var acc = initial
   var first: F? = null
-  fun go(dir: Path, string: String) {
+  fun go(dir: Path, string: String): Unit {
     val lines = string
       .split("\\R".r)
       .map { it.replace("\\s* # .* $".r, "").replace("^ \\s+".r, "") }
