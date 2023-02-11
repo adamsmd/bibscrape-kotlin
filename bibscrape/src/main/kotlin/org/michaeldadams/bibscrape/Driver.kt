@@ -161,19 +161,12 @@ class Driver private constructor(
         response.headers().remove("Content-Disposition")
       }
       proxy.addRequestFilter { request, /*contents*/ _, /*messageInfo*/ _ ->
-        // disqus.com is sometimes slow to respond, and we don't need it, so we block it
-        // if (request.uri().contains("disqus")) {
-        //   println()
-        //   println("DISQUS SIMPLE:" + request)
-        //   println()
-        // }
-        // if (request.headers()[HttpHeaderNames.HOST].contains("\\.disqus\\.com:".r)) {
-        //   println("DISQUS")
-        //   DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
-        // } else {
-        //   null
-        // }
-        null
+        // disqus.com is sometimes slow to respond, and we don't need it, so we return a dummy value for it
+        if (request.headers()[HttpHeaderNames.HOST].contains("\\.disqus\\.com:".r)) {
+          DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
+        } else {
+          null
+        }
       }
       proxy.start()
 
