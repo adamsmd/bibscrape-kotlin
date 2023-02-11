@@ -11,6 +11,8 @@ import bibtex.expansions.PersonListExpander
 import bibtex.parser.BibtexParser
 import java.io.Reader
 import java.io.StringReader
+import ch.difty.kris.domain.RisRecord
+import ch.difty.kris.domain.RisType
 
 /** Joins a list of strings by the string " and ".
  *
@@ -70,8 +72,8 @@ operator fun BibtexEntry.get(field: String): BibtexAbstractValue? =
  * @param field the field for which to set the value
  * @param value the value to which to set the field
  */
-operator fun BibtexEntry.set(field: String, value: String): Unit {
-  this.setField(field, this.ownerFile.makeString(value))
+operator fun BibtexEntry.set(field: String, value: String?): Unit {
+  this[field] = value?.let { this.ownerFile.makeString(it) }
 }
 
 /** Sets the value for [field] in the receiver to be [value].
@@ -79,8 +81,8 @@ operator fun BibtexEntry.set(field: String, value: String): Unit {
  * @param field the field for which to set the value
  * @param value the value to which to set the field
  */
-operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue): Unit {
-  this.setField(field, value)
+operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue?): Unit {
+  if (value != null) this.setField(field, value) else this.undefineField(field)
 }
 
 /** Sets the value for [field] in the receiver to be the result of applying [block]
@@ -94,14 +96,12 @@ operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue): Unit {
  */
 inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
   this.ifField(field) {
-    val newValue = block(it.string)
-    if (newValue != null) this.set(field, newValue) else this.undefineField(field)
+    this[field] = block(it.string)
   }
 
 inline fun BibtexEntry.updateValue(field: String, block: (BibtexAbstractValue) -> BibtexAbstractValue?): Unit? =
   this.ifField(field) {
-    val newValue = block(it)
-    if (newValue != null) this.set(field, newValue) else this.undefineField(field)
+    this[field] = block(it)
   }
 
 /** Moves the value from field [src] to field [dst] in the receiver if [block]
@@ -332,4 +332,167 @@ object Bibtex {
     parser.parse(bibtexFile, reader)
     return bibtexFile
   }
+
+  val risTypes = mapOf(
+    RisType.BOOK to Types.BOOK,
+    RisType.CONF to Types.PROCEEDINGS,
+    RisType.CHAP to Types.INBOOK,
+    // RisType.CHAPTER to Types.INBOOK,
+    // RisType.INCOL to Types.INCOLLECTION,
+    // RisType.JFULL to Types.JOURNAL,
+    RisType.JOUR to Types.ARTICLE,
+    RisType.MGZN to Types.ARTICLE,
+    RisType.PAMP to Types.BOOKLET,
+    RisType.RPRT to Types.TECHREPORT,
+    // RisType.REP to Types.TECHREPORT,
+    RisType.UNPB to Types.UNPUBLISHED,
+  )
+
+  // my Str:D %ris-types = <
+  //   BOOK book
+  //   CONF proceedings
+  //   CHAP inbook
+  //   CHAPTER inbook
+  //   INCOL incollection
+  //   JFULL journal
+  //   JOUR article
+  //   MGZN article
+  //   PAMP booklet
+  //   RPRT techreport
+  //   REP techreport
+  //   UNPB unpublished>;
+
+  // sub ris-author(Array:D[Str:D] $names --> Str:D) {
+  //   $names
+  //     .map({ # Translate "last, first, suffix" to "von Last, Jr, First"
+  //       s/ (.*) ',' (.*) ',' (.*) /$1,$3,$2/;
+  //       / <-[,\ ]> / ?? $_ !! () })
+  //     .join( ' and ' );
+  // }
+
+  // sub bibtex-of-ris(Ris:D $ris --> BibScrape::BibTeX::Entry:D) is export {
+  fun parse(bibtexFile: BibtexFile, ris: RisRecord): BibtexEntry {
+    val type = risTypes[ris.type] ?: run { println("Unknown RIS TY: ${ris.type}. Using misc."); Types.MISC }
+    val entry = bibtexFile.makeEntry(type, "")
+    // my Array:D[Str:D] %ris = $ris.fields;
+    // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new();
+
+    // my Regex:D $doi = rx/^ (\s* 'doi:' \s* \w+ \s+)? (.*) $/;
+
+    // sub set(Str:D $key, Str:_ $value --> Any:U) {
+    //   $entry.fields{$key} = BibScrape::BibTeX::Value.new($value)
+    //     if $value;
+    //   return;
+    // }
+
+    // # A1|AU: author primary
+    // set( 'author', ris-author(%ris<A1> // %ris<AU> // []));
+    // # A2|ED: author secondary
+    // set( 'editor', ris-author(%ris<A2> // %ris<ED> // []));
+
+    // my Str:D %self;
+    // for %ris.kv -> Str:D $key, Array:D[Str:D] $value {
+    //   %self{$key} = $value.join( '; ' );
+    // }
+
+    // # TY: ref type (INCOL|CHAPTER -> CHAP, REP -> RPRT)
+    // $entry.type =
+    //   %ris-types{%self<TY> // ''}
+    //   // ((!%self<TY>.defined or say "Unknown RIS TY: {%self<TY>}. Using misc.") and 'misc');
+    // # ID: reference id
+    // $entry.key = %self<ID>;
+    entry[Fields.KEY] = ris.referenceId
+    // # T1|TI|CT: title primary
+    // # BT: title primary (books and unpub), title secondary (otherwise)
+    // set( 'title', %self<T1> // %self<TI> // %self<CT> // ((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
+    // set( 'booktitle', !((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
+    // # T2: title secondary
+    // set( 'journal', %self<T2>);
+    // # JF|JO: periodical name, full
+    // # JA: periodical name, abbriviated
+    // # J1: periodical name, user abbriv 1
+    // # J2: periodical name, user abbriv 2
+    // set( 'journal', %self<JF> // %self<JO> // %self<JA> // %self<J1> // %self<J2>);
+    entry[Fields.JOURNAL] =
+      ris.periodicalNameFullFormatJF
+        ?: ris.periodicalNameFullFormatJO
+        ?: ris.periodicalNameStandardAbbrevation
+        ?: ris.periodicalNameUserAbbrevation
+        ?: ris.alternativeTitle
+        ?: ris.secondaryTitle
+    // # T3: title series
+    // set( 'series', %self<T3>);
+    entry[Fields.SERIES] = ris.tertiaryTitle
+
+    // # A3: author series
+    // # A[4-9]: author (undocumented)
+    // # Y1|PY: date primary
+    // my Str:_ ($year, $month, $day) = (%self<DA> // %self<PY> // %self<Y1> // '').split(rx/ "/" | "-" /);
+    // set( 'year', $year);
+    // $entry.fields<month> = BibScrape::BibTeX::Value.new(num2month($month))
+    //   if $month;
+    // if (%self<C1>:exists) {
+    //   %self<C1> ~~ / 'Full publication date: ' (\w+) '.'? ( ' ' \d+)? ', ' (\d+)/;
+    //   ($month, $day, $year) = ($0, $1, $2);
+    //   set( 'month', $month);
+    // }
+    // set( 'day', $day)
+    //   if $day.defined;
+    // # Y2: date secondary
+
+    // # N1|AB: notes (skip leading doi)
+    // # N2: abstract (skip leading doi)
+    // (%self<N1> // %self<AB> // %self<N2> // '') ~~ $doi;
+    // set( 'abstract', $1.Str)
+    //   if $1.Str.chars > 0;
+    // # KW: keyword. multiple
+    // set( 'keywords', %self<KW>)
+    //   if %self<KW>:exists;
+    // # RP: reprint status (too complex for what we need)
+
+    // # VL: volume number
+    // set( 'volume', %self<VL>);
+    entry[Fields.VOLUME] = ris.volumeNumber
+    // # IS|CP: issue
+    // set( 'number', %self<IS> // %self<CP>);
+    entry[Fields.NUMBER] = ris.issue ?: ris.cp
+    // # SP: start page (may contain end page)
+    // # EP: end page
+    // set( 'pages', %self<EP> ?? "{%self<SP>}--{%self<EP>}" !! %self<SP>); # Note that SP may contain end page
+    // # CY: city
+    // # PB: publisher
+    // set( 'publisher', %self<PB>);
+    entry[Fields.PUBLISHER] = ris.publisher
+    // # SN: isbn or issn
+    // set( 'issn', %self<SN>)
+    entry[Fields.ISSN] = ris.isbnIssn
+    //   if %self<SN> and %self<SN> ~~ / « \d ** 4 '-' \d ** 4 » /;
+    // set( 'isbn', %self<SN>)
+    //   if %self<SN> and %self<SN> ~~ / « ([\d | 'X'] <[-\ ]>*) ** 10..13 » /;
+    // #AD: address
+    // #AV: (unneeded)
+    // #M[1-3]: misc
+    // #U[1-5]: user
+    // # UR: multiple lines or separated by semi, may try for doi
+    // set( 'url', %self<UR>)
+    //   if %self<UR>:exists;
+    // #L1: link to pdf, multiple lines or separated by semi
+    // #L2: link to text, multiple lines or separated by semi
+    // #L3: link to records
+    // #L4: link to images
+    // # DO|DOI: doi
+    // set( 'doi', %self<DO> // %self<DOI> // %self<M3> // (%self<N1> and %self<N1> ~~ $doi and $0));
+    // # ER: End of record
+
+    // $entry;
+    return entry
+  }
+
+// # #ABST         Abstract
+// # #INPR         In Press
+// # #JFULL                Journal (full)
+// # #SER          Serial (Book, Monograph)
+// # #THES phdthesis/mastersthesis Thesis/Dissertation
+// # IS
+// # CP|CY
 }

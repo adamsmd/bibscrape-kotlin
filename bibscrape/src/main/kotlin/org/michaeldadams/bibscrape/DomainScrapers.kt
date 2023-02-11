@@ -2,6 +2,7 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
+import ch.difty.kris.toRisRecords
 import org.openqa.selenium.By
 import org.w3c.dom.Element
 import java.net.URI
@@ -185,8 +186,7 @@ object ScrapeArxiv : DomainScraper {
     // }
 
     // // BibTeX object
-    val file = BibtexFile()
-    val entry = file.makeEntry("misc", "arxiv.${id}")
+    val entry = BibtexFile().makeEntry("misc", "arxiv.${id}")
 
     // // Title
     entry[F.TITLE] = xmlEntry.text("title")
@@ -420,8 +420,11 @@ object ScrapeIosPress : DomainScraper {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
     driver.awaitFindElement(By.className("btn-clear")).click()
+    val ris = driver.pageSource.split("\\R".r).toRisRecords().first()
+    driver.navigate().back()
+
     // my BibScrape::Ris::Ris:D $ris = ris-parse($web-driver.read-downloads());
-    val entry: BibtexEntry = TODO()
+    val entry = Bibtex.parse(BibtexFile(), ris)
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-of-ris($ris);
 
     // // HTML Meta
@@ -580,8 +583,7 @@ object ScrapeScienceDirect : DomainScraper {
     HtmlMeta.bibtex(entry, meta, "number" to true)
 
     // // Title
-    val title = driver.findElement(By.className("title-text")).innerHtml
-    entry[F.TITLE] = title
+    entry[F.TITLE] = driver.findElement(By.className("title-text")).innerHtml
 
     // // Keywords
     entry[F.KEYWORDS] = driver
@@ -609,8 +611,7 @@ object ScrapeSpringer : DomainScraper {
 
   override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
-    val file = BibtexFile()
-    val entry = file.makeEntry("", "")
+    val entry = BibtexFile().makeEntry("", "")
     // Use the BibTeX download if it is available
     // if $web-driver.find_elements_by_id( 'button-Dropdown-citations-dropdown' ) {
     //   await({

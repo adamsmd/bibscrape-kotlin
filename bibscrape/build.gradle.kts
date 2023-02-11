@@ -34,7 +34,6 @@ dependencies {
 
   // RIS
   implementation("ch.difty.kris:kris-core:0.4.1")
-  implementation("ch.difty.kris:kris-io:0.4.1")
 
   // Test-report generation
   implementation("org.junit.platform:junit-platform-reporting:1.9.2")
