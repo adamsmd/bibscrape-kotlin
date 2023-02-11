@@ -93,6 +93,29 @@ class Inputs : OptionGroup(name = "INPUTS") {
       Semicolons in <Str> are interpreted as newlines.
       """
   ).set({ "" } /* TODO() */, { it.lowercase() })
+
+  companion object {
+    private val windows = File.separator == "\\"
+    private val userConfigDir =
+      if (windows) {
+        System.getenv("APPDATA") ?: System.getenv("APPDATA") + "/AppData/Roaming"
+      } else {
+        System.getenv("XDG_CONFIG_HOME") ?: System.getenv("HOME") + "/.config"
+      }
+    val bibscrapeConfigDir = userConfigDir + "/bibscrape"
+    //   my IO::Path:D $config-dir-path =
+    //   ($*DISTRO.is-win
+    //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
+    //     !! %*ENV<XDG_CONFIG_HOME> // %*ENV<HOME> ~ </.config>).IO
+    //     .add(<BibScrape>);
+
+    const val namesFilename = "names.cfg"
+    // my Str:D constant $names-filename = 'names.cfg';
+    const val nounsFilename = "nouns.cfg"
+    // my Str:D constant $nouns-filename = 'nouns.cfg';
+    const val stopWordsFilename = "stop-words.cfg"
+    // my Str:D constant $stop-words-filename = 'stop-words.cfg';
+  }
 }
 
 /** Option group controlling what major modes of work is actually done. */
@@ -104,7 +127,7 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
       """
   ).flag("--no-init")
 
-  val configDir: Boolean by option(
+  val printConfigDir: Boolean by option(
     help = """
       Print the location of the user-configuration directory.
       """
@@ -539,26 +562,9 @@ class Main : CliktCommand(
   }
 
   fun run(args: List<String>) {
-    val windows = File.separator == "\\"
-    // val configDirPath =
-    //   (if (windows) System.getenv("APPDATA") ?: System.getenv("APPDATA") + "/AppData/Roaming"
-    //   else System.getenv("XDG_CONFIG_HOME") ?: System.getenv("HOME") + "/.config")
-    //   + "/bibscrape"
-    //   my IO::Path:D $config-dir-path =
-    //   ($*DISTRO.is-win
-    //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
-    //     !! %*ENV<XDG_CONFIG_HOME> // %*ENV<HOME> ~ </.config>).IO
-    //     .add(<BibScrape>);
-    // const val namesFilename = "names.cfg"
-    // my Str:D constant $names-filename = 'names.cfg';
-    // const val nounsFilename = "nouns.cfg"
-    // my Str:D constant $nouns-filename = 'nouns.cfg';
-    // const val stopWordsFilename = "stop-words.cfg"
-    // my Str:D constant $stop-words-filename = 'stop-words.cfg';
-
-    // if (configDir) {
-    //   println("User-configuration directory: ${configDirPath}")
-    // }
+    if (operatingModes.printConfigDir) {
+      println("User-configuration directory: ${Inputs.bibscrapeConfigDir}")
+    }
 
     // if $init {
     //   $config-dir-path.mkdir;
@@ -633,21 +639,14 @@ class Main : CliktCommand(
           generalOptions.timeout
         )
 
-      fun fix(keepKey: Boolean, entry: BibtexEntry) {
+      fun fix(keepKey: Boolean, entry: BibtexEntry): Unit {
         val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
         // TODO: setEntryKey lower cases but BibtexEntry() does not
         // TODO: don't keepKey when scraping
 
         newEntry.entryKey = key.firstOrNull() ?: if (keepKey) entry.entryKey else newEntry.entryKey
         key = key.drop(1)
-        // if (key != null) { e.entryKey = key }
         printer.print(System.out, newEntry)
-        // sub fix(Str:D $key, BibScrape::BibTeX::Entry:D $entry is copy --> Any:U) {
-        //   if $fix { $entry = $fixer.fix($entry) }
-        //   if $key { $entry.key = $key }
-        //   print $entry.Str;
-        //   return;
-        // }
       }
 
       if (a.contains("^ http: | https: | doi: ".ri)) {
@@ -662,7 +661,7 @@ class Main : CliktCommand(
             .use(Bibtex::parse)
             .entries
 
-        ENTRY@for (entry in entries) {
+        entries.forEach entry@{ entry ->
           if (entry !is BibtexEntry) {
             println(entry)
           } else if (!operatingModes.scrape) {
@@ -679,53 +678,28 @@ class Main : CliktCommand(
             //   update($item, 'title', { s:g/ '{' (\d* [<upper> \d*] ** 2..*) '}' /$0/ });
             //   update($item, 'series', { s:g/ '~' / / });
             //   fix($key, $item);
-            // fix(keepReadKey, entry)
-          } else if (entry[F.BIB_SCRAPE_URL] != null) {
-            // TODO: entry.ifField
-            fix(keepReadKey, scrape(entry[F.BIB_SCRAPE_URL]!!.string))
-          } else if (entry[F.DOI] != null) {
-            // TODO: entry.ifField
-            val doi = entry[F.DOI]!!.string
-            val prefixedDoi =
-              if (doi.startsWith("doi:", ignoreCase = true)) doi else "doi:${doi}"
-            fix(keepReadKey, scrape(prefixedDoi))
+            fix(keepReadKey, entry)
           } else {
-            for (field in listOf(F.URL, F.HOWPUBLISHED)) {
-              val newEntry = entry.ifField(field) {
-                runCatching { scrape(it.string) }.getOrNull()
+            entry.ifField(F.BIB_SCRAPE_URL) {
+              fix(keepReadKey, scrape(it.string))
+            } ?: entry.ifField(F.DOI) {
+              val doi = "doi:${it.string.replace("^ doi:".r, "")}"
+              fix(keepReadKey, scrape(doi))
+            } ?: run {
+              for (field in listOf(F.URL, F.HOWPUBLISHED)) {
+                entry.ifField(field) {
+                  runCatching { scrape(it.string) }.getOrNull() // Intentionally ignore if scrape fails
+                }?.let {
+                  fix(keepReadKey, it)
+                  return@entry
+                }
               }
-              //   // Intentionally ignore if this fails
-              //   try { scrape(it.string) } catch (_: Throwable) { null }
-              // }
-              if (newEntry != null) {
-                fix(keepReadKey, newEntry)
-                continue@ENTRY
-              }
-              // if (entry.contains(field) {
-              // entry.ifField(field) { // TODO: doesn't work due to break and continue
-              //   next unless $item.fields{$field}:exists;
-              // val newEntry = try {
-              //   scrape(it.string)
-              // } catch (_: Throwable) {
-              //   // Intentionally ignore if this fails
-              //   continue
-              // }
-              // fix(keepReadKey, newEntry)
-              // continue@ENTRY
-              //   my Str:D $value = $item.fields{$field}.simple-str;
-              //   if $value ~~ m:i/^ 'doi:' | 'http' 's'? '://' 'dx.'? 'doi.org/' / {
-              //     fix($key, scr($value));
-              //     next ITEM;
-              //   }
-            }
 
-            println("WARNING: Not changing entry '${entry.entryKey}' because could not find publisher URL")
-            println(entry)
+              println("WARNING: Not changing entry '${entry.entryKey}' because could not find URL for the paper")
+              println(entry)
+            }
           }
         }
-        // val scrapedBibtex = Scrape.scrape(a, generalOptions.window, generalOptions.timeout)
-        // val fixedBibtex = fixer.fix(scrapedBibtex)
-        // println(fixedBibtex)
         // TODO: use URI in more places
       }
     }
