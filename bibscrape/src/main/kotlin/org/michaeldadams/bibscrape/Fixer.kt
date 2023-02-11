@@ -252,13 +252,13 @@ class Fixer(
         .split("\\b".r)
         .filter(String::isNotEmpty)
         .map {
-          (if (setOf("/", "-", "--").contains(it)) entry.ownerFile.makeString(it) else null) ?:
-          M.stringToMonth(entry.ownerFile, it) ?:
-          M.intToMonth(entry.ownerFile, it) ?:
-          run {
-            println("WARNING: Unable to parse '${it}' in month '${month}'")
-            entry.ownerFile.makeString(it)
-          }
+          (if (setOf("/", "-", "--").contains(it)) entry.ownerFile.makeString(it) else null)
+            ?: M.stringToMonth(entry.ownerFile, it)
+            ?: M.intToMonth(entry.ownerFile, it)
+            ?: run {
+              println("WARNING: Unable to parse '${it}' in month '${month}'")
+              entry.ownerFile.makeString(it)
+            }
         }
         .filterNotNull()
       when (parts.size) {
