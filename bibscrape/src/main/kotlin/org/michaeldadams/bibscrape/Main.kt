@@ -705,6 +705,49 @@ class Main : CliktCommand(
     }
   }
 
+  fun runCommand(command: List<String>): Pair<String, Process> {
+    val process = ProcessBuilder(command)
+      .redirectErrorStream(true)
+      .start()
+    var output: AtomicReference<String?> = AtomicReference()
+    var reader = thread { output.set(String(process.inputStream.readAllBytes())) }
+    if (!process.waitFor(60, TimeUnit.SECONDS)) {
+      println("destory")
+      process.destroy()
+      if (!process.waitFor(60, TimeUnit.SECONDS)) {
+        println("destroyForcibly")
+        process.destroyForcibly()
+      }
+    }
+    process.waitFor()
+    reader.join()
+
+    if (process.exitValue() != 0) {
+      // println("EXITED ABNORMALLY: $i using a $type")
+      println("EXITED ABNORMALLY")
+    }
+    // TODO: destroy process children
+
+    // var endMillis = System.currentTimeMillis() + 60_000
+    // while (process.isRunning && System.currentTimeMillis() < endMillis) {
+    //   Thread.sleep(10)
+    // }
+    // if (process.isRunning) { process.stop() }
+    // reader.join()
+    // if (reader.isAlive) { reader.interrupt() }
+    // val isAlive = reader.isAlive
+    // try {
+    //   reader.join(60_000)
+    // } catch {
+    println("<${output.get()} ${process.exitValue()}>")
+    // process.waitFor(60, TimeUnit.SECONDS)
+
+    return Pair(output.get()!!, process)
+  }
+
+  fun <A> retry(times: Int, block: () -> A?): A? =
+    if (times == 0) { null } else { block() ?: retry(times - 1, block) }
+
   fun runTests(): Unit {
     val javaExe = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java"
     val jvmArgs = ManagementFactory.getRuntimeMXBean().inputArguments
@@ -727,40 +770,8 @@ class Main : CliktCommand(
           listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", url) +
           // flags + // TODO: shell style splitting
           originalArgv
-      val process = ProcessBuilder(command)
-        .redirectErrorStream(true)
-        .start()
-      var output: AtomicReference<String?> = AtomicReference()
-      var reader = thread { output.set(String(process.inputStream.readAllBytes())) }
-      if (!process.waitFor(60, TimeUnit.SECONDS)) {
-        println("destory")
-        process.destroy()
-        if (!process.waitFor(60, TimeUnit.SECONDS)) {
-          println("destroyForcibly")
-          process.destroyForcibly()
-        }
-      }
-      process.waitFor()
-      reader.join()
+      val result = retry(3) { runCommand(command).let { if (it.second.exitValue() == 0) it else null } }
 
-      if (process.exitValue() != 0) {
-        // println("EXITED ABNORMALLY: $i using a $type")
-      }
-      // TODO: destroy process children
-
-      // var endMillis = System.currentTimeMillis() + 60_000
-      // while (process.isRunning && System.currentTimeMillis() < endMillis) {
-      //   Thread.sleep(10)
-      // }
-      // if (process.isRunning) { process.stop() }
-      // reader.join()
-      // if (reader.isAlive) { reader.interrupt() }
-      // val isAlive = reader.isAlive
-      // try {
-      //   reader.join(60_000)
-      // } catch {
-      println("<${output.get()} ${process.exitValue()}>")
-      // process.waitFor(60, TimeUnit.SECONDS)
     }
 
     // COUNT=0
