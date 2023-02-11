@@ -246,7 +246,6 @@ class Fixer(
 
     // Use bibtex month macros.  After Unicode encoding because it uses macros.
     entry.updateValue(F.MONTH) { month ->
-      println("month: $month")
       val parts = month
         .string
         .replace("\\. ($ | -)".r, "$1") // Remove dots due to abbriviations
@@ -254,10 +253,10 @@ class Fixer(
         .filter(String::isNotEmpty)
         .map {
           (if (setOf("/", "-", "--").contains(it)) entry.ownerFile.makeString(it) else null) ?:
-          (M.stringToMonth(entry.ownerFile, it)) ?:
-          (if (it.contains("^ \\d+ $")) M.intToMonth(entry.ownerFile, it) else null) ?:
+          M.stringToMonth(entry.ownerFile, it) ?:
+          M.intToMonth(entry.ownerFile, it) ?:
           run {
-            println("WARNING: Possibly incorrect month: ${it}")
+            println("WARNING: Unable to parse '${it}' in month '${month}'")
             entry.ownerFile.makeString(it)
           }
         }
@@ -268,17 +267,6 @@ class Fixer(
         else -> parts.drop(1).fold(parts.first(), entry.ownerFile::makeConcatenatedValue)
       }
     }
-    // update($entry, 'month', {
-    //   s/ "." ($|"-") /$0/; # Remove dots due to abbriviations
-    //   my BibScrape::BibTeX::Piece:D @x =
-    //     .split(rx/<wb>/)
-    //     .grep(rx/./)
-    //     .map({
-    //       $_ eq ( '/' | '-' | '--' ) and BibScrape::BibTeX::Piece.new($_) or
-    //       str2month($_) or
-    //       /^ \d+ $/ and num2month($_) or
-    //       say "WARNING: Possibly incorrect month: $_" and BibScrape::BibTeX::Piece.new($_)});
-    //   $_ = BibScrape::BibTeX::Value.new(@x)});
 
     // ///////////////////////////////
     // Final fixes                  //
@@ -324,9 +312,7 @@ class Fixer(
     return entry
   }
 
-  // method isbn(BibScrape::BibTeX::Entry:D $entry, Str:D $field, MediaType:D $print_or_online, &canonical --> Any:U) {
   fun isbn(entry: BibtexEntry, field: String, mediaType: MediaType, separator: String, canonicalize: (String, MediaType, String) -> String): Unit {
-    //   update($entry, $field, {
     entry.update(field) { value ->
       if (value.isEmpty()) {
         null // TODO: not needed?
@@ -342,29 +328,6 @@ class Fixer(
         } ?: canonicalize(value, mediaType, separator)
       }
     }
-
-    //     if m/^$/ {
-    //       $_ = Str
-    //     } elsif m:i/^ (<[0..9x\-\ ]>+) " (Print) " (<[0..9x\-\ ]>+) " (Online)" $/ {
-    //       $_ = do given $print_or_online {
-    //         when print {
-    //           &canonical($0.Str, $.isbn-type, $.isbn-sep);
-    //         }
-    //         when online {
-    //           &canonical($1.Str, $.isbn-type, $.isbn-sep);
-    //         }
-    //         when both {
-    //           &canonical($0.Str, $.isbn-type, $.isbn-sep)
-    //             ~ ' (Print) '
-    //             ~ &canonical($1.Str, $.isbn-type, $.isbn-sep)
-    //             ~ ' (Online)';
-    //         }
-    //       }
-    //     } else {
-    //       $_ = &canonical($_, $.isbn-type, $.isbn-sep);
-    //     }
-    //   });
-    // }
   }
 
   fun fixPerson(person: BibtexPerson): BibtexPerson =
