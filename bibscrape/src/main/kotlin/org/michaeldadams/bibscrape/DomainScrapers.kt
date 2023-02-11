@@ -66,16 +66,16 @@ object ScrapeAcm : DomainScraper {
     //
     // ACM publication months are often inconsistent within the same page.
     // This is a best effort at picking the right month among these inconsistent results.
-    entry.ifField(F.MONTH) {
+    if (entry[F.MONTH] == null) {
       entry[F.MONTH] = driver
         .findElement(By.cssSelector(".book-meta + .cover-date"))
         .innerHtml
-        .split("\\s+")
+        .split("\\s+".r)
         .first()
     }
     entry.ifField(F.ISSUE_DATE) {
-      val month = it.string.split("\\s+").first()
-      if (Bibtex.Months.str2month(entry.ownerFile, month) != null) {
+      val month = it.string.split("\\s+".r).first()
+      if (Bibtex.Months.stringToMonth(entry.ownerFile, month) != null) {
         entry[F.MONTH] = month
       }
     }

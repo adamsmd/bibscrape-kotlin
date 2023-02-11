@@ -4,6 +4,7 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
 import java.util.Locale
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.michaeldadams.bibscrape.Bibtex.Months as M
 import org.michaeldadams.bibscrape.Bibtex.Names as N
 import org.michaeldadams.bibscrape.Bibtex.Types as T
 
@@ -19,6 +20,21 @@ enum class MediaType { PRINT, ONLINE, BOTH }
 @Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
 enum class IsbnType { ISBN13, ISBN10, PRESERVE }
 
+/** Configuration object for how to fix a [BibtexEntry].
+ *
+ * @property names a mapping from names to how they shold be formatted
+ * @property nouns a mapping from nouns to how they shold be formatted
+ * @property stopWords a set of words to be skipped when generating a key
+ * @property escapeAcronyms whether to surround acronyms with curly braces
+ * @property issnMedia which media type to prefer for an ISSN
+ * @property isbnMedia which media type to prefer for an ISBN
+ * @property isbnType which type of ISBN to prefer for an ISBN
+ * @property isbnSep what separator to use an ISBN
+ * @property noEncode which BibTeX fields to not convert to using LaTeX escapes
+ * @property noCollapse which BibTeX fields to not collapse multiple whitespaces
+ * @property omit which BibTeX fields to omit
+ * @property omitEmpty which BibTeX fields to omit if they are empty
+ */
 class Fixer(
   // // INPUTS
   val names: NameMap,
@@ -44,6 +60,11 @@ class Fixer(
   val omit: List<String>,
   val omitEmpty: List<String>
 ) {
+  /** Returns a [BibtexEntry] that is a copy of [oldEntry] but with various fixes.
+   *
+   * @param oldEntry the [BibtexEntry] to fix
+   * @return a copy of [oldEntry] but with various fixes applied
+   */
   fun fix(oldEntry: BibtexEntry): BibtexEntry {
     val entry = oldEntry.ownerFile.makeEntry(oldEntry.entryType, oldEntry.entryKey)
     oldEntry.fields.forEach { name, value -> entry[name] = value }
@@ -224,22 +245,29 @@ class Fixer(
     }
 
     // Use bibtex month macros.  After Unicode encoding because it uses macros.
-    // entry.update(F.MONTH) { month ->
-    //   val parts = month
-    //     .replace("\\. ($ | -)".r, "$1") // Remove dots due to abbriviations
-    //     .split("\\b".r)
-    //     .filter(::isNotEmpty)
-    //     .map {
-    //       (if (it.contains("/ | - | --")) BibtexString(it) else null) ?:
-    //       (M.str2month(it)?.let(::BibtexString)) ?:
-    //       (if it.contains("^ \\d+ $") num2month(it) else null) ?:
-    //       run {
-    //         println("WARNING: Possibly incorrect month: ${month}")
-    //         BibtexString(it)
-    //       }
-    //     }
-    //   BibtexAppend(parts)
-    // }
+    entry.updateValue(F.MONTH) { month ->
+      println("month: $month")
+      val parts = month
+        .string
+        .replace("\\. ($ | -)".r, "$1") // Remove dots due to abbriviations
+        .split("\\b".r)
+        .filter(String::isNotEmpty)
+        .map {
+          (if (setOf("/", "-", "--").contains(it)) entry.ownerFile.makeString(it) else null) ?:
+          (M.stringToMonth(entry.ownerFile, it)) ?:
+          (if (it.contains("^ \\d+ $")) M.intToMonth(entry.ownerFile, it) else null) ?:
+          run {
+            println("WARNING: Possibly incorrect month: ${it}")
+            entry.ownerFile.makeString(it)
+          }
+        }
+        .filterNotNull()
+      when (parts.size) {
+        0 -> entry.ownerFile.makeString("")
+        1 -> parts.first()
+        else -> parts.drop(1).fold(parts.first(), entry.ownerFile::makeConcatenatedValue)
+      }
+    }
     // update($entry, 'month', {
     //   s/ "." ($|"-") /$0/; # Remove dots due to abbriviations
     //   my BibScrape::BibTeX::Piece:D @x =
@@ -278,12 +306,6 @@ class Fixer(
       .filter { !stopWords.contains(it.lowercase()) }
       .firstOrNull()
     val title = if (titleWord == null) "" else ":${titleWord}"
-    // my BibScrape::BibTeX::Value:_ $title-value = $entry.fields<title>;
-    // my Str:D $title = $title-value.defined ?? $title-value.simple-str !! '';
-    // $title ~~ s:g/ '\\' <-[{}\\]>+ '{' /\{/; # Remove codes that add accents
-    // $title ~~ s:g/ <-[\ \-/A..Za..z0..9]> //; # Remove non-alphanum, space or hyphen
-    // $title = ($title.words.grep({$_.fc ∉ @.stop-words-strs}).head // '').fc;
-    // $title = $title ne '' ?? ':' ~ $title !! '';
 
     val year = entry.ifField(F.YEAR) { ":${it.string}" } ?: ""
 
@@ -298,58 +320,52 @@ class Fixer(
     // val unknownFields = entry.fields.keys subtract field
     // if (unknownFields.isNotEmpty) { TODO("Unknown fields: ${unknownFields}") }
     // TODO: Duplicate fields
-    //   # Put fields in a standard order (also cleans out any fields we deleted)
-    //   my Int:D %fields = @.field.map(* => 0);
-    //   for $entry.fields.keys -> Str:D $field {
-    //     unless %fields{$field}:exists { die "Unknown field '$field'" }
-    //     unless %fields{$field}.elems == 1 { die "Duplicate field '$field'" }
-    //     %fields{$field} = 1;
-    //   }
-    //   $entry.set-fields(@.field.flatmap({ $entry.fields{$_}:exists ?? ($_ => $entry.fields{$_}) !! () }));
 
     return entry
   }
 
-  // // method isbn(BibScrape::BibTeX::Entry:D $entry, Str:D $field, MediaType:D $print_or_online, &canonical --> Any:U) {
-  // fun isbn(entry: BibtexEntry, field: String, mediaType: MediaType, canonicalize: (String, MediaType, String) -> String): Unit {
-  //   //   update($entry, $field, {
-  //   entry.update(field) { value ->
-  //     if (value.isEmpty) {
-  //       null
-  //     } else {
-  //       value.find("^ ([0-9X- ]+) \\ \\(Print\\)\\ ([0-9X- ]+) \\ \\(Online\\) $".ri) {
-  //         when (type) {
-  //           MediaType.print => canonicalize(it.groupValues[1], mediaType)
-  //           MediaType.online => canonicalize(it.groupValues[1], mediaType)
-  //           MediaType.both =>
-  //             canonicalize(it.groupValues[1], mediaType) + " (Print) "
-  //               canonicalize(it.groupValues[2], mediaType) + " (Online) "
-  //         }
-  //       } ?: canonicalize(value, type, sep)
+  // method isbn(BibScrape::BibTeX::Entry:D $entry, Str:D $field, MediaType:D $print_or_online, &canonical --> Any:U) {
+  fun isbn(entry: BibtexEntry, field: String, mediaType: MediaType, separator: String, canonicalize: (String, MediaType, String) -> String): Unit {
+    //   update($entry, $field, {
+    entry.update(field) { value ->
+      if (value.isEmpty()) {
+        null // TODO: not needed?
+      } else {
+        value.find("^ ([0-9X- ]+) \\ \\(Print\\)\\ ([0-9X- ]+) \\ \\(Online\\) $".ri)?.let {
+          when (mediaType) {
+            MediaType.PRINT -> canonicalize(it.groupValues[1], mediaType, separator)
+            MediaType.ONLINE -> canonicalize(it.groupValues[2], mediaType, separator)
+            MediaType.BOTH ->
+              canonicalize(it.groupValues[1], mediaType, separator) + " (Print) " +
+                canonicalize(it.groupValues[2], mediaType, separator) + " (Online) "
+          }
+        } ?: canonicalize(value, mediaType, separator)
+      }
+    }
 
-  //   //     if m/^$/ {
-  //   //       $_ = Str
-  //   //     } elsif m:i/^ (<[0..9x\-\ ]>+) " (Print) " (<[0..9x\-\ ]>+) " (Online)" $/ {
-  //   //       $_ = do given $print_or_online {
-  //   //         when print {
-  //   //           &canonical($0.Str, $.isbn-type, $.isbn-sep);
-  //   //         }
-  //   //         when online {
-  //   //           &canonical($1.Str, $.isbn-type, $.isbn-sep);
-  //   //         }
-  //   //         when both {
-  //   //           &canonical($0.Str, $.isbn-type, $.isbn-sep)
-  //   //             ~ ' (Print) '
-  //   //             ~ &canonical($1.Str, $.isbn-type, $.isbn-sep)
-  //   //             ~ ' (Online)';
-  //   //         }
-  //   //       }
-  //   //     } else {
-  //   //       $_ = &canonical($_, $.isbn-type, $.isbn-sep);
-  //   //     }
-  //   //   });
-  //   // }
-  // }
+    //     if m/^$/ {
+    //       $_ = Str
+    //     } elsif m:i/^ (<[0..9x\-\ ]>+) " (Print) " (<[0..9x\-\ ]>+) " (Online)" $/ {
+    //       $_ = do given $print_or_online {
+    //         when print {
+    //           &canonical($0.Str, $.isbn-type, $.isbn-sep);
+    //         }
+    //         when online {
+    //           &canonical($1.Str, $.isbn-type, $.isbn-sep);
+    //         }
+    //         when both {
+    //           &canonical($0.Str, $.isbn-type, $.isbn-sep)
+    //             ~ ' (Print) '
+    //             ~ &canonical($1.Str, $.isbn-type, $.isbn-sep)
+    //             ~ ' (Online)';
+    //         }
+    //       }
+    //     } else {
+    //       $_ = &canonical($_, $.isbn-type, $.isbn-sep);
+    //     }
+    //   });
+    // }
+  }
 
   fun fixPerson(person: BibtexPerson): BibtexPerson =
     N.simpleName(person).let { name ->
@@ -385,7 +401,6 @@ class Fixer(
       }
     }
 
-  // // method canonical-names(BibScrape::BibTeX::Value:D $value --> BibScrape::BibTeX::Value:D) {
   fun fixNames(names: String, entryKey: String): String {
     val persons = N.bibtexPersons(names, entryKey).map(::fixPerson)
 

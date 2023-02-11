@@ -27,4 +27,10 @@ val String.ri: Regex
  */
 fun String.find(regex: Regex): MatchResult? = regex.find(this)
 
+/** Runs `regex.split` on the receiver.  This is a convienence, so that, when
+ * splitting, the regex comes after the string it is splitting.
+ *
+ * @param regex the [Regex] used to split
+ * @return the result of splitting with [regex]
+ */
 fun String.split(regex: Regex): List<String> = regex.split(this)

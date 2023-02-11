@@ -98,6 +98,12 @@ inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? 
     if (newValue != null) this.set(field, newValue) else this.undefineField(field)
   }
 
+inline fun BibtexEntry.updateValue(field: String, block: (BibtexAbstractValue) -> BibtexAbstractValue?): Unit? =
+  this.ifField(field) {
+    val newValue = block(it)
+    if (newValue != null) this.set(field, newValue) else this.undefineField(field)
+  }
+
 /** Moves the value from field [src] to field [dst] in the receiver if [block]
  * returns `true` on the value of field [src].  If there is no [src] field,
  * then nothing is done.  If [src] is moved to [dst], then [src] is removed
@@ -288,6 +294,11 @@ object Bibtex {
       }
     }
 
+    fun intToMonth(bibtexFile: BibtexFile, string: String): BibtexMacroReference? =
+      string.find("^ \\d+ $".r)?.let {
+        wrap(bibtexFile, macroNames.getOrNull(string.toInt()))
+      } ?: TODO("Invalid month number: ${string}")
+
     // sub num2month(Str:D $num --> BibScrape::BibTeX::Piece:D) is export {
     //   $num ~~ m/^ \d+ $/
     //     ?? wrap(@macro-names[$num-1])
@@ -300,7 +311,7 @@ object Bibtex {
      * @param string the [String] to parse as a month name
      * @return a [BibtexMacroReference] for the given month or [null] if parsing failed
      */
-    fun str2month(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
+    fun stringToMonth(bibtexFile: BibtexFile, string: String): BibtexMacroReference? {
       val month: String? = monthMap[string.lowercase()]
       if (month == null) {
         return null
