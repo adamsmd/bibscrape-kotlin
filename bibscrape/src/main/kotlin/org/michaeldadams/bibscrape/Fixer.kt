@@ -287,8 +287,8 @@ class Fixer(
 
     val titleWord = (entry[F.TITLE]?.string ?: "")
       .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
-      .replace("[-\\ ^A-Za-z0-9]".r, "") // Remove non-alphanum, space or hyphen
-      .split("\\W+".r)
+      .replace("[^\\ ^A-Za-z0-9-]".r, "") // Remove non-alphanum, space or hyphen
+      .split("\\s+".r)
       .filter { !stopWords.contains(it.lowercase()) }
       .filter { it.isNotEmpty() }
       .firstOrNull()
