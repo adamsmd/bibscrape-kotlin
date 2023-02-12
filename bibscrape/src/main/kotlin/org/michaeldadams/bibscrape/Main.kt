@@ -25,8 +25,6 @@ import org.michaeldadams.bibscrape.Bibtex.Names as N
 /** Runs the main entry point of the application. */
 fun main(args: Array<String>): Unit = Main().main(args)
 
-// TODO: require Unit type on all functions
-
 /** Returns the class of the entry point of the application. */
 @Suppress("EMPTY_BLOCK_STRUCTURE_ERROR")
 val mainClass: Class<*> = object {}.javaClass.enclosingClass

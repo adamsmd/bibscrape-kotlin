@@ -4,10 +4,11 @@ import kotlin.text.RegexOption
 import kotlin.text.toRegex
 
 /** A regex matching an ISSN. */
-const val ISSN_REGEX: String = """\d\d\d\d - \d\d\d[0-9Xx]"""
+const val ISSN_REGEX: String = """(?: \d\d\d\d - \d\d\d[0-9Xx] )"""
 
 /** A regex matching an ISBN. */
-const val ISBN_REGEX: String = """[-0-9Xx]+""" // TODO: improve
+private const val ISBN_DIGIT = """(?: [-\ ]? \d )"""
+const val ISBN_REGEX: String = """(?: \d (?: ${ISBN_DIGIT}{8} | ${ISBN_DIGIT}{11} ) [-\ ]? [0-9Xx] )"""
 
 /** Converts a [String] to a [Regex] with the [RegexOption.COMMENTS] option
  * enabled. */

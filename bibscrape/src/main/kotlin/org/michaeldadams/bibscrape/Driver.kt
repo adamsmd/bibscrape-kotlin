@@ -23,7 +23,8 @@ import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToLong
 
-private const val MILLIS_PER_SECOND = 1_000 // TODO: constant from java.time?
+fun seconds(duration: Double): Duration = // TODO: put in appropriate module
+  Duration.ofNanos((duration * Duration.ofSeconds(1).toNanos()).toLong())
 
 /** The `innerHTML` property of a [WebElement]. */
 val WebElement.innerHtml: String
@@ -67,7 +68,7 @@ class Driver private constructor(
    */
   fun <T> await(timeout: Double = 30.0, block: (WebDriver) -> T): T {
     val oldWait = this.manage().timeouts().implicitWaitTimeout
-    this.manage().timeouts().implicitlyWait(Duration.ofMillis((MILLIS_PER_SECOND * timeout).roundToLong()))
+    this.manage().timeouts().implicitlyWait(seconds(timeout))
     val result = block(this)
     this.manage().timeouts().implicitlyWait(oldWait)
     return result

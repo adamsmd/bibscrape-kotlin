@@ -160,16 +160,13 @@ class Fixer(
     }
 
     entry.check(F.NUMBER, "Possibly incorrect number") {
-      // TODO: is this the right syntax for ktlint-disable or is this disabling all rules?
-      /* ktlint-disable indent */
-      it.contains("^   \\d+           $".r) ||
-      it.contains("^   \\d+ -- \\d+   $".r) ||
-      it.contains("^   \\d+ (/ \\d+)* $".r) ||
-      it.contains("^   \\d+ es        $".r) ||
-      it.contains("^ S \\d+           $".r) ||
-      it.contains("^   [A-Z]+         $".r) || // PACMPL conference abbreviations (e.g., ICFP)
-      it.contains("^ Special\\ Issue\\ \\d+ (--\\d+)? $".r)
-      /* ktlint-enable indent */
+      it.contains("^     \\d+           $".r) ||
+        it.contains("^   \\d+ -- \\d+   $".r) ||
+        it.contains("^   \\d+ (/ \\d+)* $".r) ||
+        it.contains("^   \\d+ es        $".r) ||
+        it.contains("^ S \\d+           $".r) ||
+        it.contains("^   [A-Z]+         $".r) || // PACMPL conference abbreviations (e.g., ICFP)
+        it.contains("^ Special\\ Issue\\ \\d+ (--\\d+)? $".r)
     }
 
     // self.isbn($entry, 'issn', $.issn-media, &canonical-issn);
@@ -183,7 +180,6 @@ class Fixer(
     entry.update(F.EDITOR) { fixNames(it, entry.entryKey) }
 
     // Don't include pointless URLs to publisher's page
-    // TODO: check if should use \\. instead of \.
     val publisherUrl = """
       ^
       ( http s? ://doi\.acm\.org/
