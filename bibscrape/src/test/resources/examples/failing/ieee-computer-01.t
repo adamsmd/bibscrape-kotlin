@@ -1,6 +1,6 @@
 https://www.computer.org/csdl/proceedings/lics/1997/7925/00/79250342-abs.html
-
 Volume should not be 0
+
 @inproceedings{Heintze:1997:cubic:10.1109/LICS.1997.614960,
   author = {Heintze, Nevin and McAllester, David},
   affiliation = {Bell Labs and AT{\&}T Labs},

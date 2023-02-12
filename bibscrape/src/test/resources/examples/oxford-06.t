@@ -1,6 +1,6 @@
 https://comjnl.oxfordjournals.org/content/53/3/342.abstract
-
 Math in title and abstract
+
 WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.
 @article{Datta:2010:self-stabilizing:10.1093/comjnl/bxn071,
   author = {Datta, Ajoy K. and Larmore, Lawrence L. and Vemula, Priyanka},

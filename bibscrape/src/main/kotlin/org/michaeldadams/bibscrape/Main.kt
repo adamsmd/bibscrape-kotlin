@@ -691,7 +691,7 @@ class Main : CliktCommand(
 
     if (process.exitValue() != 0) {
       // println("EXITED ABNORMALLY: $i using a $type")
-      println("EXITED ABNORMALLY")
+      println("EXITED ABNORMALLY ${process.exitValue()}")
     }
     // TODO: destroy process children
 
@@ -706,7 +706,6 @@ class Main : CliktCommand(
     // try {
     //   reader.join(60_000)
     // } catch {
-    println("<${output.get()} ${process.exitValue()}>")
     // process.waitFor(60, TimeUnit.SECONDS)
 
     return Pair(output.get()!!, process)
@@ -729,16 +728,29 @@ class Main : CliktCommand(
 
     for (a in arg) {
       val lines = File(a).readLines()
+
       val url = lines[0]
-      val flags = lines[2]
+      val comment = lines[1]
+      val endOfFlags = 2 + lines.drop(2).indexOfFirst { it.contains("^ \\s* $".r) }
+      val flags = lines.subList(2, endOfFlags)
+      val expected = lines.subList(endOfFlags + 1, lines.size).joinToString("\n")
+
       val command =
         listOf(javaExe) +
           jvmArgs +
           listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", url) +
-          // flags + // TODO: shell style splitting
+          flags +
           originalArgv
+
       val retries = if (options.retries == 0) -1 else options.retries
-      val result = retry(retries) { runCommand(command).let { if (it.second.exitValue() == 0) it else null } }
+      val result = retry(retries) {
+        runCommand(command).let { if (it.second.exitValue() == 0) it else null }
+      }
+
+      println("Expected:")
+      println(expected)
+      println("Actual:")
+      println(result?.first)
     }
 
     // COUNT=0

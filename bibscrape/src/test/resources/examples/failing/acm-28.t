@@ -1,6 +1,6 @@
 http://dx.doi.org/10.1145/53990.54007
-
 Uncapitalized noun in title.  Month flips between jun and jul.
+
 WARNING: Possibly incorrectly capitalized noun 'scheme' in title
 @inproceedings{Shivers:1988:control:10.1145/53990.54007,
   author = {Shivers, Olin},

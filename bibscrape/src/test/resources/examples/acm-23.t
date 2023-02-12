@@ -1,6 +1,6 @@
 https://dl.acm.org/citation.cfm?id=2516760.2516769
-
 Ampersand in booktitle
+
 @inproceedings{Liang:2013:sound:10.1145/2516760.2516769,
   author = {Liang, Shuying and Keep, Andrew W. and Might, Matthew and Lyde, Steven and Gilray, Thomas and Aldous, Petey and Van Horn, David},
   title = {Sound and precise malware analysis for android via pushdown reachability and entry-point saturation},

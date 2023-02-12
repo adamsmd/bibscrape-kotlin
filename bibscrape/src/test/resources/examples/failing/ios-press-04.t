@@ -1,6 +1,6 @@
 https://content.iospress.com/articles/fundamenta-informaticae/fi105-3-06
-
 math/italics in title?
+
 @article{Valmari:2010:simple:10.3233/FI-2010-369,
   author = {Valmari, Antti},
   title = {Simple Bisimilarity Minimization in $O$(m log n) Time},

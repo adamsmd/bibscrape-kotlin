@@ -1,6 +1,6 @@
 https://doi.org/10.1016/S0167-2789(00)00094-4
-
 Author name is backwards
+
 @article{Strogatz:2000:kuramoto:10.1016/S0167-2789(00)00094-4,
   author = {Strogatz, Steven H.},
   title = {From Kuramoto to Crawford: exploring the onset of synchronization in populations of coupled oscillators},

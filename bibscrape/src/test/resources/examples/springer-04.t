@@ -1,6 +1,6 @@
 doi:10.1208/ps010201
-
 Non-continuously numbered journal
+
 @article{Lin:1999:glycylsarcosine:10.1208/ps010201,
   author = {Lin, Chun-Jung and Smith, David E.},
   affiliation = {College of Pharmacy and Upjohn Center for Clinical Pharmacology, The University of Michigan, Ann Arbor and College of Pharmacy and Upjohn Center for Clinical Pharmacology, The University of Michigan, Ann Arbor},

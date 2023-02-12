@@ -1,6 +1,6 @@
 https://comjnl.oxfordjournals.org/content/53/6/634.abstract
-
 Italics in title and abstract
+
 WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.
 @article{Kuo:2010:general:10.1093/comjnl/bxp008,
   author = {Kuo, Yu-Chen},

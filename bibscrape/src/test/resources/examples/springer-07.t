@@ -1,6 +1,6 @@
 doi:10.1023/A:1008649901864
-
 Multi-paragraph (broken) abstract
+
 @article{Cousot:1999:refining:10.1023/A:1008649901864,
   author = {Cousot, Patrick and Cousot, Radhia},
   affiliation = {{\'E}cole Normale Sup{\'e}rieure, DMI, Paris cedex 05, France and CNRS {\&} {\'E}cole Polytechnique, LIX, Palaiseau cedex, France and {\'E}cole Normale Sup{\'e}rieure, DMI, Paris cedex 05, France and CNRS {\&} {\'E}cole Polytechnique, LIX, Palaiseau cedex, France},

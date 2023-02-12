@@ -1,6 +1,8 @@
 https://doi.org/10.1145/1863543.1863551
---key='' --isbn-sep=' '
 Explicit autogeneration of key.  Flag with space in it.  ISBN with spaces.
+--key=
+--isbn-sep= 
+
 WARNING: Possibly incorrectly capitalized noun 'howard' in title
 @inproceedings{Mazurak:2010:lolliproc:10.1145/1863543.1863551,
   author = {Mazurak, Karl and Zdancewic, Steve},

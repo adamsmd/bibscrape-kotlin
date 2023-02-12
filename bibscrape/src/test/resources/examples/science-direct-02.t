@@ -1,6 +1,6 @@
 https://doi.org/10.1016/j.ipl.2010.02.014
-
 broken by quotes in abstract
+
 @article{Fischer:2010:new:10.1016/j.ipl.2010.02.014,
   author = {Fischer, Johannes and Huson, Daniel H.},
   title = {New common ancestor problems in trees and directed acyclic graphs},

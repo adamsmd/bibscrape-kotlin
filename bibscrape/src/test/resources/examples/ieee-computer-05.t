@@ -1,6 +1,6 @@
 https://doi.ieeecomputersociety.org/10.1109/LICS.2010.50
-
 Unicode in title
+
 @inproceedings{GoubaultLarrecq:2010:omega-qrb-domains:10.1109/LICS.2010.50,
   author = {Goubault-Larrecq, Jean},
   title = {omega-{QRB}-Domains and the Probabilistic Powerdomain},

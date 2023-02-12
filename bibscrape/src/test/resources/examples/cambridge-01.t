@@ -1,6 +1,6 @@
 https://doi.org/10.1017/S0956796801004129
-
 A simple test
+
 @article{Hinze:2001:weaving:10.1017/S0956796801004129,
   author = {Hinze, Ralf and Jeuring, Johan},
   affiliation = {Universit{\"a}t Bonn and Utrecht University},

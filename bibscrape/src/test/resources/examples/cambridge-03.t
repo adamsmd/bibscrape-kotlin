@@ -1,6 +1,6 @@
 https://journals.cambridge.org/action/displayAbstract?aid=6488628
-
 Book review and italic in title
+
 @article{Chitil:2009:essentials:10.1017/S0956796809007357,
   author = {Chitil, Olaf},
   affiliation = {University of Kent},

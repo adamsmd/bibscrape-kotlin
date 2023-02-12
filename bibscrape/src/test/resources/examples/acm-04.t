@@ -1,6 +1,6 @@
 https://portal.acm.org/citation.cfm?id=232627.232630
-
 Fix author's latex escapes; Key with spaces
+
 @inproceedings{PeytonJones:1996:let-floating:10.1145/232627.232630,
   author = {Peyton Jones, Simon and Partain, Will and Santos, Andr{\'e}},
   title = {Let-floating: moving bindings to give faster programs},

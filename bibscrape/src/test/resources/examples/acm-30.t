@@ -1,6 +1,6 @@
 http://portal.acm.org/citation.cfm?id=1227145
-
 Non-ACM paper without link to actual publisher
+
 WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher
 @article{Abbott:2004:partial,
   author = {Abbott, Michael and Altenkirch, Thorsten and McBride, Conor and Ghani, Neil},

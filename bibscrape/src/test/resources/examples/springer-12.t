@@ -1,6 +1,6 @@
 http://link.springer.com/article/10.1023%2FA%3A1010051815785
-
 Authors with IV or Jr. that are omitted in some sources of author information
+
 WARNING: Possibly incorrect name: Abelson, H.
 WARNING: Possibly incorrect name: Dybvig, R.K.
 WARNING: Possibly incorrect name: Haynes, C.T.

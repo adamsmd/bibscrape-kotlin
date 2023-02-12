@@ -1,6 +1,6 @@
 https://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=8440149
-
 Book review
+
 @article{Cebrian:2011:think:10.1017/S0956796811000177,
   author = {Cebri{\'a}n, Toni},
   title = {\textit{How to think about algorithms}, by Jeff Edmonds, Cambridge University Press, {ISBN} 0521614104},

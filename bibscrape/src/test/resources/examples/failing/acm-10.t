@@ -1,6 +1,6 @@
 https://portal.acm.org/citation.cfm?id=512529.512538
-
 Subtitle and capitalization problems
+
 @inproceedings{Das:2002:esp:10.1145/512529.512538,
   author = {Das, Manuvir and Lerner, Sorin and Seigle, Mark},
   title = {{ESP}: {P}ath-sensitive program verification in polynomial time},

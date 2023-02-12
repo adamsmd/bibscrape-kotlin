@@ -1,6 +1,6 @@
 https://comjnl.oxfordjournals.org/content/54/1/31.abstract
-
 Unicode in authors
+
 WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.
 @article{Cirstea:2011:modal:10.1093/comjnl/bxp004,
   author = {C{\^{\i}}rstea, Corina and Kurz, Alexander and Pattinson, Dirk and Schr{\"o}der, Lutz and Venema, Yde},

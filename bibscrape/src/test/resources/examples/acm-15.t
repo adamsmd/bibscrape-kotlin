@@ -1,6 +1,6 @@
 https://portal.acm.org/citation.cfm?id=1095281
-
 Single page abstract
+
 @article{Mahmoud:1975:optimal:10.1145/1095277.1095281,
   author = {Mahmoud, Samy and Riordon, J. S.},
   title = {Optimal allocation of resources in distributed information networks},

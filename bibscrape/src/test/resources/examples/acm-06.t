@@ -1,6 +1,6 @@
 https://portal.acm.org/citation.cfm?id=286936.286955
-
 Italics and quotes in abstract
+
 @inproceedings{DiGianantonio:1998:lambda:10.1145/286936.286955,
   author = {Di Gianantonio, Pietro and Honsell, Furio and Liquori, Luigi},
   title = {A lambda calculus of objects with self-inflicted extension},

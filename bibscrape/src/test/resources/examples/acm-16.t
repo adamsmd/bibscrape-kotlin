@@ -1,6 +1,7 @@
 DOI:10.1145/1159803.1159807
---key=improving-flow-analysis
 Subtitle.  DOI and specified key.
+--key=improving-flow-analysis
+
 @inproceedings{improving-flow-analysis,
   author = {Might, Matthew and Shivers, Olin},
   title = {Improving flow analyses via {{\textgreek{G}}CFA}: abstract garbage collection and counting},

@@ -1,6 +1,6 @@
 https://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=192403
-
 "Mc" name
+
 @article{McBride:2004:view:10.1017/S0956796803004829,
   author = {McBride, Conor and McKinna, James},
   affiliation = {University of Durham and University of Durham},

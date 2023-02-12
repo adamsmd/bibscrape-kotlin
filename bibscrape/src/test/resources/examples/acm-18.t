@@ -1,6 +1,6 @@
 https://portal.acm.org/citation.cfm?doid=800125.804056
-
 Authors should be "Aho, Alfred V." instead of "Aho, A. V.", etc.
+
 @inproceedings{Aho:1973:finding:10.1145/800125.804056,
   author = {Aho, A[lfred] V. and Hopcroft, J[ohn] E. and Ullman, J[effrey] D.},
   title = {On finding lowest common ancestors in trees},
