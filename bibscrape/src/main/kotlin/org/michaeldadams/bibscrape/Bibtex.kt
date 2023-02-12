@@ -86,6 +86,17 @@ operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue?): Unit {
   if (value != null) this.setField(field, value) else this.undefineField(field)
 }
 
+/** Calls [updateValue], but with the [BibtexAbstractValue] values converted to
+ * and from [String] values.
+ *
+ * @param field the name of the field to update
+ * @param block the function to run on the value of [field]
+ * @return [Unit] if [field] existed in the receiver, otherwise `null`
+ * @see updateValue
+ */
+inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
+  this.updateValue(field) { this.ownerFile.makeString(block(it.string)) }
+
 /** Sets the value for [field] in the receiver to be the result of applying [block]
  * to the previous value for [field] in the receiver.  If [block] returns `null`,
  * then [field] is removed from the receiver. If [field] does not exist in the
@@ -95,11 +106,6 @@ operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue?): Unit {
  * @param block the function to run on the value of [field]
  * @return [Unit] if [field] existed in the receiver, otherwise `null`
  */
-inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
-  this.ifField(field) {
-    this[field] = block(it.string)
-  }
-
 inline fun BibtexEntry.updateValue(field: String, block: (BibtexAbstractValue) -> BibtexAbstractValue?): Unit? =
   this.ifField(field) {
     this[field] = block(it)

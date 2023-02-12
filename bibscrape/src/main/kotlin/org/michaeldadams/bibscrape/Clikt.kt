@@ -1,24 +1,16 @@
 package org.michaeldadams.bibscrape
 
-import com.github.ajalt.clikt.parameters.options.NullableOption
-import com.github.ajalt.clikt.parameters.options.RawOption
-import com.github.ajalt.clikt.parameters.types.enum
-import com.github.ajalt.clikt.parameters.options.OptionDelegate
-import com.github.ajalt.clikt.parameters.options.FlagOption
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.completion.*
 import com.github.ajalt.clikt.core.*
-import com.github.ajalt.clikt.parsers.OptionParser.ParseResult
-import com.github.ajalt.clikt.core.ParameterHolder
+import com.github.ajalt.clikt.parameters.groups.*
+import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parsers.*
-import kotlin.reflect.KProperty
 import kotlin.properties.ReadOnlyProperty
+import kotlin.reflect.KProperty
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import com.github.ajalt.clikt.completion.*
-import com.github.ajalt.clikt.parameters.groups.*
 
 // // Enum flags
 
@@ -64,9 +56,9 @@ object BooleanFlagOptionParser : OptionParser {
     argv: List<String>,
     index: Int,
     explicitValue: String?
-  ): ParseResult {
+  ): OptionParser.ParseResult {
     if (explicitValue != null) {
-      return ParseResult(1, name, listOf(explicitValue))
+      return OptionParser.ParseResult(1, name, listOf(explicitValue))
     } else {
       return FlagOptionParser.parseLongOpt(option, name, argv, index, explicitValue)
     }
@@ -78,7 +70,7 @@ object BooleanFlagOptionParser : OptionParser {
     argv: List<String>,
     index: Int,
     optionIndex: Int
-  ): ParseResult =
+  ): OptionParser.ParseResult =
     FlagOptionParser.parseShortOpt(option, name, argv, index, optionIndex) // TODO: use "by" and "super"
 }
 

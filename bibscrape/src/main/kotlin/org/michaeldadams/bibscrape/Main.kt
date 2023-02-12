@@ -152,7 +152,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
     "-v",
     "--verbose",
     help = """
-      TODO
+      TODO: help test for verbose
       """
   ).flag("--no-verbose")
 

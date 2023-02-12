@@ -215,7 +215,9 @@ class Fixer(
     // ///////////////////////////////
 
     // Canonicalize series: PEPM'97 -> PEPM~'97.  After Unicode encoding so that "'" doesn't get encoded.
-    entry.update(F.SERIES) { it.replace("^ ([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d\\d) $".r, "$1~'$3") }
+    entry.update(F.SERIES) {
+      it.replace("^ ([A-Z]+) \\ * (19 | 20 | ' | \\{\\\\textquoteright\\} ) (\\d\\d) $".r, "$1~'$3")
+    }
 
     // Collapse spaces and newlines.  After Unicode encoding so stuff from XML is caught.
     for (field in entry.fields.keys) {
