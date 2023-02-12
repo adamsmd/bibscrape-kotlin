@@ -328,10 +328,6 @@ object ScrapeIeeeComputer : DomainScraper {
       entry[F.AFFILIATION] = affiliations.joinByAnd()
     }
 
-    // // Keywords
-    // TODO(?): entry.update(F.KEYWORDS) { it.replace("\\s* ; \\s*".r, "; ") } // TODO: move to Fix.kt?
-    entry.update(F.KEYWORDS) { it.replace("; \\s*".r, "; ") } // TODO: move to Fix.kt?
-
     return entry
   }
 }
@@ -354,9 +350,6 @@ object ScrapeIeeeExplore : DomainScraper {
 
     // // HTML body text
     val body = driver.findElement(By.tagName("body")).innerHtml
-
-    // // Keywords
-    entry.update(F.KEYWORDS) { it.replace("; \\s*".r, "; ") } // TODO: move to Fix.kt?
 
     // // Author
     entry.update(F.AUTHOR) { it.replace("\\{ ([^}]+) \\}".r, "$1") }

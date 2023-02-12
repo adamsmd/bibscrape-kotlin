@@ -48,12 +48,6 @@ class Inputs : OptionGroup(name = "INPUTS") {
 
   val name: Map<String, BibtexPerson> by option(
     help = """
-      TODO:
-
-      The names files to use.
-      See the NAMES FILES and LIST FLAGS sections for details.
-      The file name "." means "${namesFilename}" in the user-configuration directory.
-
       Treat <Str> as if it were the content of a names file.
       See the NAMES FILES section for details about names files.
       Semicolons in <Str> are interpreted as newlines.
@@ -66,12 +60,6 @@ class Inputs : OptionGroup(name = "INPUTS") {
 
   val noun: Map<String, String> by option(
     help = """
-      TODO:
-
-      The nouns files to use.
-      See the NOUNS FILES and LIST FLAGS sections for details.
-      The file name "." means "${nounsFilename}" in the user-configuration directory.
-
       Treat <Str> as if it were the content of a nouns file.
       See the NOUNS FILES section for details about nouns files.
       Semicolons in <Str> are interpreted as newlines.
@@ -80,12 +68,6 @@ class Inputs : OptionGroup(name = "INPUTS") {
 
   val stopWord: Set<String> by option(
     help = """
-      TODO:
-
-      The nouns files to use.
-      See the STOP-WORDS FILES and LIST FLAGS sections for details.
-      The file name "." means "${stopWordsFilename}" in the user-configuration directory.
-
       Treat <Str> as if it were the content of a stop-words file.
       See the STOP-WORDS FILES section for details about stop-words files.
       Semicolons in <Str> are interpreted as newlines.
@@ -218,7 +200,6 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).default("-")
 
-  // TODO: verbose flag
   // TODO: flag to force fresh key generation
 
   private fun mediaHelpString(name: String): String = """
@@ -285,46 +266,33 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
   val test: Boolean by option(
     helpTags = mapOf(HelpFormatter.Tags.REQUIRED to ""),
     help = """
-      TODO
-      # This script is a test driver for bibscrape.
-      # To run it do:
-      #
-      #     $ ./test.sh <flag> ... <filename> ...
-      #
-      # where <flag> is a flag to pass to bibscrape and <filename> is the name of a
-      # test file. The flags end at the first argument to not start with `-` or after
-      # a `--` argument.
-      #
-      # For example, to run all ACM tests while showing the browser window, do:
-      #
-      #     $ ./test.sh --window tests/acm-*.t
+      Run in testing mode where each ARG is treated as a test file.
       """
   ).flag()
 
   val testUrl: Boolean by option(
     help = """
-      TODO: document --test-url
+      Test the use of an explicit URL as input
       """
   ).flag("--no-test-url", default = true)
 
   val testFilename: Boolean by option(
     help = """
-      TODO: document --test-filename
+      Test the use of a BibTeX file as input
       """
   ).flag("--no-test-filename", default = true)
 
   val testNonscraping: Boolean by option(
     help = """
-      TODO: document --test-nonscraping
+      Test the use of fixing without scraping
       """
   ).flag("--no-test-nonscraping", default = true)
 
   val retries: Int by option(
     help = """
-      TODO: document --test-retries
-      TODO: 0 means infinite (dangerous)
+      How many times to retry a test. A value of zero retries infinite times.
       """
-  ).int().restrictTo(min = 0).default(1)
+  ).int().restrictTo(min = 0).default(3)
 
   val testTimeout: Double by option(
     help = """
@@ -336,14 +304,14 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
   val useTestArg: Boolean by option(
     hidden = true,
     help = """
-      TODO: document --use-test-arg
+      (Internal option used by testing.) Use the values passed to --use-test-arg in place of ARG.
       """
   ).flag()
 
   val testArg: List<String> by option(
     hidden = true,
     help = """
-      TODO: document --test-arg
+      (Internal option used by testing.) Value to use in place of ARG.
       """
   ).multiple()
 }
@@ -545,14 +513,11 @@ class Main : CliktCommand(
     // println("example2: ${operatingModes.exampley}")
     // println("examplez: ${operatingModes.examplez}")
     // TODO: warn if no args
-
+    val options = testingOptions
     when {
-      testingOptions == null -> run(arg)
-      testingOptions!!.useTestArg -> {
-        // println("test ${testingOptions!!.testArg}")
-        run(testingOptions!!.testArg)
-      }
-      else -> runTests()
+      options == null -> run(arg)
+      options.useTestArg -> run(options.testArg)
+      else -> runTests(options)
     }
   }
 
@@ -716,10 +681,8 @@ class Main : CliktCommand(
     var output: AtomicReference<String?> = AtomicReference()
     var reader = thread { output.set(String(process.inputStream.readAllBytes())) }
     if (!process.waitFor(60, TimeUnit.SECONDS)) {
-      println("destory")
       process.destroy()
       if (!process.waitFor(60, TimeUnit.SECONDS)) {
-        println("destroyForcibly")
         process.destroyForcibly()
       }
     }
@@ -752,7 +715,7 @@ class Main : CliktCommand(
   fun <A> retry(times: Int, block: () -> A?): A? =
     if (times == 0) { null } else { block() ?: retry(times - 1, block) }
 
-  fun runTests(): Unit {
+  fun runTests(options: TestingOptions): Unit {
     val javaExe = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java"
     val jvmArgs = ManagementFactory.getRuntimeMXBean().inputArguments
     val classpath = System.getProperty("java.class.path")
@@ -774,7 +737,8 @@ class Main : CliktCommand(
           listOf("-classpath", classpath, mainClassName, "--use-test-arg", "--test-arg", url) +
           // flags + // TODO: shell style splitting
           originalArgv
-      val result = retry(3) { runCommand(command).let { if (it.second.exitValue() == 0) it else null } }
+      val retries = if (options.retries == 0) -1 else options.retries
+      val result = retry(retries) { runCommand(command).let { if (it.second.exitValue() == 0) it else null } }
     }
 
     // COUNT=0
