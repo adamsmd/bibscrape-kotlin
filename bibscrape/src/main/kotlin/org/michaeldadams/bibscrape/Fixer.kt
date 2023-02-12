@@ -288,6 +288,7 @@ class Fixer(
       .replace("[-\\ ^A-Za-z0-9]".r, "") // Remove non-alphanum, space or hyphen
       .split("\\W+".r)
       .filter { !stopWords.contains(it.lowercase()) }
+      .filter { it.isNotEmpty() }
       .firstOrNull()
     val title = if (titleWord == null) "" else ":${titleWord}"
 
