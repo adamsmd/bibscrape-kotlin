@@ -95,7 +95,7 @@ operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue?): Unit {
  * @see updateValue
  */
 inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? =
-  this.updateValue(field) { this.ownerFile.makeString(block(it.string)) }
+  this.updateValue(field) { block(it.string)?.let { this.ownerFile.makeString(it) } }
 
 /** Sets the value for [field] in the receiver to be the result of applying [block]
  * to the previous value for [field] in the receiver.  If [block] returns `null`,
