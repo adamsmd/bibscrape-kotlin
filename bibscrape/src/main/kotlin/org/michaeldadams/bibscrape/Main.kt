@@ -54,16 +54,16 @@ class Inputs : OptionGroup(name = "INPUTS") {
 
       The names files to use.
       See the NAMES FILES and LIST FLAGS sections for details.
-      The file name "." means "names.cfg" in the user-configuration directory.
+      The file name "." means "${namesFilename}" in the user-configuration directory.
 
       Treat <Str> as if it were the content of a names file.
       See the NAMES FILES section for details about names files.
       Semicolons in <Str> are interpreted as newlines.
       """
   ).map(
-    { "" }, // TODO(),
-    { N.bibtexPerson(it, "TODO") },
-    { N.simpleName(N.bibtexPerson(it, "TODO")).lowercase() }
+    userConfig(namesFilename),
+    { N.bibtexPerson(it, "bibscrape name configuration") },
+    { N.simpleName(N.bibtexPerson(it, "bibscrape name configuration")).lowercase() }
   )
 
   val noun: Map<String, String> by option(
@@ -72,13 +72,13 @@ class Inputs : OptionGroup(name = "INPUTS") {
 
       The nouns files to use.
       See the NOUNS FILES and LIST FLAGS sections for details.
-      The file name "." means "nouns.cfg" in the user-configuration directory.
+      The file name "." means "${nounsFilename}" in the user-configuration directory.
 
       Treat <Str> as if it were the content of a nouns file.
       See the NOUNS FILES section for details about nouns files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).map({ "" } /* TODO */, { it }, { it.lowercase() })
+  ).map(userConfig(nounsFilename), { it }, { it.lowercase() })
 
   val stopWord: Set<String> by option(
     help = """
@@ -86,13 +86,13 @@ class Inputs : OptionGroup(name = "INPUTS") {
 
       The nouns files to use.
       See the STOP-WORDS FILES and LIST FLAGS sections for details.
-      The file name "." means "stop-words.cfg" in the user-configuration directory.
+      The file name "." means "${stopWordsFilename}" in the user-configuration directory.
 
       Treat <Str> as if it were the content of a stop-words file.
       See the STOP-WORDS FILES section for details about stop-words files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).set({ "" } /* TODO() */, { it.lowercase() })
+  ).set(userConfig(stopWordsFilename), { it.lowercase() })
 
   companion object {
     private val windows = File.separator == "\\"
@@ -102,19 +102,16 @@ class Inputs : OptionGroup(name = "INPUTS") {
       } else {
         System.getenv("XDG_CONFIG_HOME") ?: System.getenv("HOME") + "/.config"
       }
-    val bibscrapeConfigDir = userConfigDir + "/bibscrape"
-    //   my IO::Path:D $config-dir-path =
-    //   ($*DISTRO.is-win
-    //     ?? %*ENV<APPDATA> // %*ENV<USERPROFILE> ~ </AppData/Roaming/>
-    //     !! %*ENV<XDG_CONFIG_HOME> // %*ENV<HOME> ~ </.config>).IO
-    //     .add(<BibScrape>);
+    val bibscrapeConfigDir = File(userConfigDir + "/bibscrape")
 
     const val namesFilename = "names.cfg"
-    // my Str:D constant $names-filename = 'names.cfg';
     const val nounsFilename = "nouns.cfg"
-    // my Str:D constant $nouns-filename = 'nouns.cfg';
     const val stopWordsFilename = "stop-words.cfg"
-    // my Str:D constant $stop-words-filename = 'stop-words.cfg';
+
+    fun userConfig(filename: String): () -> String = {
+      val file = bibscrapeConfigDir.resolve(filename)
+      if (file.exists()) file.readText() else Inputs::class.java.getResource("/${filename}").readText()
+    }
   }
 }
 
@@ -566,18 +563,27 @@ class Main : CliktCommand(
       println("User-configuration directory: ${Inputs.bibscrapeConfigDir}")
     }
 
-    // if $init {
-    //   $config-dir-path.mkdir;
-    //   for ($names-filename, $nouns-filename, $stop-words-filename) -> Str:D $src {
-    //     my IO::Path:D $dst = $config-dir-path.add($src);
-    //     if $dst.e {
-    //       say "Not copying default $src since $dst already exists";
-    //     } else {
-    //       %?RESOURCES{$src}.copy($dst);
-    //       say "Successfully copied default $src to $dst";
-    //     }
-    //   }
-    // }
+    if (operatingModes.init) {
+      // if $init {
+      Inputs.bibscrapeConfigDir.mkdirs()
+      // $config-dir-path.mkdir;
+      for (src in listOf(Inputs.namesFilename, Inputs.nounsFilename, Inputs.stopWordsFilename)) {
+        // for ($names-filename, $nouns-filename, $stop-words-filename) -> Str:D $src {
+        val dst = Inputs.bibscrapeConfigDir.resolve(src)
+        // my IO::Path:D $dst = $config-dir-path.add($src);
+        if (dst.exists()) {
+          // if $dst.e {
+          println("Not copying default $src since $dst already exists")
+          // say "Not copying default $src since $dst already exists";
+        } else {
+          // } else {
+          //   %?RESOURCES{$src}.copy($dst);
+          dst.writeText(javaClass.getResource("/${src}").readText())
+          println("Copied default ${src} to ${dst}")
+          //   say "Successfully copied default $src to $dst";
+        }
+      }
+    }
 
     // sub default-file(Str:D $type, Str:D $file --> Callable[IO::Path:D]) {
     //   sub (IO::Path:D $x --> IO::Path:D) {
