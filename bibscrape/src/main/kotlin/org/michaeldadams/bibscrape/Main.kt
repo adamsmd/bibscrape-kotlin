@@ -238,7 +238,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
 @Suppress("TrimMultilineRawString", "UndocumentedPublicProperty", "MISSING_KDOC_CLASS_ELEMENTS")
 class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
   val field: List<String> by option(
-    help = """The order that fields should placed in the output.""",
+    help = """The order that fields should placed in the output."""
   ).list(
     {
       listOf(
@@ -250,7 +250,7 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
         F.ORGANIZATION, F.PUBLISHER, F.ADDRESS,
         F.LANGUAGE, F.ISBN, F.ISSN, F.DOI, F.URL, F.EPRINT, F.ARCHIVEPREFIX, F.PRIMARYCLASS,
         F.BIB_SCRAPE_URL,
-        F.NOTE, F.ANNOTE, F.KEYWORDS, F.ABSTRACT
+        F.NOTE, F.ANNOTE, F.KEYWORDS, F.ABSTRACT,
       ).joinToString("\n")
     },
     { it } // TODO: lowercase?
@@ -264,15 +264,15 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
   )
 
   val noCollapse: List<String> by option(
-    help = """Fields that should not have multiple successive whitespaces collapsed into a single whitespace.""",
+    help = """Fields that should not have multiple successive whitespaces collapsed into a single whitespace."""
   ).list({ "" }, { it }) // TODO: lowercase?
 
   val omit: List<String> by option(
-    help = """Fields that should be omitted from the output.""",
+    help = """Fields that should be omitted from the output."""
   ).list({ "" }, { it }) // TODO: lowercase?
 
   val omitEmpty: List<String> by option(
-    help = """Fields that should be omitted from the output if they are empty.""",
+    help = """Fields that should be omitted from the output if they are empty."""
   ).list(
     { listOf(F.ABSTRACT, F.ISSN, F.DOI, F.KEYWORDS).joinToString("\n") },
     { it } // TODO: lowercase?
@@ -571,7 +571,7 @@ class Main : CliktCommand(
         // my IO::Path:D $dst = $config-dir-path.add($src);
         if (dst.exists()) {
           // if $dst.e {
-          println("Not copying default $src since $dst already exists")
+          println("Not copying default ${src} since ${dst} already exists")
           // say "Not copying default $src since $dst already exists";
         } else {
           // } else {
@@ -775,7 +775,6 @@ class Main : CliktCommand(
           // flags + // TODO: shell style splitting
           originalArgv
       val result = retry(3) { runCommand(command).let { if (it.second.exitValue() == 0) it else null } }
-
     }
 
     // COUNT=0

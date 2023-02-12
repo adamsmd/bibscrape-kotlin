@@ -21,7 +21,6 @@ import java.io.File
 import java.time.Duration
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.roundToLong
 
 fun seconds(duration: Double): Duration = // TODO: put in appropriate module
   Duration.ofNanos((duration * Duration.ofSeconds(1).toNanos()).toLong())
@@ -159,12 +158,13 @@ class Driver private constructor(
       // NetworkInterceptor or devTools.createSession(), but all of those break
       // on Firefox
       val proxy = BrowserMobProxyServer()
-      proxy.addResponseFilter { response, /*contents*/ _, /*messageInfo*/ _ ->
+      proxy.addResponseFilter {
+          response, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
         response.headers().remove("Content-Disposition")
       }
-      proxy.addRequestFilter { request, /*contents*/ _, /*messageInfo*/ _ ->
-        // disqus.com is sometimes slow to respond, and we don't need it, so we return a dummy value for it
-        if (request.headers()[HttpHeaderNames.HOST].replace(":443 $".r, "").contains("""
+      proxy.addRequestFilter {
+          request, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
+        val blockedDomains = """
           (^ | \.) (
             # | addthis\.com
             # | addthisedge\.com
@@ -178,11 +178,12 @@ class Driver private constructor(
             # | scholar\.google\.com
             # | videodelivery\.net
           ) $
-          """.trimIndent().r
-        )) {
+        """.trimIndent().r
+
+        // dummy values for domains that are slow and that we don't actually need
+        if (request.headers()[HttpHeaderNames.HOST].replace(":443 $".r, "").contains(blockedDomains)) {
           DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
         } else {
-          // println("!!!HOST:" + request.headers()[HttpHeaderNames.HOST])
           null
         }
       }

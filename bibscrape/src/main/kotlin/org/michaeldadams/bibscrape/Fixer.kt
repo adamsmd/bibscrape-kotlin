@@ -190,7 +190,7 @@ class Fixer(
       | http s? ://www\.jstor\.org/stable/
       | http s? ://www\.sciencedirect\.com/science/article/
       )
-    """.trimMargin().r
+    """.trimIndent().r
     entry.removeIf(F.URL) { it.contains(publisherUrl) }
 
     // Year
