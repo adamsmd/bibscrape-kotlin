@@ -48,8 +48,10 @@ class BooleanFlag(val that: FlagOption<Boolean>) : OptionDelegate<Boolean> by th
     that.finalize(context, invocations)
   }
 
-  override operator fun provideDelegate(thisRef: ParameterHolder, prop: KProperty<*>):
-    ReadOnlyProperty<ParameterHolder, Boolean> {
+  override operator fun provideDelegate(
+    thisRef: ParameterHolder,
+    prop: KProperty<*>
+  ): ReadOnlyProperty<ParameterHolder, Boolean> {
     thisRef.registerOption(this)
     return this
   }

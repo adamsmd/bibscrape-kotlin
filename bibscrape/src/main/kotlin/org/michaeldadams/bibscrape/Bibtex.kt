@@ -235,12 +235,15 @@ object Bibtex {
     fun bibtexPersons(string: String, entryKey: String): List<BibtexPerson> {
       // bibtex.expansions.BibtexPersonListParser is not public so we have to go
       // through PersonListExpander
-      val file = BibtexFile()
-      val entry = file.makeEntry("", entryKey)
-      file.addEntry(entry)
+      val entry = BibtexFile().makeEntry("", entryKey)
+      entry.ownerFile.addEntry(entry)
       entry[Fields.AUTHOR] = string
-      PersonListExpander(true, true).expand(file)
-      return (entry[Fields.AUTHOR] as BibtexPersonList).list as List<BibtexPerson>
+
+      PersonListExpander(true, true).expand(entry.ownerFile)
+      val personList = (entry[Fields.AUTHOR] as BibtexPersonList).list
+
+      @Suppress("UNCHECKED_CAST")
+      return personList as List<BibtexPerson>
     }
 
     /** Parses a [String] containing a single BibTeX name.

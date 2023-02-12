@@ -308,7 +308,13 @@ class Fixer(
     return entry
   }
 
-  fun isbn(entry: BibtexEntry, field: String, mediaType: MediaType, separator: String, canonicalize: (String, MediaType, String) -> String): Unit {
+  fun isbn(
+    entry: BibtexEntry,
+    field: String,
+    mediaType: MediaType,
+    separator: String,
+    canonicalize: (String, MediaType, String) -> String
+  ): Unit {
     entry.update(field) { value ->
       if (value.isEmpty()) {
         null // TODO: not needed?
