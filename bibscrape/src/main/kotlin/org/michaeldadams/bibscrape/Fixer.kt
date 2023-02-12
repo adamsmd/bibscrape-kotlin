@@ -223,14 +223,13 @@ class Fixer(
     for (field in entry.fields.keys) {
       if (!noCollapse.contains(field)) {
         entry.update(field) {
-          var v = it
-          v = v.replace("\\s+ $".r, "") // Remove trailing whitespace
-          v = v.replace("^ \\s+".r, "") // Remove leading whitespace
-          v = v.replace("(\\n\\ *){2,}", "{\\par}") // BibTeX eats whitespace so convert "\n\n" to paragraph break
-          v = v.replace("^ \\s* \\n \\s*".r, " ") // Remove extra line breaks
-          v = v.replace(" ( \\s | \\{~\\} )* \\s ( \\s | \\{~\\} )* ".r, " ") // Remove duplicate whitespace
-          v = v.replace(" \\s* \\{\\\\par\\} \\s* ".r, "\n{\\par}\n") // Nicely format paragraph breaks
-          v
+          it
+            .replace("\\s+ $".r, "") // Remove trailing whitespace
+            .replace("^ \\s+".r, "") // Remove leading whitespace
+            .replace("(\\n\\ *){2,}", "{\\par}") // BibTeX eats whitespace so convert "\n\n" to paragraph break
+            .replace("^ \\s* \\n \\s*".r, " ") // Remove extra line breaks
+            .replace(" ( \\s | \\{~\\} )* \\s ( \\s | \\{~\\} )* ".r, " ") // Remove duplicate whitespace
+            .replace(" \\s* \\{\\\\par\\} \\s* ".r, "\n{\\par}\n") // Nicely format paragraph breaks
         }
       }
     }
