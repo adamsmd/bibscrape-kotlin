@@ -95,7 +95,7 @@ private fun <A, F, L> parseBlocks(
   fun go(dir: Path, string: String): Unit {
     val lines = string
       .split("\\R".r)
-      .map { it.replace("\\s* # .* $".r, "").replace("^ \\s+".r, "") }
+      .map { it.replace("\\s* \\# .* $".r, "").replace("^ \\s+".r, "") }
     for (line in lines) {
       when {
         line.isEmpty() ->
