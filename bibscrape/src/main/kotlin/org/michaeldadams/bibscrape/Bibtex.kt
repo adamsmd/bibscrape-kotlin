@@ -55,7 +55,7 @@ inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Bool
 
 /** Gets a simple string representation of a [BibtexAbstractValue]. */
 val BibtexAbstractValue.string: String // TODO: return null when not BibtexString
-  get() = (this as? BibtexString)?.content ?: this.toString()
+  get() = (this as BibtexString).content
 
 /** Gets the value for a given [field] in the receiver.
  *
