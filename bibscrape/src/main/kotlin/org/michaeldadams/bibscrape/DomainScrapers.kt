@@ -424,7 +424,7 @@ object ScrapeIosPress : DomainScraper {
     driver.navigate().back()
 
     // my BibScrape::Ris::Ris:D $ris = ris-parse($web-driver.read-downloads());
-    val entry = Bibtex.parse(BibtexFile(), ris)
+    val entry = Ris.bibtex(BibtexFile(), ris)
     // my BibScrape::BibTeX::Entry:D $entry = bibtex-of-ris($ris);
 
     // // HTML Meta
