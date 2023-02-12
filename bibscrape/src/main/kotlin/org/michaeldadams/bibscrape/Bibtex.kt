@@ -261,11 +261,8 @@ object Bibtex {
      * @param entryKey the BibTex key to use in parse errors
      * @return the person produced by parsing
      */
-    fun bibtexPerson(string: String, entryKey: String): BibtexPerson {
-      val persons = bibtexPersons(string, entryKey)
-      if (persons.size != 1) TODO()
-      return persons.first()
-    }
+    fun bibtexPerson(string: String, entryKey: String): BibtexPerson =
+      bibtexPersons(string, entryKey).single()
 
     /** Returns a name of a [BibtexPerson] as a simple [String] in "First von
      * Last Jr." order.
