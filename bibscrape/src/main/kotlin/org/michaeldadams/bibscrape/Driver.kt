@@ -163,9 +163,25 @@ class Driver private constructor(
       }
       proxy.addRequestFilter { request, /*contents*/ _, /*messageInfo*/ _ ->
         // disqus.com is sometimes slow to respond, and we don't need it, so we return a dummy value for it
-        if (request.headers()[HttpHeaderNames.HOST].contains("\\.disqus\\.com:".r)) {
+        if (request.headers()[HttpHeaderNames.HOST].replace(":443 $".r, "").contains("""
+          (^ | \.) (
+            # | addthis\.com
+            # | addthisedge\.com
+            # | crossref\.org
+            disqus\.com
+            # | google-analytics\.com
+            # | googletagmanager\.com
+            # | heapanalytics\.com
+            # | moatads\.com
+            # | mopinion\.com
+            # | scholar\.google\.com
+            # | videodelivery\.net
+          ) $
+          """.trimIndent().r
+        )) {
           DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
         } else {
+          // println("!!!HOST:" + request.headers()[HttpHeaderNames.HOST])
           null
         }
       }
