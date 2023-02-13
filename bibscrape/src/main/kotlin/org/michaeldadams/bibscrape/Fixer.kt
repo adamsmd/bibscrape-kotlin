@@ -403,43 +403,70 @@ class Fixer(
 
   // method text(Bool:D $is-title, Str:D $str is copy, Bool:D :$math --> Str:D) {
   fun text(isTitle: Boolean, math: Boolean, string: String): String {
+    var s = string
     // if $is-title {
-    // # Keep proper nouns capitalized
-    // # After eliminating Unicode in case a tag or attribute looks like a proper noun
-    //   for @.noun-groups -> Str:D @noun-group {
-    //     for @noun-group -> Str:D $noun {
-    //       my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
-    //       $str ~~ s:g/ « [$noun | $noun-no-brace] » /{@noun-group.head}/;
-    //     }
-    //   }
+    if (isTitle) {
+      // Keep proper nouns capitalized
+      // Inside html()/math() in case a tag or attribute looks like a proper noun
+      // for @.noun-groups -> Str:D @noun-group {
+      //   for @noun-group -> Str:D $noun {
+      //     my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
+      //     $str ~~ s:g/ « [$noun | $noun-no-brace] » /{@noun-group.head}/;
+      //   }
+      // }
+      for ((key, value) in nouns) {
+        val keyNoBrace = key.replace("[{}]".r, "")
+        s = s.replace(
+          "\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".r,
+          "{${Regex.escapeReplacement(value)}}"
+        )
+      }
+      // for @.noun-groups -> Str:D @noun-group {
+      //   for @noun-group -> Str:D $noun {
+      //     my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
+      //     for $str ~~ m:i:g/ « [$noun | $noun-no-brace] » / {
+      //       if $/ ne @noun-group.head {
+      //         say "WARNING: Possibly incorrectly capitalized noun '$/' in title";
+      //       }
+      //     }
+      //   }
+      // }
+      // Re-run things case insentitively in case the user didn't catch something
+      // (We don't want to automatically convert case insensitively, since that might be too broad.)
+      for ((key, value) in nouns) {
+        val keyNoBrace = key.replace("[{}]".r, "")
+        s.find("\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".ri)?.let {
+          if (it.value != value) {
+            println("WARNING: Possibly incorrectly capitalized noun '${it.value}' in title")
+          }
+        }
+      }
 
-    //   for @.noun-groups -> Str:D @noun-group {
-    //     for @noun-group -> Str:D $noun {
-    //       my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
-    //       for $str ~~ m:i:g/ « [$noun | $noun-no-brace] » / {
-    //         if $/ ne @noun-group.head {
-    //           say "WARNING: Possibly incorrectly capitalized noun '$/' in title";
-    //         }
-    //       }
-    //     }
-    //   }
-
-    // # Keep acronyms capitalized
-    // # Note that non-initial "A" are warned after collapsing spaces and newlines.
-    // # Anything other than "Aaaa" or "aaaa" triggers an acronym.
-    // # After eliminating Unicode in case a tag or attribute looks like an acronym
-    // $str ~~ s:g/ <!after '{'> ([<!before '_'> <alnum>]+ <upper> [<!before '_'> <alnum>]*) /\{$0\}/
-    //   if $.escape-acronyms;
-    // $str ~~ s:g/ <wb> <!after '{'> ( <!after ' '> 'A' <!before ' '> | <!before 'A'> <upper>) <!before "'"> <wb>
-    //            /\{$0\}/
-    //   if $.escape-acronyms;
-    // }
+      // # Keep acronyms capitalized
+      // # Note that non-initial "A" are warned after collapsing spaces and newlines.
+      // # Anything other than "Aaaa" or "aaaa" triggers an acronym.
+      // # After eliminating Unicode in case a tag or attribute looks like an acronym
+      // $str ~~ s:g/ <!after '{'> ([<!before '_'> <alnum>]+ <upper> [<!before '_'> <alnum>]*) /\{$0\}/
+      //   if $.escape-acronyms;
+      // $str ~~ s:g/ <wb> <!after '{'> ( <!after ' '> 'A' <!before ' '> | <!before 'A'> <upper>) <!before "'"> <wb>
+      //            /\{$0\}/
+      //   if $.escape-acronyms;
+      // }
+      if (escapeAcronyms) {
+        val alnum = """(?: \p{IsAlphabetic} | \p{IsDigit} )"""
+        val notAfterBrace = """(?<! \{ )"""
+        s = s
+          .replace("""${notAfterBrace} \b ( ${alnum}+ \p{IsUppercase} ${alnum}* )""".r, "{$1}")
+          .replace("""${notAfterBrace} \b ( (?<! \\ ) A (?! \\ ) ) (?! ') \b""".r, "{$1}")
+          .replace("""${notAfterBrace} \b ( (?! A) \p{IsUppercase} ) (?! ') \b""".r, "{$1}")
+      }
+    }
 
     // # NOTE: Ignores LaTeX introduced by translation from XML
     // $str = unicode2tex($str, :$math, :ignore(rx/<[_^{}\\\$]>/));
 
     // $str;
-    return Unicode.unicodeToTex(string, math) { "_^{}\\$".toSet().contains(it) }
+    return Unicode.unicodeToTex(s, math) { "_^{}\\$".toSet().contains(it) }
   }
 
   fun math(isTitle: Boolean, nodes: NodeList): String =

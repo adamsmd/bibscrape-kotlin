@@ -170,7 +170,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       In BibTeX titles, enclose detected acronyms (e.g., sequences of two or more
       uppercase letters) in braces so that BibTeX preserves their case.
       """
-  ).flag("--no-escape-acronyms")
+  ).flag("--no-escape-acronyms", default = true)
 
   val issnMedia: MediaType by option(
     help = mediaHelpString("ISSN")
