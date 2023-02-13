@@ -361,25 +361,25 @@ class Fixer(
       names[name.lowercase()] ?: run {
         // Check for and warn about names the publishers might have messed up
         val first = """
-            \p{Upper}\p{Lower}+                       # Simple name
-          | \p{Upper}\p{Lower}+ - \p{Upper}\p{Lower}+ # Hyphenated name with upper
-          | \p{Upper}\p{Lower}+ - \p{Lower}\p{Lower}+ # Hyphenated name with lower
-          | \p{Upper}\p{Lower}+   \p{Upper}\p{Lower}+ # "Asian" name (e.g. XiaoLin)
+            \p{IsUpper}\p{IsLower}+                           # Simple name
+          | \p{IsUpper}\p{IsLower}+ - \p{IsUpper}\p{IsLower}+ # Hyphenated name with upper
+          | \p{IsUpper}\p{IsLower}+ - \p{IsLower}\p{IsLower}+ # Hyphenated name with lower
+          | \p{IsUpper}\p{IsLower}+   \p{IsUpper}\p{IsLower}+ # "Asian" name (e.g. XiaoLin)
           # We could allow the following but publishers often abriviate
           # names when the actual paper doesn't
-          # | \p{Upper} \.                            # Initial
-          # | \p{Upper} \. - \p{Upper} \.             # Double initial
+          # | \p{IsUpper} \.                                  # Initial
+          # | \p{IsUpper} \. - \p{IsUpper} \.                 # Double initial
 
         """.trimIndent()
         val middle = """
-            \p{Upper} \.                              # Middle initial
+            \p{IsUpper} \.                                    # Middle initial
 
         """.trimIndent()
         val last = """
-            \p{Upper}\p{Lower}+                       # Simple name
-          | \p{Upper}\p{Lower}+ - \p{Upper}\p{Lower}+ # Hyphenated name with upper
+            \p{IsUpper}\p{IsLower}+                           # Simple name
+          | \p{IsUpper}\p{IsLower}+ - \p{IsUpper}\p{IsLower}+ # Hyphenated name with upper
           | ( d' | D' | de | De | Di | Du | La | Le | Mac | Mc | O' | Van )
-            \p{Upper}\p{Lower}+                       # Name with prefix
+            \p{IsUpper}\p{IsLower}+                           # Name with prefix
 
         """.trimIndent()
         if (!name.contains("^ \\s* (${first}) \\s+ ((${middle}) \\s+)? (${last}) \\s* $".r)) {

@@ -14,7 +14,7 @@ const val ISBN_REGEX: String = """(?: \d (?: ${ISBN_DIGIT}{8} | ${ISBN_DIGIT}{11
 /** Converts a [String] to a [Regex] with the [RegexOption.COMMENTS] option
  * enabled. */
 val String.r: Regex
-  get() = this.toRegex(RegexOption.COMMENTS)
+  get() = this.toRegex(RegexOption.COMMENTS) // TODO: UNICODE_CHARACTER_CLASS
 
 /** Converts a [String] to a [Regex] with the [RegexOption.COMMENTS] and
  * [RegexOption.IGNORE_CASE] options enabled. */
