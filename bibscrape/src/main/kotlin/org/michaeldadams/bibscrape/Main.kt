@@ -728,13 +728,13 @@ class Main : CliktCommand(
         .showInlineDiffs(true) // Use word diffs
         .ignoreWhiteSpaces(false) // Default
         .reportLinesUnchanged(false) // Default
-        .oldTag { f -> if (f) "<<<" else ">>>" }
-        .newTag { f -> if (f) "[[[" else "]]]" } // TODO: unicode?
-        // .processDiffs()
-        // .columnWidth(0) // Default
+        .oldTag { f -> if (f) "[~~" else "~~]" }
+        .newTag { f -> if (f) "[++" else "++]" }
+        .processDiffs(null) // No extra diff processing. Default
+        .columnWidth(0) // No line wrapping. Default
         .mergeOriginalRevised(true) // Show diffs inline instead of two column
         .decompressDeltas(true) // Default
-        .inlineDiffByWord(false) // Default
+        .inlineDiffByWord(false) // Use char-gradularity "word" diffs. Default
         // .inlineDiffBySplitter() // Handled by inlineDiffByWord()
         .lineNormalizer { it } // Don't muck with the inputs
         // .equalizer() // Handled by ignoreWhiteSpaces()
