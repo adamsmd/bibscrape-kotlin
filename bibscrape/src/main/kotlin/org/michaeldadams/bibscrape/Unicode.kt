@@ -3000,7 +3000,7 @@ object Unicode {
     }
 
     return result
-      .joinToString()
+      .joinToString("")
       .replace("\\ + \\{~\\}".r, "{~}") // Trim spaces before NBSP (otherwise they have no effect in LaTeX)
 
     //   for $str.ords -> Int:D $ord {
