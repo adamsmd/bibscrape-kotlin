@@ -19,61 +19,6 @@ inline fun <reified T : Enum<T>> RawOption.lowercaseEnum(
   key: (T) -> String = { it.name }
 ): NullableOption<T, T> = enum<T>(ignoreCase = ignoreCase, key = { key(it).lowercase() })
 
-// // Boolean flags
-
-fun FlagOption<Boolean>.boolean(): BooleanFlag = BooleanFlag(this)
-
-class BooleanFlag(val that: FlagOption<Boolean>) : OptionDelegate<Boolean> by that {
-  override val parser: OptionParser
-    get() = BooleanFlagOptionParser
-
-  override fun finalize(context: Context, invocations: List<OptionParser.Invocation>): Unit {
-    if (invocations.size > 0) {
-      val values = invocations.last().values
-      if (values.size == 1) {
-        val value = that.transformEnvvar(OptionTransformContext(this, context), values.first())
-        val flag = if (value) that.names.first() else that.secondaryNames.first()
-        that.finalize(context, listOf(OptionParser.Invocation(flag, emptyList())))
-        return
-      }
-    }
-    that.finalize(context, invocations)
-  }
-
-  override operator fun provideDelegate(
-    thisRef: ParameterHolder,
-    prop: KProperty<*>
-  ): ReadOnlyProperty<ParameterHolder, Boolean> {
-    thisRef.registerOption(this)
-    return this
-  }
-}
-
-object BooleanFlagOptionParser : OptionParser {
-  override fun parseLongOpt(
-    option: Option,
-    name: String,
-    argv: List<String>,
-    index: Int,
-    explicitValue: String?
-  ): OptionParser.ParseResult {
-    if (explicitValue != null) {
-      return OptionParser.ParseResult(1, name, listOf(explicitValue))
-    } else {
-      return FlagOptionParser.parseLongOpt(option, name, argv, index, explicitValue)
-    }
-  }
-
-  override fun parseShortOpt(
-    option: Option,
-    name: String,
-    argv: List<String>,
-    index: Int,
-    optionIndex: Int
-  ): OptionParser.ParseResult =
-    FlagOptionParser.parseShortOpt(option, name, argv, index, optionIndex) // TODO: use "by" and "super"
-}
-
 // // Collection flags (e.g., Map, List and Set)
 
 private fun <A, F, L> parseBlocks(
