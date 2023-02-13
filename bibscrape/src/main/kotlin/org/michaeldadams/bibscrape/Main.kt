@@ -586,7 +586,7 @@ class Main : CliktCommand(
         // TODO: don't keepKey when scraping
 
         newEntry.entryKey = key.firstOrNull() ?: if (keepKey) entry.entryKey else newEntry.entryKey
-        key = key.drop(1)
+        key = key.drop(1) // TODO: dropFirst?
         printer.print(System.out, newEntry)
       }
 
