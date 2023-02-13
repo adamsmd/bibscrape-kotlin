@@ -2,6 +2,15 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
+import org.w3c.dom.Node
+import org.w3c.dom.Element
+import org.w3c.dom.CDATASection
+import org.w3c.dom.Comment
+import org.w3c.dom.Document
+import org.w3c.dom.ProcessingInstruction
+import org.w3c.dom.Text
+import org.w3c.dom.NodeList
+import javax.xml.parsers.DocumentBuilderFactory
 import java.util.Locale
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Months as M
@@ -55,10 +64,10 @@ class Fixer(
 
   // // FIELD OPTIONS
   // val field: List<String>,
-  val noEncode: List<String>,
-  val noCollapse: List<String>,
-  val omit: List<String>,
-  val omitEmpty: List<String>
+  val noEncode: Set<String>,
+  val noCollapse: Set<String>,
+  val omit: Set<String>,
+  val omitEmpty: Set<String>
 ) {
   /** Returns a [BibtexEntry] that is a copy of [oldEntry] but with various fixes.
    *
@@ -201,14 +210,26 @@ class Fixer(
 
     // Eliminate Unicode but not for no-encode fields (e.g. doi, url, etc.)
     //   for $entry.fields.keys -> Str:D $field {
-    //     unless $field ∈ @.no-encode {
-    //       update($entry, $field, {
-    //         $_ = self.html($field eq 'title', from-xml("<root>{$_}</root>").root.nodes);
-    //         # Repeated to handle nested results
-    //         while s:g/ '{{' (<-[{}]>*) '}}' /\{$0\}/ {};
-    //       });
-    //     }
-    //   }
+    for ((field, value) in entry.fields) {
+      // unless $field ∈ @.no-encode {
+      if (!noEncode.contains(field)) {
+        val xml = DocumentBuilderFactory
+          .newInstance()
+          .newDocumentBuilder()
+          .parse("<root>${value.string}</root>".byteInputStream())
+          .documentElement
+          .childNodes
+        var newValue = html(field == F.TITLE, xml)
+        val doubleBrace = "\\{\\{ ([^{}]*) \\}\\}".r
+        // Repeated to handle nested results
+        while (newValue.matches(doubleBrace)) newValue = newValue.replace(doubleBrace, "{$1}")
+        entry[field] = newValue
+        // update($entry, $field, {
+        //   $_ = self.html($field eq 'title', from-xml("<root>{$_}</root>").root.nodes);
+        //   # Repeated to handle nested results
+        //   while s:g/ '{{' (<-[{}]>*) '}}' /\{$0\}/ {};
+      }
+    }
 
     // ///////////////////////////////
     // Post-Unicode fixes           //
@@ -381,43 +402,45 @@ class Fixer(
   }
 
   // method text(Bool:D $is-title, Str:D $str is copy, Bool:D :$math --> Str:D) {
-  //   if $is-title {
-  //   # Keep proper nouns capitalized
-  //   # After eliminating Unicode in case a tag or attribute looks like a proper noun
-  //     for @.noun-groups -> Str:D @noun-group {
-  //       for @noun-group -> Str:D $noun {
-  //         my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
-  //         $str ~~ s:g/ « [$noun | $noun-no-brace] » /{@noun-group.head}/;
-  //       }
-  //     }
+  fun text(isTitle: Boolean, math: Boolean, string: String): String {
+    // if $is-title {
+    // # Keep proper nouns capitalized
+    // # After eliminating Unicode in case a tag or attribute looks like a proper noun
+    //   for @.noun-groups -> Str:D @noun-group {
+    //     for @noun-group -> Str:D $noun {
+    //       my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
+    //       $str ~~ s:g/ « [$noun | $noun-no-brace] » /{@noun-group.head}/;
+    //     }
+    //   }
 
-  //     for @.noun-groups -> Str:D @noun-group {
-  //       for @noun-group -> Str:D $noun {
-  //         my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
-  //         for $str ~~ m:i:g/ « [$noun | $noun-no-brace] » / {
-  //           if $/ ne @noun-group.head {
-  //             say "WARNING: Possibly incorrectly capitalized noun '$/' in title";
-  //           }
-  //         }
-  //       }
-  //     }
+    //   for @.noun-groups -> Str:D @noun-group {
+    //     for @noun-group -> Str:D $noun {
+    //       my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
+    //       for $str ~~ m:i:g/ « [$noun | $noun-no-brace] » / {
+    //         if $/ ne @noun-group.head {
+    //           say "WARNING: Possibly incorrectly capitalized noun '$/' in title";
+    //         }
+    //       }
+    //     }
+    //   }
 
-  //   # Keep acronyms capitalized
-  //   # Note that non-initial "A" are warned after collapsing spaces and newlines.
-  //   # Anything other than "Aaaa" or "aaaa" triggers an acronym.
-  //   # After eliminating Unicode in case a tag or attribute looks like an acronym
-  //   $str ~~ s:g/ <!after '{'> ([<!before '_'> <alnum>]+ <upper> [<!before '_'> <alnum>]*) /\{$0\}/
-  //     if $.escape-acronyms;
-  //   $str ~~ s:g/ <wb> <!after '{'> ( <!after ' '> 'A' <!before ' '> | <!before 'A'> <upper>) <!before "'"> <wb>
-  //              /\{$0\}/
-  //     if $.escape-acronyms;
-  //   }
+    // # Keep acronyms capitalized
+    // # Note that non-initial "A" are warned after collapsing spaces and newlines.
+    // # Anything other than "Aaaa" or "aaaa" triggers an acronym.
+    // # After eliminating Unicode in case a tag or attribute looks like an acronym
+    // $str ~~ s:g/ <!after '{'> ([<!before '_'> <alnum>]+ <upper> [<!before '_'> <alnum>]*) /\{$0\}/
+    //   if $.escape-acronyms;
+    // $str ~~ s:g/ <wb> <!after '{'> ( <!after ' '> 'A' <!before ' '> | <!before 'A'> <upper>) <!before "'"> <wb>
+    //            /\{$0\}/
+    //   if $.escape-acronyms;
+    // }
 
-  //   # NOTE: Ignores LaTeX introduced by translation from XML
-  //   $str = unicode2tex($str, :$math, :ignore(rx/<[_^{}\\\$]>/));
+    // # NOTE: Ignores LaTeX introduced by translation from XML
+    // $str = unicode2tex($str, :$math, :ignore(rx/<[_^{}\\\$]>/));
 
-  //   $str;
-  // }
+    // $str;
+    return Unicode.unicodeToTex(string, math) { "_^{}\\$".toSet().contains(it) }
+  }
 
   // method math(Bool:D $is-title, @nodes where { $_.all ~~ XML::Node:D } --> Str:D) {
   //   @nodes.map({self.math-node($is-title,$_)}).join
@@ -464,71 +487,107 @@ class Fixer(
   //   }
   // }
 
+  fun html(isTitle: Boolean, nodes: NodeList): String =
+    (0 until nodes.length).map { html(isTitle, nodes.item(it)) }.joinToString("")
   // method html(Bool:D $is-title, @nodes where { $_.all ~~ XML::Node:D } --> Str:D) {
   //   @nodes.map({self.rec-node($is-title, $_)}).join
   // }
 
   // method rec-node(Bool:D $is-title, XML::Node:D $node --> Str:D) {
-  //   given $node {
-  //     when XML::CDATA { self.text($is-title, :!math, $node.data) }
-  //     when XML::Comment { '' } # Remove HTML Comments
-  //     when XML::Document { self.html($is-title, $node.root) }
-  //     when XML::PI { '' }
-  //     when XML::Text { self.text($is-title, :!math, decode-entities($node.text)) }
+  fun html(isTitle: Boolean, node: Node): String =
+    // given $node {
+    when (node) {
+      is CDATASection -> text(isTitle, false, node.data)
+      // when XML::CDATA { self.text($is-title, :!math, $node.data) }
+      is Comment -> "" // Remove HTML Comments
+      // when XML::Comment { '' } # Remove HTML Comments
+      is Document -> html(isTitle, node.documentElement)
+      // when XML::Document { self.html($is-title, $node.root) }
+      is ProcessingInstruction -> ""
+      // when XML::PI { '' }
+      is Text -> text(isTitle, false, node.data) // TODO: wrap node.text in decodeEntities
+      // when XML::Text { self.text($is-title, :!math, decode-entities($node.text)) }
 
-  //     when XML::Element {
-  //       sub wrap(Str:D $tag --> Str:D) {
-  //         my Str:D $str = self.html($is-title, $node.nodes);
-  //         $str eq '' ?? '' !! "\\$tag\{" ~ $str ~ "\}"
-  //       }
-  //       if ($node.attribs<aria-hidden> // '') eq 'true' {
-  //         ''
-  //       } else {
-  //         given $node.name {
-  //           when 'a' and $node.attribs<class>:exists and $node.attribs<class> ~~
-  //                    / « 'xref-fn' » / { '' } # Omit footnotes added by Oxford when on-campus
-  //           when 'a' { self.html($is-title, $node.nodes) } # Remove <a> links
-  //           when 'p' | 'par' { self.html($is-title, $node.nodes) ~ "\n\n" } # Replace <p> with \n\n
-  //           when 'i' | 'italic' { wrap( 'textit' ) } # Replace <i> and <italic> with \textit
-  //           when 'em' { wrap( 'emph' ) } # Replace <em> with \emph
-  //           when 'b' | 'strong' { wrap( 'textbf' ) } # Replace <b> and <strong> with \textbf
-  //           when 'tt' | 'code' { wrap( 'texttt' ) } # Replace <tt> and <code> with \texttt
-  //           when 'sup' | 'supscrpt' { wrap( 'textsuperscript' ) } # Superscripts
-  //           when 'sub' { wrap( 'textsubscript' ) } # Subscripts
-  //           when 'svg' { '' }
-  //           when 'script' { '' }
-  //           when 'math' { $node.nodes ?? '\ensuremath{' ~ self.math($is-title, $node.nodes) ~ '}' !! '' }
-  //           #when 'img' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
-  //             # $str ~~ s:i:g/"<img src=\"/content/" <[A..Z0..9]>+ "/xxlarge" (\d+)
-  //                          ".gif\"" .*? ">"/{chr($0)}/; # Fix for Springer Link
-  //           #when 'email' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
-  //             # $str ~~ s:i:g/"<email>" (.*?) "</email>"/$0/; # Fix for Cambridge
-  //           when 'span' {
-  //             if ($node.attribs<style> // '') ~~ / 'font-family:monospace' / {
-  //               wrap( 'texttt' )
-  //             } elsif $node.attribs<aria-hidden>:exists {
-  //               ''
-  //             } elsif $node.attribs<class>:exists {
-  //               given $node.attribs<class> {
-  //                 when / 'monospace' / { wrap( 'texttt' ) }
-  //                 when / 'italic' / { wrap( 'textit' ) }
-  //                 when / 'bold' / { wrap( 'textbf' ) }
-  //                 when / 'sup' / { wrap( 'textsuperscript' ) }
-  //                 when / 'sub' / { wrap( 'textsubscript' ) }
-  //                 when / 'sc' | [ 'type' ? 'small' '-'? 'caps' ] | 'EmphasisTypeSmallCaps' / {
-  //                   wrap( 'textsc' )
-  //                 }
-  //                 default { self.html($is-title, $node.nodes) }
-  //               }
-  //             } else {
-  //               self.html($is-title, $node.nodes)
-  //             }
-  //           }
-  //           default { say "WARNING: Unknown HTML tag: {$node.name}"; "[{$node.name}]" ~
-  //                     self.html($is-title, $node.nodes) ~ "[/{$node.name}]" }
-  //         }
-  //       }
-  //     }
+      // when XML::Element {
+      is Element -> {
+        fun wrap(tag: String): String {
+          val string = html(isTitle, node.childNodes)
+          return if (string == "") "" else "\\${tag}{${string}}"
+        }
+        // sub wrap(Str:D $tag --> Str:D) {
+        //   my Str:D $str = self.html($is-title, $node.nodes);
+        //   $str eq '' ?? '' !! "\\$tag\{" ~ $str ~ "\}"
+        // }
+        // if ($node.attribs<aria-hidden> // '') eq 'true' {
+        //   ''
+        // } else {
+        if (node.getAttribute("aria-hidden") == "true") {
+          ""
+        } else {
+          // given $node.name {
+          when (node.nodeName) {
+            // when 'a' and $node.attribs<class>:exists and $node.attribs<class> ~~
+            //          / « 'xref-fn' » / { '' } # Omit footnotes added by Oxford when on-campus
+            // when 'a' { self.html($is-title, $node.nodes) } # Remove <a> links
+            "a" ->
+              if (node.getAttribute("class").contains("\\b xref-fn \\b".r)) {
+                "" // Omit footnotes added by Oxford when on-campus
+              } else {
+                html(isTitle, node.childNodes) // Remove <a> links
+              }
+            // when 'p' | 'par' { self.html($is-title, $node.nodes) ~ "\n\n" } # Replace <p> with \n\n
+            "p", "par" -> html(isTitle, node.childNodes) + "\n\n" // Replace <p> with \n\n
+            // when 'i' | 'italic' { wrap( 'textit' ) } # Replace <i> and <italic> with \textit
+            "i", "italic" -> wrap("textit")
+            // when 'em' { wrap( 'emph' ) } # Replace <em> with \emph
+            "em" -> wrap("emph")
+            // when 'b' | 'strong' { wrap( 'textbf' ) } # Replace <b> and <strong> with \textbf
+            "b", "strong" -> wrap("textbf")
+            // when 'tt' | 'code' { wrap( 'texttt' ) } # Replace <tt> and <code> with \texttt
+            "tt", "code" -> wrap("texttt")
+            // when 'sup' | 'supscrpt' { wrap( 'textsuperscript' ) } # Superscripts
+            "sup", "supscrpt" -> wrap("textsuperscript")
+            // when 'sub' { wrap( 'textsubscript' ) } # Subscripts
+            "sub" -> wrap("textsubscript")
+            // when 'svg' { '' }
+            "svg" -> ""
+            // when 'script' { '' }
+            "script" -> ""
+            // when 'math' { $node.nodes ?? '\ensuremath{' ~ self.math($is-title, $node.nodes) ~ '}' !! '' }
+            // #when 'img' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
+            //   # $str ~~ s:i:g/"<img src=\"/content/" <[A..Z0..9]>+ "/xxlarge" (\d+)
+            //                ".gif\"" .*? ">"/{chr($0)}/; # Fix for Springer Link
+            // #when 'email' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
+            //   # $str ~~ s:i:g/"<email>" (.*?) "</email>"/$0/; # Fix for Cambridge
+            // when 'span' {
+            //   if ($node.attribs<style> // '') ~~ / 'font-family:monospace' / {
+            //     wrap( 'texttt' )
+            //   } elsif $node.attribs<aria-hidden>:exists {
+            //     ''
+            //   } elsif $node.attribs<class>:exists {
+            //     given $node.attribs<class> {
+            //       when / 'monospace' / { wrap( 'texttt' ) }
+            //       when / 'italic' / { wrap( 'textit' ) }
+            //       when / 'bold' / { wrap( 'textbf' ) }
+            //       when / 'sup' / { wrap( 'textsuperscript' ) }
+            //       when / 'sub' / { wrap( 'textsubscript' ) }
+            //       when / 'sc' | [ 'type' ? 'small' '-'? 'caps' ] | 'EmphasisTypeSmallCaps' / {
+            //         wrap( 'textsc' )
+            //       }
+            //       default { self.html($is-title, $node.nodes) }
+            //     }
+            //   } else {
+            //     self.html($is-title, $node.nodes)
+            //   }
+            else -> {
+              println("WARNING: Unknown HTML tag: ${node.nodeName}")
+              "[${node.nodeName}]${html(isTitle, node.childNodes)}[/${node.nodeName}]"
+            }
+          }
+        }
+      }
 
-  //     default { die "Unknown XML node type '{$node.^name}': $node" }
+      else -> TODO("Unknown XML node type '${node.javaClass.name}': ${node}")
+      // default { die "Unknown XML node type '{$node.^name}': $node" }
+    }
 }

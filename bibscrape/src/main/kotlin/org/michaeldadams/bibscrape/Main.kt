@@ -237,24 +237,24 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
     { it } // TODO: lowercase?
   )
 
-  val noEncode: List<String> by option(
+  val noEncode: Set<String> by option(
     help = """Fields that should not be LaTeX encoded."""
-  ).list(
-    { listOf(F.DOI, F.URL, F.EPRINT, F.BIB_SCRAPE_URL).joinToString("\n") },
+  ).set(
+    { setOf(F.DOI, F.URL, F.EPRINT, F.BIB_SCRAPE_URL).joinToString("\n") },
     { it } // TODO: lowercase?
   )
 
-  val noCollapse: List<String> by option(
+  val noCollapse: Set<String> by option(
     help = """Fields that should not have multiple successive whitespaces collapsed into a single whitespace."""
-  ).list({ "" }, { it }) // TODO: lowercase?
+  ).set({ "" }, { it }) // TODO: lowercase?
 
-  val omit: List<String> by option(
+  val omit: Set<String> by option(
     help = """Fields that should be omitted from the output."""
-  ).list({ "" }, { it }) // TODO: lowercase?
+  ).set({ "" }, { it }) // TODO: lowercase?
 
-  val omitEmpty: List<String> by option(
+  val omitEmpty: Set<String> by option(
     help = """Fields that should be omitted from the output if they are empty."""
-  ).list(
+  ).set(
     { listOf(F.ABSTRACT, F.ISSN, F.DOI, F.KEYWORDS).joinToString("\n") },
     { it } // TODO: lowercase?
   )
