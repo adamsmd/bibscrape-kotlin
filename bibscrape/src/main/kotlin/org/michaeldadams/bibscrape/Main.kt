@@ -548,36 +548,6 @@ class Main : CliktCommand(
       }
     }
 
-    // sub default-file(Str:D $type, Str:D $file --> Callable[IO::Path:D]) {
-    //   sub (IO::Path:D $x --> IO::Path:D) {
-    //     if $x ne '.' {
-    //       $x
-    //     } else {
-    //       my IO::Path:D $io = $config-dir-path.add($file);
-    //       if !$io.IO.e {
-    //         die "$type file does not exist: $file.  Invoke bibscrape with --init to automatically create it.";
-    //       }
-    //       $io
-    //     }
-    //   }
-    // }
-    // val nameActions: List<Pair<Boolean, String>> = emptyList()
-    // var names: Map<String, BibtexPersion> = emptyMap()
-    // for ((isFile, value) in nameActions) {
-    //   names =
-    //     if (isFile) parseNames(File(value).readText(), names)
-    //     else names = parseNames(value.replace(";".r, "\n"), names)
-    //     // if $x ne '.' {
-    //     //   $x
-    //     // } else {
-    //     //   my IO::Path:D $io = $config-dir-path.add($file);
-    //     //   if !$io.IO.e {
-    //     //     die "$type file does not exist: $file.  Invoke bibscrape with --init to automatically create it.";
-    //     //   }
-    //     //   $io
-    //     // }
-    // }
-
     var key: List<String> = inputs.key
 
     val fixer = Fixer(
