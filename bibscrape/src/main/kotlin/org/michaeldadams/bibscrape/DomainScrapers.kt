@@ -158,7 +158,11 @@ object ScrapeArxiv : DomainScraper {
     // #$web-driver.execute_script(
     // #   'window.location.href = arguments[0]', "https://export.arxiv.org/api/query?id_list=$id");
     driver.executeScript("window.open(arguments[0], \"_self\")", "https://export.arxiv.org/api/query?id_list=${id}")
-    val xml = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(driver.pageSource).documentElement
+    val xml = DocumentBuilderFactory
+      .newInstance()
+      .newDocumentBuilder()
+      .parse(driver.pageSource.byteInputStream())
+      .documentElement
     driver.navigate().back()
 
     fun Element.getElementListByTagName(tag: String): List<Element> =
