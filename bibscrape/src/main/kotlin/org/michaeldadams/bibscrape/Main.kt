@@ -594,7 +594,6 @@ class Main : CliktCommand(
         // It's a URL
         if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: ${a}") }
         fix(keepScrapedKey, scrape(a))
-        println()
       } else {
         // Not a URL so try reading it as a file
         val entries =
@@ -705,7 +704,7 @@ class Main : CliktCommand(
       val comment = lines[1]
       val endOfFlags = 2 + lines.drop(2).indexOfFirst { it.contains("^ \\s* $".r) }
       val flags = lines.subList(2, endOfFlags)
-      val expected = lines.subList(endOfFlags + 1, lines.size).joinToString("\n")
+      val expected = lines.subList(endOfFlags + 1, lines.size).joinToString("\n", postfix = "\n")
 
       val command =
         listOf(javaExe) +

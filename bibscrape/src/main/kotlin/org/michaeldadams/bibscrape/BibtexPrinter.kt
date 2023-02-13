@@ -1,6 +1,7 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
+import bibtex.dom.BibtexString
 import java.io.PrintStream
 
 /** Printer for [BibtexEntry].
@@ -16,8 +17,10 @@ class BibtexPrinter(val fields: List<String>) {
   fun print(stream: PrintStream, entry: BibtexEntry): Unit {
     stream.println("@${entry.entryType}{${entry.entryKey},")
     for (field in fields) {
-      entry[field]?.let {
-        stream.println("  ${field} = ${it},")
+      entry[field]?.let { value ->
+        // Prevent BibtexString.toString() from omitting braces around numbers
+        val string = (value as? BibtexString)?.content?.let { "{${it}}" } ?: value.toString()
+        stream.println("  ${field} = ${string},")
       }
     }
     stream.println("}")
