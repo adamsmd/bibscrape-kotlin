@@ -10,6 +10,8 @@ import com.github.ajalt.clikt.parameters.arguments.* // ktlint-disable no-wildca
 import com.github.ajalt.clikt.parameters.groups.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.parameters.options.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.parameters.types.* // ktlint-disable no-wildcard-imports
+import com.github.difflib.text.DiffRowGenerator
+import com.github.difflib.text.DiffRow
 import org.junit.platform.reporting.legacy.xml.LegacyXmlReportGeneratingListener
 import java.io.File
 import java.io.FileReader
@@ -721,6 +723,30 @@ class Main : CliktCommand(
       println(expected)
       println("Actual:")
       println(result?.first)
+
+      val diffRowGenerator = DiffRowGenerator
+        .create()
+        .showInlineDiffs(true) // Use word diffs
+        .ignoreWhiteSpaces(false) // Default
+        .reportLinesUnchanged(false) // Default
+        .oldTag { f -> if (f) "<<<" else ">>>" }
+        .newTag { f -> if (f) "[[[" else "]]]" } // TODO: unicode?
+        // .processDiffs()
+        // .columnWidth(0) // Default
+        .mergeOriginalRevised(true) // Show diffs inline instead of two column
+        .decompressDeltas(true) // Default
+        .inlineDiffByWord(false) // Default
+        // .inlineDiffBySplitter() // Handled by inlineDiffByWord()
+        .lineNormalizer { it } // Don't muck with the inputs
+        // .equalizer() // Handled by ignoreWhiteSpaces()
+        .replaceOriginalLinefeedInChangesWithSpaces(false) // Default
+        .build()
+      val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result!!.first.lines())
+      for (row in diffRows) {
+        if (row.tag != DiffRow.Tag.EQUAL) { // TODO: || show-all-lines
+          println(row.oldLine) // TODO: show line number?
+        }
+      }
     }
 
     // COUNT=0
