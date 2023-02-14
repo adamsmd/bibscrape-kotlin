@@ -166,22 +166,37 @@ class Driver private constructor(
           request, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
         val blockedDomains = """
           (^ | \.) (
-            # | addthis\.com
-            # | addthisedge\.com
-            # | crossref\.org
-            disqus\.com
-            # | google-analytics\.com
-            # | googletagmanager\.com
-            # | heapanalytics\.com
-            # | moatads\.com
-            # | mopinion\.com
-            # | scholar\.google\.com
-            # | videodelivery\.net
+            | addthis\.com
+            | addthisedge\.com
+            | ads-twitter\.com
+            | airbrake\.io
+            | disqus\.com
+            | doubleclick\.net
+            | firefox\.com
+            | google-analytics\.com
+            | googlesyndication\.com
+            | googletagmanager\.com
+            | heapanalytics\.com
+            | hotjar\.com
+            | jwplayer\.com
+            | linkedin\.com
+            | moatads\.com
+            | mopinion\.com
+            | mozilla\.com
+            | mozilla\.net
+            | oribi\.io
+            | qualtrics\.com
+            | scholar\.google\.com
+            | site24x7rum\.eu
+            | t\.co
+            | trendmd\.com
+            | videodelivery\.net
           ) $
         """.trimIndent().r
 
-        // dummy values for domains that are slow and that we don't actually need
-        if (request.headers()[HttpHeaderNames.HOST].replace(":443 $".r, "").contains(blockedDomains)) {
+        // Use dummy values for domains that are slow and that we don't actually need
+        val domain = request.headers()[HttpHeaderNames.HOST].replace(":443 $".r, "")
+        if (domain.contains(blockedDomains)) {
           DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
         } else {
           null
