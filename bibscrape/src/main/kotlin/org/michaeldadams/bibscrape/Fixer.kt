@@ -10,6 +10,8 @@ import org.w3c.dom.Document
 import org.w3c.dom.ProcessingInstruction
 import org.w3c.dom.Text
 import org.w3c.dom.NodeList
+import com.github.ladutsko.isbn.ISBN
+import com.github.ladutsko.isbn.ISBNFormat
 import javax.xml.parsers.DocumentBuilderFactory
 import java.util.Locale
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
@@ -20,6 +22,9 @@ import org.michaeldadams.bibscrape.Bibtex.Types as T
 typealias NameMap = Map<String, BibtexPerson>
 typealias NounMap = Map<String, String>
 typealias StopWordSet = Set<String>
+
+// TODO: put somewhere appropriate
+fun <A> orNull(test: Boolean, block: () -> A): A? = if (test) block() else null
 
 /** What type of ISBN or ISSN media type to prefer. */
 @Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
@@ -60,6 +65,7 @@ class Fixer(
   val isbnMedia: MediaType,
   val isbnType: IsbnType,
   val isbnSep: String,
+  val issnSep: String,
   // # has Bool:D $.verbose is required;
 
   // // FIELD OPTIONS
@@ -179,8 +185,27 @@ class Fixer(
     }
 
     // self.isbn($entry, 'issn', $.issn-media, &canonical-issn);
+    isn(entry, F.ISSN, issnMedia) { issn ->
+      val digits = issn.mapNotNull { it.digitToIntOrNull() ?: orNull(it.uppercase() == "X") { 10 } }
+      if (digits.size != 8) { TODO() }
+      val checkValue = 11 - digits.take(7).mapIndexed { i, c -> c * (8 - i) }.sum() % 11
+      val checkChar = if (checkValue == 10) 'X' else checkValue.toString()
+      if (checkValue != digits.last()) { println("Warning: Invalid Check Digit. TODO") }
+      (digits.take(4).joinToString("") + issnSep + digits.drop(4).take(3).joinToString("") + checkChar)
+    }
 
     // self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
+    isn(entry, F.ISBN, isbnMedia) { oldIsbn ->
+      val checkDigit: Char = ISBN.calculateCheckDigit(oldIsbn).last()
+      if (checkDigit.toString() != oldIsbn.last().uppercase()) { println("WARNING: Invalid Check Digit. Expected: ${checkDigit}. Got: ${oldIsbn.last()}.") }
+      val isbn = ISBN.parseIsbn(oldIsbn.replace(".$".r, "${checkDigit}"))
+      val dehyphenated = when (isbnType) {
+        IsbnType.ISBN13 -> isbn.isbn13
+        IsbnType.ISBN10 -> isbn.isbn10 ?: isbn.isbn13
+        IsbnType.PRESERVE -> if (ISBN.isIsbn13(oldIsbn)) isbn.isbn13 else isbn.isbn10
+      }
+      ISBNFormat(isbnSep).format(dehyphenated)
+    }
 
     // Change language codes (e.g., "en") to proper terms (e.g., "English")
     entry.update(F.LANGUAGE) { Locale.forLanguageTag(it)?.displayLanguage ?: it }
@@ -332,26 +357,25 @@ class Fixer(
     return entry
   }
 
-  fun isbn(
+  fun isn(
     entry: BibtexEntry,
     field: String,
     mediaType: MediaType,
-    separator: String,
-    canonicalize: (String, MediaType, String) -> String
+    canonicalize: (String) -> String
   ): Unit {
     entry.update(field) { value ->
       if (value.isEmpty()) {
         null // TODO: not needed?
       } else {
-        value.find("^ ([0-9X- ]+) \\ \\(Print\\)\\ ([0-9X- ]+) \\ \\(Online\\) $".ri)?.let {
+        value.find("^ ([0-9X\\ -]+) \\ \\(Print\\)\\ ([0-9X\\ -]+) \\ \\(Online\\) $".ri)?.let {
           when (mediaType) {
-            MediaType.PRINT -> canonicalize(it.groupValues[1], mediaType, separator)
-            MediaType.ONLINE -> canonicalize(it.groupValues[2], mediaType, separator)
+            MediaType.PRINT -> canonicalize(it.groupValues[1])
+            MediaType.ONLINE -> canonicalize(it.groupValues[2])
             MediaType.BOTH ->
-              canonicalize(it.groupValues[1], mediaType, separator) + " (Print) " +
-                canonicalize(it.groupValues[2], mediaType, separator) + " (Online) "
+              canonicalize(it.groupValues[1]) + " (Print) " +
+                canonicalize(it.groupValues[2]) + " (Online) "
           }
-        } ?: canonicalize(value, mediaType, separator)
+        } ?: canonicalize(value)
       }
     }
   }

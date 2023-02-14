@@ -202,6 +202,14 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).default("-")
 
+  val issnSep: String by option(
+    help = """
+      The string to separate parts of an ISSN.
+      Hyphen and space are the most common.
+      Use an empty string to specify no separator.
+      """
+  ).default("-")
+
   // TODO: flag to force fresh key generation
 
   private fun mediaHelpString(name: String): String = """
@@ -561,6 +569,7 @@ class Main : CliktCommand(
       isbnMedia = generalOptions.isbnMedia,
       isbnType = generalOptions.isbnType,
       isbnSep = generalOptions.isbnSep,
+      issnSep = generalOptions.issnSep,
       noEncode = bibtexFieldOptions.noEncode,
       noCollapse = bibtexFieldOptions.noCollapse,
       omit = bibtexFieldOptions.omit,

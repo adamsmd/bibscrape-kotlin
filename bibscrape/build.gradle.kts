@@ -27,6 +27,7 @@ dependencies {
 
   // ISBN
   implementation("com.github.ladutsko:isbn-core:1.1.1")
+  implementation("org.glassfish.jaxb:jaxb-runtime:2.3.8") // Fixes: NoClassDefFoundError: javax/xml/bind/JAXBContext
 
   // Logging
   implementation("ch.qos.logback:logback-classic:1.4.5")
