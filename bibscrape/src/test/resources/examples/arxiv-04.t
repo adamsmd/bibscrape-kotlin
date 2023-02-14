@@ -2,7 +2,7 @@ https://arxiv.org/abs/hep-ex/0307015
 Redirect to actual publisher.
 
 WARNING: Possibly incorrect name: {The H1 Collaboration},
-@article{TheH1Collaboration:2003:multi-electron:10.1140/epjc/s2003-01326-x,
+@article{theh1collaboration:2003:multi-electron:10.1140/epjc/s2003-01326-x,
   author = {{The H1 Collaboration},},
   title = {Multi-electron production at high transverse momenta in ep collisions at {HERA}},
   journal = {The European Physical Journal C - Particles and Fields},

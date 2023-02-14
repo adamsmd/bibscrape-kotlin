@@ -4,7 +4,7 @@ Explicit autogeneration of key.  Flag with space in it.  ISBN with spaces.
 --isbn-sep= 
 
 WARNING: Possibly incorrectly capitalized noun 'howard' in title
-@inproceedings{Mazurak:2010:lolliproc:10.1145/1863543.1863551,
+@inproceedings{mazurak:2010:lolliproc:10.1145/1863543.1863551,
   author = {Mazurak, Karl and Zdancewic, Steve},
   title = {Lolliproc: to concurrency from classical linear logic via curry-howard and control},
   booktitle = {Proceedings of the 15th ACM SIGPLAN International Conference on Functional Programming},
