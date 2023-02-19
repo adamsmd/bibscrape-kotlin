@@ -673,7 +673,7 @@ class Fixer(
                   // when / 'sc' | [ 'type' ? 'small' '-'? 'caps' ] | 'EmphasisTypeSmallCaps' / {
                   //   wrap( 'textsc' )
                   // }
-                  attr.contains("\\b ( sc | (type)? small -? caps | sub | EmphasisTypeSmallCaps \\b".r) ->
+                  attr.contains("\\b ( sc | (type)? small -? caps | sub | EmphasisTypeSmallCaps ) \\b".r) ->
                     wrap("textsc")
                   // default { self.html($is-title, $node.nodes) }
                   else -> html(isTitle, node.childNodes)
