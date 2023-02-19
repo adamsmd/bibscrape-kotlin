@@ -4,11 +4,13 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import ch.difty.kris.toRisRecords
 import org.openqa.selenium.By
+import org.openqa.selenium.support.ui.Select
 import org.w3c.dom.Element
 import java.net.URI
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.apache.commons.text.StringEscapeUtils
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : DomainScraper {
@@ -272,7 +274,7 @@ object ScrapeCambridge : DomainScraper {
     HtmlMeta.bibtex(entry, meta, F.ABSTRACT to false)
 
     // // Title
-    entry[F.TITLE] = driver.awaitFindElement(By.className("article-title")).innerHtml
+    // entry[F.TITLE] = driver.awaitFindElement(By.className("article-title")).innerHtml
 
     // // Abstract
     // my #`(Inline::Python::PythonObject:D) @abstract = $web-driver.find_elements_by_class_name( 'abstract' );
@@ -287,9 +289,9 @@ object ScrapeCambridge : DomainScraper {
     // }
 
     // // ISSN
-    val pissn = driver.findElement(By.name("productIssn")).getAttribute("value")
-    val eissn = driver.findElement(By.name("productEissn")).getAttribute("value")
-    entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
+    // val pissn = driver.findElement(By.name("productIssn")).getAttribute("value")
+    // val eissn = driver.findElement(By.name("productEissn")).getAttribute("value")
+    // entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
 
     return entry
   }
@@ -519,7 +521,13 @@ object ScrapeOxford : DomainScraper {
 
     // // BibTeX
     driver.awaitFindElement(By.className("js-cite-button")).click()
-    val selectElement = driver.awaitFindElement(By.id("selectFormat"))
+    val selectElement = Select(driver.awaitFindElement(By.id("selectFormat")));
+    driver.awaitNonNull {
+      selectElement.selectByVisibleText(".bibtex (BibTex)");
+      val button = driver.findElement(By.className("citation-download-link"))
+      orNull(!button.getAttribute("class").contains("\\b disabled \\b".r)) { button }
+    }.click()
+    // driver.findElement(By.className("citation-download-link")).click()
     // my #`(Inline::Python::PythonObject:D) $select = $web-driver.select($select-element);
     // await({
     //   $select.select_by_visible_text( '.bibtex (BibTex)' );
@@ -561,10 +569,10 @@ object ScrapeScienceDirect : DomainScraper {
 
   override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
-    driver.await {
+    driver.awaitNonNull {
       // TODO: why are these in the same await? This probably breaks the "driver.timeout" model
-      it.findElement(By.id("export-citation")).click()
-      it.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
+      driver.findElement(By.id("export-citation")).click()
+      driver.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
     }
     val entry = Bibtex.parseEntries(driver.textPlain()).first()
     driver.navigate().back()
@@ -636,8 +644,8 @@ object ScrapeSpringer : DomainScraper {
     // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // ISBN
-    val pisbn = driver.findElement(By.id("print-isbn"))?.innerHtml
-    val eisbn = driver.findElement(By.id("electronic-isbn"))?.innerHtml
+    val pisbn = driver.findElements(By.id("print-isbn")).firstOrNull()?.innerHtml
+    val eisbn = driver.findElements(By.id("electronic-isbn")).firstOrNull()?.innerHtml
     if (pisbn != null && eisbn != null) { entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)" }
 
     // // ISSN
