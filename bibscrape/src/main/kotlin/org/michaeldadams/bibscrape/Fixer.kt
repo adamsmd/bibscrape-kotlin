@@ -2,21 +2,21 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
+import com.github.ladutsko.isbn.ISBN
+import com.github.ladutsko.isbn.ISBNFormat
 import org.apache.commons.text.StringEscapeUtils
 import org.apache.commons.text.translate.EntityArrays
 import org.apache.commons.text.translate.LookupTranslator
-import org.w3c.dom.Node
-import org.w3c.dom.Element
 import org.w3c.dom.CDATASection
 import org.w3c.dom.Comment
 import org.w3c.dom.Document
+import org.w3c.dom.Element
+import org.w3c.dom.Node
+import org.w3c.dom.NodeList
 import org.w3c.dom.ProcessingInstruction
 import org.w3c.dom.Text
-import org.w3c.dom.NodeList
-import com.github.ladutsko.isbn.ISBN
-import com.github.ladutsko.isbn.ISBNFormat
-import javax.xml.parsers.DocumentBuilderFactory
 import java.util.Locale
+import javax.xml.parsers.DocumentBuilderFactory
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Months as M
 import org.michaeldadams.bibscrape.Bibtex.Names as N
@@ -104,7 +104,7 @@ class Fixer(
     }
 
     // Fix Springer's use of 'note' to store 'doi'
-    entry.update(F.NOTE) { if (it == entry[F.DOI] ?: "") null else it }
+    entry.update(F.NOTE) { orNull(it != entry[F.DOI] ?: "") { it } }
 
     // ///////////////////////////////
     // Post-omit fixes              //
@@ -194,7 +194,7 @@ class Fixer(
       val checkValue = 11 - digits.take(7).mapIndexed { i, c -> c * (8 - i) }.sum() % 11
       val checkChar = if (checkValue == 10) 'X' else checkValue.toString()
       if (checkValue != digits.last()) { println("Warning: Invalid Check Digit. TODO") }
-      (digits.take(4).joinToString("") + issnSep + digits.drop(4).take(3).joinToString("") + checkChar)
+      digits.take(4).joinToString("") + issnSep + digits.drop(4).take(3).joinToString("") + checkChar
     }
 
     // self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
@@ -218,14 +218,14 @@ class Fixer(
 
     // Don't include pointless URLs to publisher's page
     val publisherUrl = """
-      ^
-      ( http s? ://doi\.acm\.org/
-      | http s? ://doi\.ieeecomputersociety\.org/
-      | http s? ://doi\.org/
-      | http s? ://dx\.doi\.org/
-      | http s? ://portal\.acm\.org/citation\.cfm
-      | http s? ://www\.jstor\.org/stable/
-      | http s? ://www\.sciencedirect\.com/science/article/
+      ^ (
+        http s? ://doi\.acm\.org/ |
+        http s? ://doi\.ieeecomputersociety\.org/ |
+        http s? ://doi\.org/ |
+        http s? ://dx\.doi\.org/ |
+        http s? ://portal\.acm\.org/citation\.cfm |
+        http s? ://www\.jstor\.org/stable/ |
+        http s? ://www\.sciencedirect\.com/science/article/
       )
     """.trimIndent().r
     entry.removeIf(F.URL) { it.contains(publisherUrl) }
@@ -348,7 +348,7 @@ class Fixer(
     val doi =
       entry.ifField(F.ARCHIVEPREFIX) { archiveprefix ->
         entry.ifField(F.EPRINT) { eprint ->
-          if (archiveprefix.string == "arXiv") ":arXiv.${eprint.string}" else null
+          orNull(archiveprefix.string == "arXiv") { ":arXiv.${eprint.string}" }
         }
       } ?: entry.ifField(F.DOI) { ":${it.string}" } ?: ""
     entry.entryKey = name + year + title + doi
@@ -654,11 +654,11 @@ class Fixer(
               if (node.getAttribute("style").contains("\\b font-family:monospace \b")) {
                 // wrap( 'texttt' )
                 wrap("texttt")
-              // } elsif $node.attribs<aria-hidden>:exists {
+                // } elsif $node.attribs<aria-hidden>:exists {
               } else if (node.getAttribute("aria-hidden") == "true") {
                 //   ''
                 ""
-              // } elsif $node.attribs<class>:exists {
+                // } elsif $node.attribs<class>:exists {
               } else {
                 // given $node.attribs<class> {
                 val attr = node.getAttribute("class")
@@ -680,10 +680,10 @@ class Fixer(
                     wrap("textsc")
                   // default { self.html($is-title, $node.nodes) }
                   else -> html(isTitle, node.childNodes)
-              //   }
-              // } else {
-              //   self.html($i              } else {
-              // }
+                  //   }
+                  // } else {
+                  //   self.html($i              } else {
+                  // }
                 }
               }
             else -> {

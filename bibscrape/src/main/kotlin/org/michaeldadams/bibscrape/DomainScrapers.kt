@@ -10,7 +10,6 @@ import java.net.URI
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
-import org.apache.commons.text.StringEscapeUtils
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : DomainScraper {
@@ -156,7 +155,7 @@ object ScrapeArxiv : DomainScraper {
     val id = urlRegex.find(driver.currentUrl)!!.groupValues[2]
 
     // Use the arXiv API to download meta-data
-    driver.get("https://export.arxiv.org/api/query?id_list=$id")
+    driver.get("https://export.arxiv.org/api/query?id_list=${id}")
     val xml = DocumentBuilderFactory
       .newInstance()
       .newDocumentBuilder()
@@ -521,9 +520,9 @@ object ScrapeOxford : DomainScraper {
 
     // // BibTeX
     driver.awaitFindElement(By.className("js-cite-button")).click()
-    val selectElement = Select(driver.awaitFindElement(By.id("selectFormat")));
+    val selectElement = Select(driver.awaitFindElement(By.id("selectFormat")))
     driver.awaitNonNull {
-      selectElement.selectByVisibleText(".bibtex (BibTex)");
+      selectElement.selectByVisibleText(".bibtex (BibTex)")
       val button = driver.findElement(By.className("citation-download-link"))
       orNull(!button.getAttribute("class").contains("\\b disabled \\b".r)) { button }
     }.click()

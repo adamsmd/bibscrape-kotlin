@@ -11,9 +11,8 @@ import com.github.ajalt.clikt.parameters.arguments.* // ktlint-disable no-wildca
 import com.github.ajalt.clikt.parameters.groups.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.parameters.options.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.parameters.types.* // ktlint-disable no-wildcard-imports
-import com.github.difflib.text.DiffRowGenerator
 import com.github.difflib.text.DiffRow
-import org.junit.platform.reporting.legacy.xml.LegacyXmlReportGeneratingListener
+import com.github.difflib.text.DiffRowGenerator
 import java.io.File
 import java.io.FileReader
 import java.io.InputStreamReader
@@ -538,23 +537,14 @@ class Main : CliktCommand(
     }
 
     if (operatingModes.init) {
-      // if $init {
       Inputs.bibscrapeConfigDir.mkdirs()
-      // $config-dir-path.mkdir;
       for (src in listOf(Inputs.namesFilename, Inputs.nounsFilename, Inputs.stopWordsFilename)) {
-        // for ($names-filename, $nouns-filename, $stop-words-filename) -> Str:D $src {
         val dst = Inputs.bibscrapeConfigDir.resolve(src)
-        // my IO::Path:D $dst = $config-dir-path.add($src);
         if (dst.exists()) {
-          // if $dst.e {
           println("Not copying default ${src} since ${dst} already exists")
-          // say "Not copying default $src since $dst already exists";
         } else {
-          // } else {
-          //   %?RESOURCES{$src}.copy($dst);
           dst.writeText(javaClass.getResource("/${src}").readText())
           println("Copied default ${src} to ${dst}")
-          //   say "Successfully copied default $src to $dst";
         }
       }
     }
@@ -732,11 +722,6 @@ class Main : CliktCommand(
       val result = retry(retries) {
         runCommand(command).let { if (it.second.exitValue() == 0) it else null }
       }
-
-      println("Expected:")
-      println(expected)
-      println("Actual:")
-      println(result?.first)
 
       val diffRowGenerator = DiffRowGenerator
         .create()

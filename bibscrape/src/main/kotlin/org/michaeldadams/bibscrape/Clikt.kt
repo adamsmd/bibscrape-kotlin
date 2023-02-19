@@ -1,13 +1,11 @@
 package org.michaeldadams.bibscrape
 
-import com.github.ajalt.clikt.completion.*
-import com.github.ajalt.clikt.core.*
-import com.github.ajalt.clikt.parameters.groups.*
-import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.completion.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.core.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.parameters.groups.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.parameters.options.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.parameters.types.enum
-import com.github.ajalt.clikt.parsers.*
-import kotlin.properties.ReadOnlyProperty
-import kotlin.reflect.KProperty
+import com.github.ajalt.clikt.parsers.* // ktlint-disable no-wildcard-imports
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths

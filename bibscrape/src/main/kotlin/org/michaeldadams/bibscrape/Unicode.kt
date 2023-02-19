@@ -2996,7 +2996,6 @@ object Unicode {
         if (ord >= 0x80) { println("WARNING: Unknown Unicode character: %s (U+x%04x)".format(char, ord)) }
         result += char.toString()
       }
-
     }
 
     return result

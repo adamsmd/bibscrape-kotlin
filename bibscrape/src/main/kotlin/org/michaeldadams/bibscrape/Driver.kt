@@ -6,6 +6,7 @@ import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpVersion
 import net.lightbody.bmp.BrowserMobProxyServer
 import net.lightbody.bmp.client.ClientUtil
+import org.apache.commons.text.StringEscapeUtils
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.WebDriver
@@ -16,16 +17,14 @@ import org.openqa.selenium.firefox.GeckoDriverService
 import org.openqa.selenium.remote.CapabilityType
 import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.remote.RemoteWebDriver
-import org.apache.commons.text.StringEscapeUtils
 import java.io.Closeable
 import java.io.File
-import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
-import kotlin.math.roundToLong
 
 /** The `innerHTML` property of a [WebElement]. */
 val WebElement.innerHtml: String
@@ -90,17 +89,13 @@ class Driver private constructor(
   fun awaitFindElements(by: By): List<WebElement> = this.await { it.findElements(by) }
 
   fun <T> awaitNonNull(timeout: Double = 30.0, sleep: Double = 0.5, block: () -> T?): T {
-    val start = Instant.now()
-    val end = start.plus(timeout.seconds.toJavaDuration())
+    val end = Instant.now().plus(timeout.seconds.toJavaDuration())
     while (true) {
-      try {
-        val result = block()
-        if (result != null) { return result }
-      } catch (e: Exception) {}
+      runCatching { block()?.let { return it } }
       if (Instant.now().isAfter(end)) {
         throw Error("Timeout while waiting for the browser")
       }
-      Thread.sleep((sleep * 1000.0).roundToLong())
+      Thread.sleep((sleep * 1_000.0).roundToLong())
     }
   }
   // sub await(&block --> Any:D) is export {
@@ -165,15 +160,17 @@ class Driver private constructor(
       val proxy = BrowserMobProxyServer()
       proxy.addResponseFilter {
           response, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
-        response.headers().remove("Content-Disposition")
-        if (response.headers()["Content-Type"].contains("""
+        val textPlainTypes = """
           ^ (
             application/atom\+xml |
             application/x-bibtex |
             application/x-research-info-systems |
             text/x-bibtex
             ) \b
-        """.trimIndent().r)) {
+        """.trimIndent().r
+
+        response.headers().remove("Content-Disposition")
+        if (response.headers()["Content-Type"].contains(textPlainTypes)) {
           response.headers()["Content-Type"] = "text/plain"
         }
       }
@@ -181,31 +178,31 @@ class Driver private constructor(
           request, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
         val blockedDomains = """
           (^ | \.) (
-            | addthis\.com
-            | addthisedge\.com
-            | ads-twitter\.com
-            | airbrake\.io
-            | disqus\.com
-            | doubleclick\.net
-            | firefox\.com
-            | google-analytics\.com
-            | googlesyndication\.com
-            | googletagmanager\.com
-            | heapanalytics\.com
-            | hotjar\.com
-            | jwplayer\.com
-            | linkedin\.com
-            | moatads\.com
-            | mopinion\.com
-            | mozilla\.com
-            | mozilla\.net
-            | oribi\.io
-            | qualtrics\.com
-            | scholar\.google\.com
-            | site24x7rum\.eu
-            | t\.co
-            | trendmd\.com
-            | videodelivery\.net
+            addthis\.com |
+            addthisedge\.com |
+            ads-twitter\.com |
+            airbrake\.io |
+            disqus\.com |
+            doubleclick\.net |
+            firefox\.com |
+            google-analytics\.com |
+            googlesyndication\.com |
+            googletagmanager\.com |
+            heapanalytics\.com |
+            hotjar\.com |
+            jwplayer\.com |
+            linkedin\.com |
+            moatads\.com |
+            mopinion\.com |
+            mozilla\.com |
+            mozilla\.net |
+            oribi\.io |
+            qualtrics\.com |
+            scholar\.google\.com |
+            site24x7rum\.eu |
+            t\.co |
+            trendmd\.com |
+            videodelivery\.net
           ) $
         """.trimIndent().r
 
