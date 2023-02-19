@@ -2,6 +2,7 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
+import bibtex.dom.BibtexToplevelComment
 import com.github.ajalt.clikt.completion.completionOption
 import com.github.ajalt.clikt.core.* // ktlint-disable no-wildcard-imports
 import com.github.ajalt.clikt.output.CliktHelpFormatter
@@ -612,7 +613,12 @@ class Main : CliktCommand(
 
         entries.forEach entry@{ entry ->
           if (entry !is BibtexEntry) {
-            println(entry)
+            if (entry is BibtexToplevelComment) {
+              // BibtexToplevelComment.toString() puts an extra newline at the end, so we print the content manually
+              print(entry.content)
+            } else {
+              print(entry)
+            }
           } else if (!operatingModes.scrape) {
             //         my $key = @key.shift || $item.key;
             // if !$scrape {
