@@ -511,8 +511,8 @@ class Fixer(
       // when XML::Comment { '' } # Remove HTML Comments
       is Comment -> "" // Remove HTML Comments
       // when XML::Document { self.math($is-title, $node.root) }
-      is Document -> html(isTitle, node.documentElement)
       // when XML::PI { '' }
+      is Document -> math(isTitle, node.documentElement)
       is ProcessingInstruction -> ""
       // when XML::Text { self.text($is-title, :math, decode-entities($node.text)) }
       is Text -> text(isTitle, true, node.data) // TODO: wrap node.text in decodeEntities
@@ -564,9 +564,9 @@ class Fixer(
           //   }
           "msup" ->
             "{${math(isTitle, node.childNodes.item(0))}}" +
-              "^{${math(isTitle, node.childNodes.item(2))}}"
           // default { say "WARNING: Unknown MathML tag: {$node.name}"; "[{$node.name}]" ~
           //           self.math($is-title, $node.nodes) ~ "[/{$node.name}]" }
+              "^{${math(isTitle, node.childNodes.item(1))}}"
           else -> {
             println("WARNING: Unknown MathML tag: ${node.nodeName}")
             "[${node.nodeName}]${math(isTitle, node.childNodes)}[/${node.nodeName}]"
