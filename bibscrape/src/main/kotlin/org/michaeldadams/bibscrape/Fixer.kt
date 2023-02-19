@@ -2,6 +2,9 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
+import org.apache.commons.text.StringEscapeUtils
+import org.apache.commons.text.translate.EntityArrays
+import org.apache.commons.text.translate.LookupTranslator
 import org.w3c.dom.Node
 import org.w3c.dom.Element
 import org.w3c.dom.CDATASection
@@ -241,7 +244,7 @@ class Fixer(
         val xml = DocumentBuilderFactory
           .newInstance()
           .newDocumentBuilder()
-          .parse("<root>${value.string}</root>".byteInputStream())
+          .parse(entityTranslator.translate("<root>${value.string}</root>").byteInputStream())
           .documentElement
           .childNodes
         var newValue = html(field == F.TITLE, xml)
@@ -694,4 +697,15 @@ class Fixer(
       else -> TODO("Unknown HTML node type '${node.javaClass.name}': ${node}")
       // default { die "Unknown XML node type '{$node.^name}': $node" }
     }
+
+  companion object {
+    private val entityMap = (
+      EntityArrays.APOS_UNESCAPE +
+        EntityArrays.BASIC_UNESCAPE +
+        EntityArrays.HTML40_EXTENDED_UNESCAPE +
+        EntityArrays.ISO8859_1_UNESCAPE
+      )
+      .mapValues { StringEscapeUtils.escapeXml11(it.value.toString()) }
+    val entityTranslator = LookupTranslator(entityMap)
+  }
 }

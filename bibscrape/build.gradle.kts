@@ -25,6 +25,9 @@ dependencies {
   // Command-line argument parsing
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
 
+  // HTML and XML Escapes
+  implementation("org.apache.commons:commons-text:1.10.0")
+
   // ISBN
   implementation("com.github.ladutsko:isbn-core:1.1.1")
   implementation("org.glassfish.jaxb:jaxb-runtime:2.3.8") // Fixes: NoClassDefFoundError: javax/xml/bind/JAXBContext
