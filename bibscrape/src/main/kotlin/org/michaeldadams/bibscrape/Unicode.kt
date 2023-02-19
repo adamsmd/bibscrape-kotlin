@@ -1616,7 +1616,7 @@ object Unicode {
     0x25bc to """\ensuremath{\blacktriangledown}""",
     0x25bd to """\ensuremath{\triangledown}""",
     0x25c0 to """\ensuremath{\blacktriangleleft}""",
-    0x25c1 to """\ensuremath{\vartriangleright}""",
+    0x25c1 to """\ensuremath{\vartriangleleft}""",
     0x25c6 to """\ding{117}""",
     0x25ca to """\ensuremath{\lozenge}""",
     0x25cf to """\CIRCLE""",
