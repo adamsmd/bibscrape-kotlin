@@ -151,13 +151,10 @@ object ScrapeArxiv : DomainScraper {
     }
 
     // Id
-    val id = urlRegex.find(driver.currentUrl)!!.groupValues[1]
+    val id = urlRegex.find(driver.currentUrl)!!.groupValues[2]
 
     // Use the arXiv API to download meta-data
-    // #$web-driver.get("https://export.arxiv.org/api/query?id_list=$id"); # Causes a timeout
-    // #$web-driver.execute_script(
-    // #   'window.location.href = arguments[0]', "https://export.arxiv.org/api/query?id_list=$id");
-    driver.executeScript("window.open(arguments[0], \"_self\")", "https://export.arxiv.org/api/query?id_list=${id}")
+    driver.get("https://export.arxiv.org/api/query?id_list=$id");
     val xml = DocumentBuilderFactory
       .newInstance()
       .newDocumentBuilder()
