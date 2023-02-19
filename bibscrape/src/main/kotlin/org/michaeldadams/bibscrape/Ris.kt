@@ -12,30 +12,16 @@ object Ris {
     RisType.BOOK to T.BOOK,
     RisType.CONF to T.PROCEEDINGS,
     RisType.CHAP to T.INBOOK,
-    // RisType.CHAPTER to T.INBOOK,
-    // RisType.INCOL to T.INCOLLECTION,
-    // RisType.JFULL to T.JOURNAL,
+    // RisType.CHAPTER to T.INBOOK, // TODO
+    // RisType.INCOL to T.INCOLLECTION, // TODO
+    // RisType.JFULL to T.JOURNAL, // TODO
     RisType.JOUR to T.ARTICLE,
     RisType.MGZN to T.ARTICLE,
     RisType.PAMP to T.BOOKLET,
     RisType.RPRT to T.TECHREPORT,
-    // RisType.REP to T.TECHREPORT,
+    // RisType.REP to T.TECHREPORT, // TODO
     RisType.UNPB to T.UNPUBLISHED,
   )
-
-  // my Str:D %ris-types = <
-  //   BOOK book
-  //   CONF proceedings
-  //   CHAP inbook
-  //   CHAPTER inbook
-  //   INCOL incollection
-  //   JFULL journal
-  //   JOUR article
-  //   MGZN article
-  //   PAMP booklet
-  //   RPRT techreport
-  //   REP techreport
-  //   UNPB unpublished>;
 
   // sub ris-author(Array:D[Str:D] $names --> Str:D) {
   //   $names
@@ -45,7 +31,6 @@ object Ris {
   //     .join( ' and ' );
   // }
 
-  // sub bibtex-of-ris(Ris:D $ris --> BibScrape::BibTeX::Entry:D) is export {
   fun bibtex(bibtexFile: BibtexFile, ris: RisRecord): BibtexEntry {
     val type = risTypes[ris.type] ?: run { println("Unknown RIS TY: ${ris.type}. Using misc."); T.MISC }
     val entry = bibtexFile.makeEntry(type, "")
@@ -53,6 +38,7 @@ object Ris {
     // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new();
 
     // my Regex:D $doi = rx/^ (\s* 'doi:' \s* \w+ \s+)? (.*) $/;
+    val doi = "^ ( \\s* doi: \\s* \\w+ \\s+ )? (.*) $".r;
 
     // sub set(Str:D $key, Str:_ $value --> Any:U) {
     //   $entry.fields{$key} = BibScrape::BibTeX::Value.new($value)
@@ -79,10 +65,14 @@ object Ris {
     entry[F.KEY] = ris.referenceId
     // # T1|TI|CT: title primary
     // # BT: title primary (books and unpub), title secondary (otherwise)
+    val isBook = setOf(RisType.BOOK, RisType.UNPB).contains(ris.type)
     // set( 'title', %self<T1> // %self<TI> // %self<CT> // ((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
+    entry[F.TITLE] = ris.primaryTitle ?: ris.title ?: orNull(isBook) { ris.bt }
     // set( 'booktitle', !((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
+    entry[F.BOOKTITLE] = orNull(!isBook) { ris.bt }
     // # T2: title secondary
     // set( 'journal', %self<T2>);
+    entry[F.JOURNAL] = ris.secondaryTitle
     // # JF|JO: periodical name, full
     // # JA: periodical name, abbriviated
     // # J1: periodical name, user abbriv 1
@@ -120,9 +110,14 @@ object Ris {
     // (%self<N1> // %self<AB> // %self<N2> // '') ~~ $doi;
     // set( 'abstract', $1.Str)
     //   if $1.Str.chars > 0;
+    val abstract = (ris.notes ?: ris.abstr ?: ris.abstr2)?.find(doi)?.groupValues?.get(2) ?: ""
+    if (abstract.length > 0) {
+      entry[F.ABSTRACT] = abstract
+    }
     // # KW: keyword. multiple
     // set( 'keywords', %self<KW>)
     //   if %self<KW>:exists;
+    entry[F.KEYWORDS] = if (ris.keywords.isEmpty()) null else ris.keywords.joinToString("; ")
     // # RP: reprint status (too complex for what we need)
 
     // # VL: volume number
@@ -134,16 +129,24 @@ object Ris {
     // # SP: start page (may contain end page)
     // # EP: end page
     // set( 'pages', %self<EP> ?? "{%self<SP>}--{%self<EP>}" !! %self<SP>); # Note that SP may contain end page
+    entry[F.PAGES] =
+      // Note that SP may contain end page
+      if (ris.endPage != null) "${ris.startPage}--${ris.endPage}" else ris.startPage
     // # CY: city
     // # PB: publisher
     // set( 'publisher', %self<PB>);
     entry[F.PUBLISHER] = ris.publisher
     // # SN: isbn or issn
     // set( 'issn', %self<SN>)
-    entry[F.ISSN] = ris.isbnIssn
     //   if %self<SN> and %self<SN> ~~ / « \d ** 4 '-' \d ** 4 » /;
+    if ((ris.isbnIssn ?: "").contains("\\b \\d{4} - \\d{4} \\b".r)) {
+      entry[F.ISSN] = ris.isbnIssn
+    }
     // set( 'isbn', %self<SN>)
     //   if %self<SN> and %self<SN> ~~ / « ([\d | 'X'] <[-\ ]>*) ** 10..13 » /;
+    if ((ris.isbnIssn ?: "").contains("\\b ((\\d | X) [-\\ ]?){10,13} \\b".ri)) {
+      entry[F.ISBN] = ris.isbnIssn
+    }
     // #AD: address
     // #AV: (unneeded)
     // #M[1-3]: misc
@@ -151,12 +154,15 @@ object Ris {
     // # UR: multiple lines or separated by semi, may try for doi
     // set( 'url', %self<UR>)
     //   if %self<UR>:exists;
+    entry[F.URL] = ris.url
     // #L1: link to pdf, multiple lines or separated by semi
     // #L2: link to text, multiple lines or separated by semi
     // #L3: link to records
     // #L4: link to images
     // # DO|DOI: doi
     // set( 'doi', %self<DO> // %self<DOI> // %self<M3> // (%self<N1> and %self<N1> ~~ $doi and $0));
+    // TODO: ris<DOI>
+    entry[F.DOI] = ris.doi ?: ris.typeOfWork ?: ris.notes?.find(doi)?.groupValues?.get(1)
     // # ER: End of record
 
     // $entry;
