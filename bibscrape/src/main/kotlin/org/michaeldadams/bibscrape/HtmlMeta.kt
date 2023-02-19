@@ -3,6 +3,7 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexEntry
 import org.openqa.selenium.By
 import org.openqa.selenium.WebDriver
+import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 typealias HtmlMetaTable = Map<String, List<String>>
 
@@ -54,7 +55,7 @@ object HtmlMeta {
     //     if @authors;
 
     // 'title', 'rft_title', 'dc.title', 'twitter:title' also contain title information
-    set("title", getFirst("citation_title"))
+    set(F.TITLE, getFirst("citation_title"))
 
     // test/acm-17.t has the article number in 'citation_firstpage' but no 'citation_firstpage'
     // test/ieee-computer-1.t has 'pages' but empty 'citation_firstpage'
@@ -69,13 +70,13 @@ object HtmlMeta {
     //     set( 'pages', %meta<pages>.head);
     //   }
 
-    set("volume", getFirst("citation_volume"))
-    set("number", getFirst("citation_issue"))
+    set(F.VOLUME, getFirst("citation_volume"))
+    set(F.NUMBER, getFirst("citation_issue"))
 
     // 'keywords' also contains keyword information
     if (meta.containsKey("citation_keywords")) {
       set(
-        "keywords",
+        F.KEYWORDS,
         meta
           .getOrDefault("citation_keywords", emptyList())
           .map { it.replace("^ \\s* ;* ".r, "").replace(" ;* \\s* $".r, "") }
@@ -89,7 +90,7 @@ object HtmlMeta {
     //   if %meta<citation_keywords>:exists;
 
     // 'rft_pub' also contains publisher information
-    set("publisher", getFirst("citation_publisher", "dc.publisher", "st.publisher"))
+    set(F.PUBLISHER, getFirst("citation_publisher", "dc.publisher", "st.publisher"))
 
     // 'dc.date', 'rft_date', 'citation_online_date' also contain date information
     // if %meta<citation_publication_date>:exists {
@@ -112,10 +113,10 @@ object HtmlMeta {
 
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     val types = listOf(
-      "citation_conference" to "booktitle",
-      "citation_inbook_title" to "booktitle",
-      "citation_journal_title" to "journal",
-      "st.title" to "journal",
+      "citation_conference" to F.BOOKTITLE,
+      "citation_inbook_title" to F.BOOKTITLE,
+      "citation_journal_title" to F.JOURNAL,
+      "st.title" to F.JOURNAL,
     )
     for ((k, b) in types) {
       if (meta.containsKey(k)) {
@@ -136,7 +137,7 @@ object HtmlMeta {
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
     meta.getOrDefault("citation_isbn", null)?.let {
-      if (it.size == 1) { set("isbn", it.first()) }
+      if (it.size == 1) { set(F.ISBN, it.first()) }
     }
     // if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
     //   set( 'isbn', %meta<citation_isbn>.head);
@@ -149,7 +150,7 @@ object HtmlMeta {
     //   set( 'issn', %meta<citation_issn>.head);
     // }
 
-    set("language", getFirst("citation_language", "dc.language"))
+    set(F.LANGUAGE, getFirst("citation_language", "dc.language"))
 
     // 'dc.description' also contains abstract information
     //   for (%meta<description>, %meta<Description>).flat -> Array:_[Str:D] $d {
@@ -158,7 +159,7 @@ object HtmlMeta {
     //   }
 
     meta.getOrDefault("citation_author_institution", null)?.let {
-      set("affiliation", it.joinByAnd())
+      set(F.AFFILIATION, it.joinByAnd())
     }
     //   set( 'affiliation', %meta<citation_author_institution>.join( ' and ' ))
     //     if %meta<citation_author_institution>:exists;
