@@ -20,11 +20,12 @@ import org.apache.commons.text.StringEscapeUtils
 import java.io.Closeable
 import java.io.File
 import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
-
-fun seconds(duration: Double): Duration = // TODO: put in appropriate module
-  Duration.ofNanos((duration * Duration.ofSeconds(1).toNanos()).toLong())
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
+import kotlin.math.roundToLong
 
 /** The `innerHTML` property of a [WebElement]. */
 val WebElement.innerHtml: String
@@ -68,7 +69,7 @@ class Driver private constructor(
    */
   fun <T> await(timeout: Double = 30.0, block: (WebDriver) -> T): T {
     val oldWait = this.manage().timeouts().implicitWaitTimeout
-    this.manage().timeouts().implicitlyWait(seconds(timeout))
+    this.manage().timeouts().implicitlyWait(timeout.seconds.toJavaDuration())
     val result = block(this)
     this.manage().timeouts().implicitlyWait(oldWait)
     return result
@@ -88,19 +89,20 @@ class Driver private constructor(
    */
   fun awaitFindElements(by: By): List<WebElement> = this.await { it.findElements(by) }
 
-  // fun <T> await(driver: WebDriver, block: () -> T?, timeout: Double = 30.0, sleep: Double = 0.5): T {
-  //   val start = Clock.System.now()
-  //   while (true) {
-  //     try {
-  //       val result = block()
-  //       if (result != null) { return result }
-  //     } catch (e: Exception) {}
-  //     if ((Clock.System.now() - start) > timeout.seconds) {
-  //       throw Error("Timeout while waiting for the browser")
-  //     }
-  //     Thread.sleep((sleep * 1000.0).roundToLong())
-  //   }
-  // }
+  fun <T> awaitNonNull(timeout: Double = 30.0, sleep: Double = 0.5, block: () -> T?): T {
+    val start = Instant.now()
+    val end = start.plus(timeout.seconds.toJavaDuration())
+    while (true) {
+      try {
+        val result = block()
+        if (result != null) { return result }
+      } catch (e: Exception) {}
+      if (Instant.now().isAfter(end)) {
+        throw Error("Timeout while waiting for the browser")
+      }
+      Thread.sleep((sleep * 1000.0).roundToLong())
+    }
+  }
   // sub await(&block --> Any:D) is export {
   //   my Rat:D constant $timeout = 30.0;
   //   my Rat:D constant $sleep = 0.5;
