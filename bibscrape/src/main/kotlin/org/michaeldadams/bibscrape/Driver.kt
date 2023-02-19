@@ -16,6 +16,7 @@ import org.openqa.selenium.firefox.GeckoDriverService
 import org.openqa.selenium.remote.CapabilityType
 import org.openqa.selenium.remote.DesiredCapabilities
 import org.openqa.selenium.remote.RemoteWebDriver
+import org.apache.commons.text.StringEscapeUtils
 import java.io.Closeable
 import java.io.File
 import java.time.Duration
@@ -115,6 +116,8 @@ class Driver private constructor(
   //     CATCH { default { sleep $sleep; } }
   //   }
   // }
+
+  fun textPlain(): String = StringEscapeUtils.unescapeHtml4(this.findElement(By.tagName("pre")).innerHtml)
 
   companion object {
     /** The process of launched drivers. */

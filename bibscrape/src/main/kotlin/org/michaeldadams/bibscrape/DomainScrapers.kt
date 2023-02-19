@@ -154,11 +154,11 @@ object ScrapeArxiv : DomainScraper {
     val id = urlRegex.find(driver.currentUrl)!!.groupValues[2]
 
     // Use the arXiv API to download meta-data
-    driver.get("https://export.arxiv.org/api/query?id_list=$id");
+    driver.get("https://export.arxiv.org/api/query?id_list=$id")
     val xml = DocumentBuilderFactory
       .newInstance()
       .newDocumentBuilder()
-      .parse(driver.pageSource.byteInputStream())
+      .parse(driver.textPlain().byteInputStream())
       .documentElement
     driver.navigate().back()
 
@@ -265,7 +265,7 @@ object ScrapeCambridge : DomainScraper {
     // // BibTeX
     driver.awaitFindElement(By.className("export-citation-product")).click()
     driver.awaitFindElement(By.cssSelector("[data-export-type=\"bibtex\"]")).click()
-    val entry = Bibtex.parseEntries(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).first()
     driver.navigate().back()
 
     // // HTML Meta
@@ -411,7 +411,7 @@ object ScrapeIosPress : DomainScraper {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
     driver.awaitFindElement(By.className("btn-clear")).click()
-    val ris = driver.pageSource.split("\\R".r).toRisRecords().first()
+    val ris = driver.textPlain().split("\\R".r).toRisRecords().first()
     driver.navigate().back()
 
     // my BibScrape::Ris::Ris:D $ris = ris-parse($web-driver.read-downloads());
@@ -459,7 +459,7 @@ object ScrapeJstor : DomainScraper {
     // await({ $web-driver.find_elements_by_css_selector( '[data-qa="cite-this-item"]' )
     //         || $web-driver.find_elements_by_class_name( 'cite-this-item' ) }).head.click;
     // await({ $web-driver.find_element_by_css_selector( '[data-sc="text link: citation text"]' ) }).click;
-    val entry = Bibtex.parseEntries(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).first()
     driver.navigate().back()
 
     // // HTML Meta
@@ -529,7 +529,7 @@ object ScrapeOxford : DomainScraper {
     //   $button.get_attribute( 'class' ) !~~ / « 'disabled' » /
     //     and $button }
     // ).click;
-    val entry = Bibtex.parseEntries(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).first()
     driver.navigate().back()
 
     // // HTML Meta
@@ -566,7 +566,7 @@ object ScrapeScienceDirect : DomainScraper {
       it.findElement(By.id("export-citation")).click()
       it.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
     }
-    val entry = Bibtex.parseEntries(driver.pageSource).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).first()
     driver.navigate().back()
 
     // // HTML Meta
