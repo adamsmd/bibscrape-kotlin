@@ -21,7 +21,7 @@ val String.r: Regex
 val String.ri: Regex
   get() = this.toRegex(setOf(RegexOption.COMMENTS, RegexOption.IGNORE_CASE))
 
-/** Runs `regex.find` on the receiver.  This is a convienence, so that, when
+/** Calls `regex.find` on the receiver.  This is a convienence, so that, when
  * matching, the regex comes after the string it is matching.
  *
  * @param regex the [Regex] to match
@@ -29,7 +29,7 @@ val String.ri: Regex
  */
 fun String.find(regex: Regex): MatchResult? = regex.find(this)
 
-/** Runs `regex.split` on the receiver.  This is a convienence, so that, when
+/** Calls `regex.split` on the receiver.  This is a convienence, so that, when
  * splitting, the regex comes after the string it is splitting.
  *
  * @param regex the [Regex] used to split
