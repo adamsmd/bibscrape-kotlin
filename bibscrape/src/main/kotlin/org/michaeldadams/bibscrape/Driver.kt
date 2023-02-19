@@ -164,8 +164,15 @@ class Driver private constructor(
       proxy.addResponseFilter {
           response, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
         response.headers().remove("Content-Disposition")
-        if (response.headers()["Content-Type"].contains("^ application/atom\\+xml \\b".r)) {
-            response.headers()["Content-Type"] = "text/plain"
+        if (response.headers()["Content-Type"].contains("""
+          ^ (
+            application/atom\+xml |
+            application/x-bibtex |
+            application/x-research-info-systems |
+            text/x-bibtex
+            ) \b
+        """.trimIndent().r)) {
+          response.headers()["Content-Type"] = "text/plain"
         }
       }
       proxy.addRequestFilter {
