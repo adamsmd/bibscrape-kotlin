@@ -578,8 +578,8 @@ class Main : CliktCommand(
 
     val printer = BibtexPrinter(bibtexFieldOptions.field)
 
-    val keepScrapedKey = false
-    val keepReadKey = true
+    val keepScrapedKey = false // TODO: as flag
+    val keepReadKey = true // TODO: as flag
     for (a in args) {
       fun scrape(url: String): BibtexEntry =
         Scraper.scrape(
@@ -589,12 +589,12 @@ class Main : CliktCommand(
           generalOptions.timeout
         )
 
-      fun fix(keepKey: Boolean, entry: BibtexEntry): Unit {
+      fun fix(keepKey: Boolean, readKey: String?, entry: BibtexEntry): Unit {
         val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
         // TODO: setEntryKey lower cases but BibtexEntry() does not
         // TODO: don't keepKey when scraping
 
-        newEntry.entryKey = key.firstOrNull() ?: if (keepKey) entry.entryKey else newEntry.entryKey
+        newEntry.entryKey = key.firstOrNull() ?: if (keepKey) readKey ?: entry.entryKey else newEntry.entryKey
         key = key.drop(1) // TODO: dropFirst?
         printer.print(System.out, newEntry)
       }
@@ -602,7 +602,7 @@ class Main : CliktCommand(
       if (a.contains("^ http: | https: | doi: ".ri)) {
         // It's a URL
         if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: ${a}") }
-        fix(keepScrapedKey, scrape(a))
+        fix(keepScrapedKey, null, scrape(a))
       } else {
         // Not a URL so try reading it as a file
         val entries =
@@ -627,19 +627,19 @@ class Main : CliktCommand(
             //   update($item, 'title', { s:g/ '{' (\d* [<upper> \d*] ** 2..*) '}' /$0/ });
             //   update($item, 'series', { s:g/ '~' / / });
             //   fix($key, $item);
-            fix(keepReadKey, entry)
+            fix(keepReadKey, entry.entryKey, entry)
           } else {
             entry.ifField(F.BIB_SCRAPE_URL) {
-              fix(keepReadKey, scrape(it.string))
+              fix(keepReadKey, entry.entryKey, scrape(it.string))
             } ?: entry.ifField(F.DOI) {
               val doi = "doi:${it.string.replace("^ doi:".r, "")}"
-              fix(keepReadKey, scrape(doi))
+              fix(keepReadKey, entry.entryKey, scrape(doi))
             } ?: run {
               for (field in listOf(F.URL, F.HOWPUBLISHED)) {
                 entry.ifField(field) {
                   runCatching { scrape(it.string) }.getOrNull() // Intentionally ignore if scrape fails
                 }?.let {
-                  fix(keepReadKey, it)
+                  fix(keepReadKey, entry.entryKey, it)
                   return@entry
                 }
               }
