@@ -302,11 +302,8 @@ object ScrapeIeeeComputer : DomainScraper {
   override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
     driver.awaitFindElement(By.cssSelector(".article-action-toolbar button")).click()
-    val bibtexLink = driver.awaitFindElement(By.linkText("BibTex"))
-    driver.executeScript("arguments[0].removeAttribute(\"target\")", bibtexLink)
-    driver.findElement(By.linkText("BibTex")).click()
-    var bibtexText = driver.awaitFindElement(By.tagName("pre")).innerHtml
-    // $bibtex-text ~~ s/ "\{," /\{key,/;
+    driver.findElement(By.partialLinkText("BIB TEX")).click()
+    var bibtexText = driver.awaitFindElement(By.id("bibTextContent")).innerHtml.replace("<br>".r, "\n")
     // $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
     val entry = Bibtex.parseEntries(bibtexText).first()
     driver.navigate().back()
@@ -317,7 +314,7 @@ object ScrapeIeeeComputer : DomainScraper {
 
     // // Authors
     entry[F.AUTHOR] = driver
-      .findElements(By.cssSelector("a[href^=\"https://www.computer.org/csdl/search/default?type=author&\"]"))
+      .findElements(By.cssSelector("a[href^=\"/csdl/search/default?type=author&\"]"))
       .map { it.innerHtml }
       .joinByAnd()
 
