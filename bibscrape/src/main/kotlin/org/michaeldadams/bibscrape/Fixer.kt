@@ -498,29 +498,18 @@ class Fixer(
 
   fun math(isTitle: Boolean, nodes: NodeList): String =
     (0 until nodes.length).map { math(isTitle, nodes.item(it)) }.joinToString("")
-  // method math(Bool:D $is-title, @nodes where { $_.all ~~ XML::Node:D } --> Str:D) {
-  //   @nodes.map({self.math-node($is-title,$_)}).join
-  // }
 
-  // method math-node(Bool:D $is-title, XML::Node:D $node --> Str:D) {
   fun math(isTitle: Boolean, node: Node): String =
-    // given $node {
     when (node) {
-      // when XML::CDATA { self.text($is-title, :math, $node.data) }
-      is CDATASection -> text(isTitle, true, node.data)
-      // when XML::Comment { '' } # Remove HTML Comments
+      is CDATASection -> text(isTitle, math = true, node.data)
       is Comment -> "" // Remove HTML Comments
       // when XML::Document { self.math($is-title, $node.root) }
-      // when XML::PI { '' }
       is Document -> math(isTitle, node.documentElement)
       is ProcessingInstruction -> ""
       // when XML::Text { self.text($is-title, :math, decode-entities($node.text)) }
       is Text -> text(isTitle, true, node.data) // TODO: wrap node.text in decodeEntities
-      // when XML::Element {
       is Element ->
-        // given $node.name {
         when (node.nodeName) {
-          // when 'mtext' { self.math($is-title, $node.nodes) }
           "mtext" -> math(isTitle, node.childNodes)
           // when 'mi' {
           //   ($node.attribs<mathvariant> // '') eq 'normal'
@@ -533,39 +522,20 @@ class Fixer(
             } else {
               math(isTitle, node.childNodes)
             }
-          // when 'mo' { self.math($is-title, $node.nodes) }
           "mo" -> math(isTitle, node.childNodes)
-          // when 'mn' { self.math($is-title, $node.nodes) }
           "mn" -> math(isTitle, node.childNodes)
-          // when 'msqrt' { '\sqrt{' ~ self.math($is-title, $node.nodes) ~ '}' }
           "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes)}}"
-          // when 'mrow' { '{' ~ self.math($is-title, $node.nodes) ~ '}' }
           "mrow" -> "{${math(isTitle, node.childNodes)}}"
-          // when 'mspace' { '\hspace{' ~ $node.attribs<width> ~ '}' }
           "mspace" -> "\\hspace{${node.getAttribute("width")}}"
-          // when 'msubsup' {
-          //   '{' ~ self.math-node($is-title, $node.nodes[0])
-          //   ~ '}_{' ~ self.math-node($is-title, $node.nodes[1])
-          //   ~ '}^{' ~ self.math-node($is-title, $node.nodes[2])
-          //   ~ '}'
-          // }
           "msubsup" ->
             "{${math(isTitle, node.childNodes.item(0))}}" +
               "_{${math(isTitle, node.childNodes.item(1))}}" +
               "^{${math(isTitle, node.childNodes.item(2))}}"
-          // when 'msub' {
-          //  '{' ~ self.math-node($is-title, $node.nodes[0]) ~ '}_{' ~ self.math-node($is-title, $node.nodes[1])
-          //       ~ '}' }
           "msub" ->
             "{${math(isTitle, node.childNodes.item(0))}}" +
               "_{${math(isTitle, node.childNodes.item(1))}}"
-          // when 'msup' {
-          //  '{' ~ self.math-node($is-title, $node.nodes[0]) ~ '}^{' ~ self.math-node($is-title, $node.nodes[1]) ~ '}'
-          //   }
           "msup" ->
             "{${math(isTitle, node.childNodes.item(0))}}" +
-          // default { say "WARNING: Unknown MathML tag: {$node.name}"; "[{$node.name}]" ~
-          //           self.math($is-title, $node.nodes) ~ "[/{$node.name}]" }
               "^{${math(isTitle, node.childNodes.item(1))}}"
           else -> {
             println("WARNING: Unknown MathML tag: ${node.nodeName}")
@@ -573,30 +543,19 @@ class Fixer(
           }
         }
       else -> TODO("Unknown MathML node type '${node.javaClass.name}': ${node}")
-      // default { die "Unknown XML node type '{$node.^name}': $node" }
     }
 
   fun html(isTitle: Boolean, nodes: NodeList): String =
     (0 until nodes.length).map { html(isTitle, nodes.item(it)) }.joinToString("")
-  // method html(Bool:D $is-title, @nodes where { $_.all ~~ XML::Node:D } --> Str:D) {
-  //   @nodes.map({self.rec-node($is-title, $_)}).join
-  // }
 
-  // method rec-node(Bool:D $is-title, XML::Node:D $node --> Str:D) {
   fun html(isTitle: Boolean, node: Node): String =
-    // given $node {
     when (node) {
-      is CDATASection -> text(isTitle, false, node.data)
-      // when XML::CDATA { self.text($is-title, :!math, $node.data) }
+      is CDATASection -> text(isTitle, math = false, node.data)
       is Comment -> "" // Remove HTML Comments
-      // when XML::Comment { '' } # Remove HTML Comments
       is Document -> html(isTitle, node.documentElement)
-      // when XML::Document { self.html($is-title, $node.root) }
       is ProcessingInstruction -> ""
-      // when XML::PI { '' }
       is Text -> text(isTitle, false, node.data) // TODO: wrap node.text in decodeEntities
       // when XML::Text { self.text($is-title, :!math, decode-entities($node.text)) }
-      // when XML::Element {
       is Element -> {
         fun wrap(tag: String): String {
           val string = html(isTitle, node.childNodes)
@@ -612,36 +571,22 @@ class Fixer(
         if (node.getAttribute("aria-hidden") == "true") {
           ""
         } else {
-          // given $node.name {
           when (node.nodeName) {
-            // when 'a' and $node.attribs<class>:exists and $node.attribs<class> ~~
-            //          / « 'xref-fn' » / { '' } # Omit footnotes added by Oxford when on-campus
-            // when 'a' { self.html($is-title, $node.nodes) } # Remove <a> links
             "a" ->
               if (node.getAttribute("class").contains("\\b xref-fn \\b".r)) {
                 "" // Omit footnotes added by Oxford when on-campus
               } else {
                 html(isTitle, node.childNodes) // Remove <a> links
               }
-            // when 'p' | 'par' { self.html($is-title, $node.nodes) ~ "\n\n" } # Replace <p> with \n\n
             "p", "par" -> html(isTitle, node.childNodes) + "\n\n" // Replace <p> with \n\n
-            // when 'i' | 'italic' { wrap( 'textit' ) } # Replace <i> and <italic> with \textit
             "i", "italic" -> wrap("textit")
-            // when 'em' { wrap( 'emph' ) } # Replace <em> with \emph
             "em" -> wrap("emph")
-            // when 'b' | 'strong' { wrap( 'textbf' ) } # Replace <b> and <strong> with \textbf
             "b", "strong" -> wrap("textbf")
-            // when 'tt' | 'code' { wrap( 'texttt' ) } # Replace <tt> and <code> with \texttt
             "tt", "code" -> wrap("texttt")
-            // when 'sup' | 'supscrpt' { wrap( 'textsuperscript' ) } # Superscripts
             "sup", "supscrpt" -> wrap("textsuperscript")
-            // when 'sub' { wrap( 'textsubscript' ) } # Subscripts
             "sub" -> wrap("textsubscript")
-            // when 'svg' { '' }
             "svg" -> ""
-            // when 'script' { '' }
             "script" -> ""
-            // when 'math' { $node.nodes ?? '\ensuremath{' ~ self.math($is-title, $node.nodes) ~ '}' !! '' }
             "math" -> if (node.childNodes.length == 0) "" else "\\ensuremath{${math(isTitle, node.childNodes)}}"
             // #when 'img' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
             //   # $str ~~ s:i:g/"<img src=\"/content/" <[A..Z0..9]>+ "/xxlarge" (\d+)
@@ -650,40 +595,21 @@ class Fixer(
             //   # $str ~~ s:i:g/"<email>" (.*?) "</email>"/$0/; # Fix for Cambridge
             // when 'span' {
             "span" ->
-              // if ($node.attribs<style> // '') ~~ / 'font-family:monospace' / {
-              if (node.getAttribute("style").contains("\\b font-family:monospace \b")) {
-                // wrap( 'texttt' )
-                wrap("texttt")
-                // } elsif $node.attribs<aria-hidden>:exists {
-              } else if (node.getAttribute("aria-hidden") == "true") {
-                //   ''
-                ""
-                // } elsif $node.attribs<class>:exists {
-              } else {
-                // given $node.attribs<class> {
-                val attr = node.getAttribute("class")
-                when {
-                  // when / 'monospace' / { wrap( 'texttt' ) }
-                  attr.contains("\\b monospace \\b".r) -> wrap("texttt")
-                  // when / 'italic' / { wrap( 'textit' ) }
-                  attr.contains("\\b italic \\b".r) -> wrap("textit")
-                  // when / 'bold' / { wrap( 'textbf' ) }
-                  attr.contains("\\b bold \\b".r) -> wrap("textbf")
-                  // when / 'sup' / { wrap( 'textsuperscript' ) }
-                  attr.contains("\\b sup \\b".r) -> wrap("textsuperscript")
-                  // when / 'sub' / { wrap( 'textsubscript' ) }
-                  attr.contains("\\b sub \\b".r) -> wrap("textsubscript")
-                  // when / 'sc' | [ 'type' ? 'small' '-'? 'caps' ] | 'EmphasisTypeSmallCaps' / {
-                  //   wrap( 'textsc' )
-                  // }
-                  attr.contains("\\b ( sc | (type)? small -? caps | sub | EmphasisTypeSmallCaps ) \\b".r) ->
-                    wrap("textsc")
-                  // default { self.html($is-title, $node.nodes) }
-                  else -> html(isTitle, node.childNodes)
-                  //   }
-                  // } else {
-                  //   self.html($i              } else {
-                  // }
+              when {
+                node.getAttribute("style").contains("\\b font-family:monospace \b") -> wrap("texttt")
+                node.getAttribute("aria-hidden") == "true" -> ""
+                else -> {
+                  val attr = node.getAttribute("class")
+                  when {
+                    attr.contains("\\b monospace \\b".r) -> wrap("texttt")
+                    attr.contains("\\b italic \\b".r) -> wrap("textit")
+                    attr.contains("\\b bold \\b".r) -> wrap("textbf")
+                    attr.contains("\\b sup \\b".r) -> wrap("textsuperscript")
+                    attr.contains("\\b sub \\b".r) -> wrap("textsubscript")
+                    attr.contains("\\b ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) \\b".r) ->
+                      wrap("textsc")
+                    else -> html(isTitle, node.childNodes)
+                  }
                 }
               }
             else -> {
@@ -695,7 +621,6 @@ class Fixer(
       }
 
       else -> TODO("Unknown HTML node type '${node.javaClass.name}': ${node}")
-      // default { die "Unknown XML node type '{$node.^name}': $node" }
     }
 
   companion object {

@@ -113,8 +113,8 @@ object HtmlMeta {
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     val types = listOf(
       "citation_conference" to "booktitle",
-      "citation_journal_title" to "journal",
       "citation_inbook_title" to "booktitle",
+      "citation_journal_title" to "journal",
       "st.title" to "journal",
     )
     for ((k, b) in types) {
