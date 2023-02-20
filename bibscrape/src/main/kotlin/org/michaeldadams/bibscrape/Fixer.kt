@@ -26,8 +26,15 @@ typealias NameMap = Map<String, BibtexPerson>
 typealias NounMap = Map<String, String>
 typealias StopWordSet = Set<String>
 
-// TODO: put somewhere appropriate
-fun <A> orNull(test: Boolean, block: () -> A): A? = if (test) block() else null
+// TODO: put [where] somewhere appropriate
+/** When [test] is true, returns the result of calling [block], otherwise returns [null].
+ *
+ * @param A the type to be returned
+ * @param test the test to determine whether to call [block] or just return [null]
+ * @param block the block to run if [test] is [true]
+ * @return either [null] or the result of calling [block]
+ */
+inline fun <A> where(test: Boolean, block: () -> A): A? = if (test) block() else null
 
 /** What type of ISBN or ISSN media type to prefer. */
 @Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
@@ -104,7 +111,7 @@ class Fixer(
     }
 
     // Fix Springer's use of 'note' to store 'doi'
-    entry.update(F.NOTE) { orNull(it != entry[F.DOI] ?: "") { it } }
+    entry.update(F.NOTE) { where(it != entry[F.DOI] ?: "") { it } }
 
     // ///////////////////////////////
     // Post-omit fixes              //
@@ -189,7 +196,7 @@ class Fixer(
 
     // self.isbn($entry, 'issn', $.issn-media, &canonical-issn);
     isn(entry, F.ISSN, issnMedia) { issn ->
-      val digits = issn.mapNotNull { it.digitToIntOrNull() ?: orNull(it.uppercase() == "X") { 10 } }
+      val digits = issn.mapNotNull { it.digitToIntOrNull() ?: where(it.uppercase() == "X") { 10 } }
       if (digits.size != 8) { TODO() }
       val checkValue = 11 - digits.take(7).mapIndexed { i, c -> c * (8 - i) }.sum() % 11
       val checkChar = if (checkValue == 10) 'X' else checkValue.toString()
@@ -348,7 +355,7 @@ class Fixer(
     val doi =
       entry.ifField(F.ARCHIVEPREFIX) { archiveprefix ->
         entry.ifField(F.EPRINT) { eprint ->
-          orNull(archiveprefix.string == "arXiv") { ":arXiv.${eprint.string}" }
+          where(archiveprefix.string == "arXiv") { ":arXiv.${eprint.string}" }
         }
       } ?: entry.ifField(F.DOI) { ":${it.string}" } ?: ""
     entry.entryKey = name + year + title + doi

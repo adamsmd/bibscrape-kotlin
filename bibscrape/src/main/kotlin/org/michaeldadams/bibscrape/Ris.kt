@@ -67,9 +67,9 @@ object Ris {
     // # BT: title primary (books and unpub), title secondary (otherwise)
     val isBook = setOf(RisType.BOOK, RisType.UNPB).contains(ris.type)
     // set( 'title', %self<T1> // %self<TI> // %self<CT> // ((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
-    entry[F.TITLE] = ris.primaryTitle ?: ris.title ?: orNull(isBook) { ris.bt }
+    entry[F.TITLE] = ris.primaryTitle ?: ris.title ?: where(isBook) { ris.bt }
     // set( 'booktitle', !((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
-    entry[F.BOOKTITLE] = orNull(!isBook) { ris.bt }
+    entry[F.BOOKTITLE] = where(!isBook) { ris.bt }
     // # T2: title secondary
     // set( 'journal', %self<T2>);
     entry[F.JOURNAL] = ris.secondaryTitle

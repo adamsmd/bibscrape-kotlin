@@ -524,7 +524,7 @@ object ScrapeOxford : DomainScraper {
     driver.awaitNonNull {
       selectElement.selectByVisibleText(".bibtex (BibTex)")
       val button = driver.findElement(By.className("citation-download-link"))
-      orNull(!button.getAttribute("class").contains("\\b disabled \\b".r)) { button }
+      where(!button.getAttribute("class").contains("\\b disabled \\b".r)) { button }
     }.click()
     // driver.findElement(By.className("citation-download-link")).click()
     // my #`(Inline::Python::PythonObject:D) $select = $web-driver.select($select-element);
