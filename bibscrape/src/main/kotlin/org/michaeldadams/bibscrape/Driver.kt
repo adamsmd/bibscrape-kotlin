@@ -9,6 +9,7 @@ import net.lightbody.bmp.client.ClientUtil
 import org.apache.commons.text.StringEscapeUtils
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
+import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.firefox.FirefoxDriver
@@ -93,7 +94,7 @@ class Driver private constructor(
     while (true) {
       runCatching { block()?.let { return it } }
       if (Instant.now().isAfter(end)) {
-        throw Error("Timeout while waiting for the browser")
+        throw TimeoutException()
       }
       Thread.sleep((sleep * 1_000.0).roundToLong())
     }
