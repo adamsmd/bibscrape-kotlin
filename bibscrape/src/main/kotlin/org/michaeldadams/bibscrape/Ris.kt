@@ -7,6 +7,8 @@ import ch.difty.kris.domain.RisType
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Types as T
 
+fun <A> List<A>.nonEmpty(): List<A>? = this.ifEmpty { null } // TODO: place for nonEmpty()
+
 object Ris {
   val risTypes = mapOf(
     RisType.BOOK to T.BOOK,
@@ -30,6 +32,12 @@ object Ris {
   //       / <-[,\ ]> / ?? $_ !! () })
   //     .join( ' and ' );
   // }
+  private fun risAuthor(names: List<String>?): String =
+    names
+      .orEmpty()
+      .map { it.replace("(.*) , (.*) , (.*)".r, "$1, $3, $2") } // Change "last, first, suffix" to "von Last, Jr, First"
+      .filter { it.contains("[^,\\ ]") }
+      .joinByAnd()
 
   fun bibtex(bibtexFile: BibtexFile, ris: RisRecord): BibtexEntry {
     val type = risTypes[ris.type] ?: run { println("Unknown RIS TY: ${ris.type}. Using misc."); T.MISC }
@@ -48,8 +56,11 @@ object Ris {
 
     // # A1|AU: author primary
     // set( 'author', ris-author(%ris<A1> // %ris<AU> // []));
+    entry[F.AUTHOR] = risAuthor(ris.firstAuthors.nonEmpty() ?: ris.authors)
     // # A2|ED: author secondary
     // set( 'editor', ris-author(%ris<A2> // %ris<ED> // []));
+    entry[F.EDITOR] = risAuthor(ris.secondaryAuthors.nonEmpty() ?: ris.editor?.let { listOf(it) })
+    // TODO: ris editor should be list like ris.authors is?
 
     // my Str:D %self;
     // for %ris.kv -> Str:D $key, Array:D[Str:D] $value {
@@ -60,6 +71,7 @@ object Ris {
     // $entry.type =
     //   %ris-types{%self<TY> // ''}
     //   // ((!%self<TY>.defined or say "Unknown RIS TY: {%self<TY>}. Using misc.") and 'misc');
+    entry.entryType = risTypes[ris.type]
     // # ID: reference id
     // $entry.key = %self<ID>;
     entry[F.KEY] = ris.referenceId
@@ -93,16 +105,28 @@ object Ris {
     // # A[4-9]: author (undocumented)
     // # Y1|PY: date primary
     // my Str:_ ($year, $month, $day) = (%self<DA> // %self<PY> // %self<Y1> // '').split(rx/ "/" | "-" /);
+    val (year, month, day) =
+      (ris.date ?: ris.publicationYear ?: ris.primaryDate ?: "").split("/|-".r) + listOf(null, null, null)
+    // val (year, month, day) = listOf(0, 1, 2).map { date.getOrNull(it) }
     // set( 'year', $year);
+    entry[F.YEAR] = year
     // $entry.fields<month> = BibScrape::BibTeX::Value.new(num2month($month))
     //   if $month;
+    entry[F.MONTH] = month?.let { Bibtex.Months.intToMonth(entry.ownerFile, it) }
+    // set( 'day', $day)
+    //   if $day.defined;
+    entry[F.DAY] = day
     // if (%self<C1>:exists) {
     //   %self<C1> ~~ / 'Full publication date: ' (\w+) '.'? ( ' ' \d+)? ', ' (\d+)/;
     //   ($month, $day, $year) = ($0, $1, $2);
     //   set( 'month', $month);
     // }
-    // set( 'day', $day)
-    //   if $day.defined;
+    // TODO: is the RIS C1 code still needed
+    ris.custom1?.find("Full\\ publication\\ date:\\ (\\w+) \\.? (\\ \\d+)? ,\\ (\\d+)".r)?.let { match ->
+      val (c1Month, c1Day, c1Year) = match.groupValues
+      entry[F.MONTH] = c1Month ?: entry[F.MONTH]?.string
+      entry[F.DAY] = c1Day ?: entry[F.DAY]?.string
+    }
     // # Y2: date secondary
 
     // # N1|AB: notes (skip leading doi)
