@@ -1,42 +1,50 @@
 package org.michaeldadams.bibscrape
 
 object Unicode {
+  private const val ASCII_MAX = 0x7F
+
+  // See https://www.unicode.org/reports/tr44/#Canonical_Combining_Class_Values
+  private const val CCC_ATTACHED_BELOW = 202
+  private const val CCC_BELOW = 220
+  private const val CCC_ABOVE = 230
+  private const val CCC_DOUBLE_ABOVE = 234
+
   @Suppress("MagicNumber")
   val CCC: Map<Int, Int> = mapOf(
-    0x0300 to 230,
-    0x0301 to 230,
-    0x0302 to 230,
-    0x0303 to 230,
-    0x0304 to 230,
-    0x0305 to 230,
-    0x0306 to 230,
-    0x0307 to 230,
-    0x0308 to 230,
-    0x0309 to 230,
-    0x030a to 230,
-    0x030b to 230,
-    0x030c to 230,
-    0x030d to 230,
-    0x030e to 230,
-    0x030f to 230,
-    0x0311 to 230,
-    0x0323 to 220,
-    0x0324 to 220,
-    0x0325 to 220,
-    0x0326 to 220,
-    0x0327 to 202,
-    0x0328 to 202,
-    0x0329 to 220,
-    0x032d to 220,
-    0x032e to 220,
-    0x0330 to 220,
-    0x0331 to 220,
-    0x0340 to 230,
-    0x0341 to 230,
-    0x0344 to 230,
-    0x20d7 to 230,
-    0x20db to 230,
-    0x20dc to 230,
+    0x0300 to CCC_ABOVE,
+    0x0301 to CCC_ABOVE,
+    0x0302 to CCC_ABOVE,
+    0x0303 to CCC_ABOVE,
+    0x0304 to CCC_ABOVE,
+    0x0305 to CCC_ABOVE,
+    0x0306 to CCC_ABOVE,
+    0x0307 to CCC_ABOVE,
+    0x0308 to CCC_ABOVE,
+    0x0309 to CCC_ABOVE,
+    0x030a to CCC_ABOVE,
+    0x030b to CCC_ABOVE,
+    0x030c to CCC_ABOVE,
+    0x030d to CCC_ABOVE,
+    0x030e to CCC_ABOVE,
+    0x030f to CCC_ABOVE,
+    0x0311 to CCC_ABOVE,
+    0x0323 to CCC_BELOW,
+    0x0324 to CCC_BELOW,
+    0x0325 to CCC_BELOW,
+    0x0326 to CCC_BELOW,
+    0x0327 to CCC_ATTACHED_BELOW,
+    0x0328 to CCC_ATTACHED_BELOW,
+    0x0329 to CCC_BELOW,
+    0x032d to CCC_BELOW,
+    0x032e to CCC_BELOW,
+    0x0330 to CCC_BELOW,
+    0x0331 to CCC_BELOW,
+    0x0340 to CCC_ABOVE,
+    0x0341 to CCC_ABOVE,
+    0x0344 to CCC_ABOVE,
+    0x20d7 to CCC_ABOVE,
+    0x20db to CCC_ABOVE,
+    0x20dc to CCC_ABOVE,
   )
 
   // Based on table 131 in the Comprehensive Latex Symbol List
@@ -2986,14 +2994,14 @@ object Unicode {
         val old = result.removeLastOrNull()
           ?: "{}".also { println("WARNING: Combining character at start of string: %s (U+%04x)".format(char, ord)) }
         val new = CODES[ord]!!.replace("\\{\\}".r, old)
-        val fixed = if (CCC[ord] == 230 || CCC[ord] == 234) new.replace("\\{ ( [ij] ) \\}".r, "{\\$1}") else new
+        val fixed = if (CCC[ord] == CCC_ABOVE || CCC[ord] == CCC_DOUBLE_ABOVE) new.replace("\\{ ( [ij] ) \\}".r, "{\\$1}") else new
         result += "{${fixed}}"
       } else if (math && MATH.containsKey(ord)) {
         result += "{${MATH[ord]}}"
       } else if (CODES.containsKey(ord)) {
         result += "{${CODES[ord]}}"
       } else {
-        if (ord >= 0x80) { println("WARNING: Unknown Unicode character: %s (U+x%04x)".format(char, ord)) }
+        if (ord > ASCII_MAX) { println("WARNING: Unknown Unicode character: %s (U+x%04x)".format(char, ord)) }
         result += char.toString()
       }
     }
