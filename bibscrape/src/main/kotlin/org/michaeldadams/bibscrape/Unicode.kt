@@ -2994,7 +2994,8 @@ object Unicode {
         val old = result.removeLastOrNull()
           ?: "{}".also { println("WARNING: Combining character at start of string: %s (U+%04x)".format(char, ord)) }
         val new = CODES[ord]!!.replace("\\{\\}".r, old)
-        val fixed = if (CCC[ord] == CCC_ABOVE || CCC[ord] == CCC_DOUBLE_ABOVE) new.replace("\\{ ( [ij] ) \\}".r, "{\\$1}") else new
+        val fixed =
+          if (CCC[ord] in setOf(CCC_ABOVE, CCC_DOUBLE_ABOVE)) new.replace("\\{ ( [ij] ) \\}".r, "{\\$1}") else new
         result += "{${fixed}}"
       } else if (math && MATH.containsKey(ord)) {
         result += "{${MATH[ord]}}"

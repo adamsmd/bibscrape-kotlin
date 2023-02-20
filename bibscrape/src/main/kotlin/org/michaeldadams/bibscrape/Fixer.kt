@@ -306,7 +306,7 @@ class Fixer(
         .split("\\b".r)
         .filter(String::isNotEmpty)
         .map {
-          (if (setOf("/", "-", "--").contains(it)) entry.ownerFile.makeString(it) else null)
+          (if (it in setOf("/", "-", "--")) entry.ownerFile.makeString(it) else null)
             ?: M.stringToMonth(entry.ownerFile, it)
             ?: M.intToMonth(entry.ownerFile, it)
             ?: run {

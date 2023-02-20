@@ -65,7 +65,7 @@ object Ris {
     entry[F.KEY] = ris.referenceId
     // # T1|TI|CT: title primary
     // # BT: title primary (books and unpub), title secondary (otherwise)
-    val isBook = setOf(RisType.BOOK, RisType.UNPB).contains(ris.type)
+    val isBook = ris.type in setOf(RisType.BOOK, RisType.UNPB)
     // set( 'title', %self<T1> // %self<TI> // %self<CT> // ((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
     entry[F.TITLE] = ris.primaryTitle ?: ris.title ?: where(isBook) { ris.bt }
     // set( 'booktitle', !((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
