@@ -3,13 +3,22 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
 import com.github.ajalt.clikt.completion.completionOption
-import com.github.ajalt.clikt.core.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.output.CliktHelpFormatter
 import com.github.ajalt.clikt.output.HelpFormatter
-import com.github.ajalt.clikt.parameters.arguments.* // ktlint-disable no-wildcard-imports
-import com.github.ajalt.clikt.parameters.groups.* // ktlint-disable no-wildcard-imports
-import com.github.ajalt.clikt.parameters.options.* // ktlint-disable no-wildcard-imports
-import com.github.ajalt.clikt.parameters.types.* // ktlint-disable no-wildcard-imports
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.multiple
+import com.github.ajalt.clikt.parameters.groups.OptionGroup
+import com.github.ajalt.clikt.parameters.groups.cooccurring
+import com.github.ajalt.clikt.parameters.groups.provideDelegate
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.multiple
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.versionOption
+import com.github.ajalt.clikt.parameters.types.int
+import com.github.ajalt.clikt.parameters.types.restrictTo
 import com.github.difflib.text.DiffRow
 import com.github.difflib.text.DiffRowGenerator
 import java.io.File
