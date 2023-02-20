@@ -48,11 +48,16 @@ object HtmlMeta {
 
     // 'author', 'dc.contributor', 'dc.creator', 'rft_aufirst', 'rft_aulast', and 'rft_au'
     // also contain authorship information
-    //   my Str:D @authors;
-    //   if %meta<citation_author>:exists { @authors = @(%meta<citation_author>) }
-    //   elsif %meta<citation_authors> { @authors = %meta<citation_authors>.head.split(';') }
-    //   set( 'author', @authors.map({ s:g/^ ' '+//; s:g/ ' '+ $//; $_ }).join( ' and ' ))
-    //     if @authors;
+    // my Str:D @authors;
+    // if %meta<citation_author>:exists { @authors = @(%meta<citation_author>) }
+    // elsif %meta<citation_authors> { @authors = %meta<citation_authors>.head.split(';') }
+    // set( 'author', @authors.map({ s:g/^ ' '+//; s:g/ ' '+ $//; $_ }).join( ' and ' ))
+    //   if @authors;
+    val authorList = meta["citation_author"] ?: meta["citation_authors"]?.firstOrNull()?.split(";".r) ?: emptyList()
+    val authorString = authorList.map { it.replace("^ \\ +".r, "").replace("\\ + $".r, "") }.joinByAnd()
+    if (authorString.isNotEmpty()) {
+      set(F.AUTHOR, authorString)
+    }
 
     // 'title', 'rft_title', 'dc.title', 'twitter:title' also contain title information
     set(F.TITLE, getFirst("citation_title"))
@@ -113,9 +118,10 @@ object HtmlMeta {
 
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     val types = listOf(
+      // Note that the order of these matter
       "citation_conference" to F.BOOKTITLE,
-      "citation_inbook_title" to F.BOOKTITLE,
       "citation_journal_title" to F.JOURNAL,
+      "citation_inbook_title" to F.BOOKTITLE,
       "st.title" to F.JOURNAL,
     )
     for ((k, b) in types) {
@@ -124,10 +130,6 @@ object HtmlMeta {
         break
       }
     }
-    // if %meta<citation_conference>:exists { set( 'booktitle', %meta<citation_conference>.head) }
-    // elsif %meta<citation_journal_title>:exists { set( 'journal', %meta<citation_journal_title>.head) }
-    // elsif %meta<citation_inbook_title>:exists { set( 'booktitle', %meta<citation_inbook_title>.head) }
-    // elsif %meta<st.title>:exists { set( 'journal', %meta<st.title>.head) }
 
     // 'rft_id' and 'doi' also contain doi information
     // if %meta<citation_doi>:exists { set( 'doi', %meta<citation_doi>.head )}
@@ -136,7 +138,7 @@ object HtmlMeta {
 
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
-    meta.getOrDefault("citation_isbn", null)?.let {
+    meta["citation_isbn"]?.let {
       if (it.size == 1) { set(F.ISBN, it.first()) }
     }
     // if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
@@ -158,7 +160,7 @@ object HtmlMeta {
     //         $d.defined and $d !~~ /^ [ '' $ | '****' | 'IEEE Xplore' | 'IEEE Computer Society' ] /;
     //   }
 
-    meta.getOrDefault("citation_author_institution", null)?.let {
+    meta["citation_author_institution"]?.let {
       set(F.AFFILIATION, it.joinByAnd())
     }
     //   set( 'affiliation', %meta<citation_author_institution>.join( ' and ' ))
