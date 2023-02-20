@@ -1,14 +1,20 @@
 package org.michaeldadams.bibscrape
 
+/** Conversions from Unicode to LaTeX and back. */
 object Unicode {
+  /** Largest code point that if not encoded we do not warn about. */
   private const val ASCII_MAX = 0x7F
 
-  // See https://www.unicode.org/reports/tr44/#Canonical_Combining_Class_Values
+  /** Constants for [CCC].
+   *
+   * @see https://www.unicode.org/reports/tr44/#Canonical_Combining_Class_Values
+   */
   private const val CCC_ATTACHED_BELOW = 202
   private const val CCC_BELOW = 220
   private const val CCC_ABOVE = 230
   private const val CCC_DOUBLE_ABOVE = 234
 
+  /** Map from code points to combining character class. */
   @Suppress("MagicNumber")
   val CCC: Map<Int, Int> = mapOf(
     0x0300 to CCC_ABOVE,
@@ -47,7 +53,9 @@ object Unicode {
     0x20dc to CCC_ABOVE,
   )
 
-  // Based on table 131 in the Comprehensive Latex Symbol List
+  /** Map from code points to LaTeX in a math context.
+   * Based on table 131 in the Comprehensive Latex Symbol List.
+   */
   @Suppress("MagicNumber")
   val MATH: Map<Int, String> = mapOf(
     0x0391 to """A""",
@@ -102,6 +110,7 @@ object Unicode {
     0x03c8 to """\omega""",
   )
 
+  /** Map from code point to LaTeX in a non-math context. */
   @Suppress("MagicNumber")
   val CODES: Map<Int, String> = mapOf(
     0x0022 to """\textquotedbl""",
@@ -2981,65 +2990,39 @@ object Unicode {
     0x1d7ff to """\texttt{9}""",
   )
 
+  /** Converts Unicode to LaTeX.
+   *
+   * @param string the string to convert
+   * @param math whether the string is in a math context
+   * @param ignore a predicate indicating characters to not convert
+   * @return the result of converting the string
+   */
   fun unicodeToTex(string: String, math: Boolean = false, ignore: (Char) -> Boolean = { false }): String {
-    // sub unicode2tex(Str:D $str, Bool:D :$math = False, Regex:D :$ignore = / False / --> Str:D) is export {
-    //   my Str:D @out;
     val result: MutableList<String> = mutableListOf()
     for (char in string) {
       val ord = char.code
-      if (ignore(char)) {
-        result += char.toString()
-        // TODO: elseNull(test) { block }
-      } else if (CCC.containsKey(ord)) {
-        val old = result.removeLastOrNull()
-          ?: "{}".also { println("WARNING: Combining character at start of string: %s (U+%04x)".format(char, ord)) }
-        val new = CODES[ord]!!.replace("\\{\\}".r, old)
-        val fixed =
-          if (CCC[ord] in setOf(CCC_ABOVE, CCC_DOUBLE_ABOVE)) new.replace("\\{ ( [ij] ) \\}".r, "{\\$1}") else new
-        result += "{${fixed}}"
-      } else if (math && MATH.containsKey(ord)) {
-        result += "{${MATH[ord]}}"
-      } else if (CODES.containsKey(ord)) {
-        result += "{${CODES[ord]}}"
-      } else {
-        if (ord > ASCII_MAX) { println("WARNING: Unknown Unicode character: %s (U+x%04x)".format(char, ord)) }
-        result += char.toString()
+      when {
+        ignore(char) -> result += char.toString()
+        CCC.containsKey(ord) -> {
+          val old = result.removeLastOrNull()
+            ?: "{}".also { println("WARNING: Combining character at start of string: %s (U+%04x)".format(char, ord)) }
+          val new = CODES[ord]!!.replace("\\{\\}".r, old)
+          val fixed =
+            if (CCC[ord] in setOf(CCC_ABOVE, CCC_DOUBLE_ABOVE)) new.replace("\\{ ( [ij] ) \\}".r, "{\\$1}") else new
+          result += "{${fixed}}"
+        }
+        math && MATH.containsKey(ord) -> result += "{${MATH[ord]}}"
+        CODES.containsKey(ord) -> result += "{${CODES[ord]}}"
+        else -> {
+          if (ord > ASCII_MAX) { println("WARNING: Unknown Unicode character: %s (U+x%04x)".format(char, ord)) }
+          result += char.toString()
+        }
       }
     }
 
     return result
       .joinToString("")
       .replace("\\ + \\{~\\}".r, "{~}") // Trim spaces before NBSP (otherwise they have no effect in LaTeX)
-
-    //   for $str.ords -> Int:D $ord {
-    //     if $ord.chr ~~ $ignore {
-    //       push @out, $ord.chr;
-    //     } elsif %CODES{$ord}:exists or $math and %MATH{$ord}:exists {
-    //       if not %CCC{$ord}:exists {
-    //         push @out, "\{{$math and %MATH{$ord} or %CODES{$ord}}\}";
-    //       } else {
-    //         my Str:D $old = pop @out;
-    //         if not $old.defined {
-    //           $old = '{}';
-    //           say sprintf( 'WARNING: Combining character at start of string: %s (U+%04x)', $ord.chr, $ord);
-    //         }
-    //         my Str:D $new = %CODES{$ord};
-    //         $new ~~ s/ '{}' /$old/;
-    //         $new ~~ s:g/ '{' ( <[ij]> ) '}' /{$1}/
-    //           if %CCC{$ord} == 230 || %CCC{$ord} == 234;
-    //         push @out, "\{$new\}";
-    //       }
-    //     } else {
-    //       say sprintf( 'WARNING: Unknown Unicode character: %s (U+x%04x)', $ord.chr, $ord)
-    //         if $ord >= 0x80;
-    //       push @out, $ord.chr;
-    //     }
-    //   }
-
-    //   my Str:D $out = @out.join;
-    //   $out ~~ s:g/ ' '+ '{~}' /\{~\}/; # Trim spaces before NBSP (otherwise they have no effect in LaTeX)
-    //   $out;
-    // }
   }
 
   // # This function doesn't work very well.  It is just good enough for most author names.
