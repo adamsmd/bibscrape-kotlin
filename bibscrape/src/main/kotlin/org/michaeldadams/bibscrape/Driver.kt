@@ -24,6 +24,7 @@ import java.time.Instant
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToLong
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -153,7 +154,7 @@ class Driver private constructor(
      * @param timeout TODO: not implemented
      * @return the [Driver] object that is created
      **/
-    fun make(headless: Boolean, verbose: Boolean, timeout: Double): Driver {
+    fun make(headless: Boolean, verbose: Boolean, timeout: Duration): Driver {
       // // Proxy
       // Would prefer to use org.openqa.selenium.remote.http.Filter,
       // NetworkInterceptor or devTools.createSession(), but all of those break

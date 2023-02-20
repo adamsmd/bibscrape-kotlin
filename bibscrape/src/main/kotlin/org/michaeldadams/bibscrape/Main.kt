@@ -21,6 +21,8 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Names as N
 
@@ -159,13 +161,13 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
   ).flag("--no-verbose")
 
   @Suppress("MagicNumber", "MAGIC_NUMBER")
-  val timeout: Double by option(
+  val timeout: Duration by option(
     "-t",
     "--timeout",
     help = """
       Browser timeout in seconds for individual page loads.
       """
-  ).double().restrictTo(min = 0.0).default(60.0)
+  ).seconds().restrictTo(min = 0.0.seconds).default(60.0.seconds)
 
   val escapeAcronyms: Boolean by option(
     help = """
@@ -304,12 +306,19 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
       """
   ).int().restrictTo(min = 0).default(3)
 
-  val testTimeout: Double by option(
+  val testTimeout: Duration by option(
     help = """
       TODO: document --test-timeout
       TODO: 0 means infinite (dangerous)
       """
-  ).double().restrictTo(min = 0.0).default(60.0)
+  ).seconds().restrictTo(min = 0.0.seconds).default(60.0.seconds)
+
+  val testHardTimeout: Duration by option(
+    help = """
+      TODO: document --test-timeout
+      TODO: 0 means infinite (dangerous)
+      """
+  ).seconds().restrictTo(min = 0.0.seconds).default(60.0.seconds)
 
   val useTestArg: Boolean by option(
     hidden = true,
@@ -650,15 +659,15 @@ class Main : CliktCommand(
     }
   }
 
-  fun runCommand(command: List<String>): Pair<String, Process> {
+  fun runCommand(timeout: Duration, hardTimeout: Duration, command: List<String>): Pair<String, Process> {
     val process = ProcessBuilder(command)
       .redirectErrorStream(true)
       .start()
     var output: AtomicReference<String?> = AtomicReference()
     var reader = thread { output.set(String(process.inputStream.readAllBytes())) }
-    if (!process.waitFor(60, TimeUnit.SECONDS)) {
+    if (!process.waitFor(timeout.inWholeNanoseconds, TimeUnit.NANOSECONDS)) {
       process.destroy()
-      if (!process.waitFor(60, TimeUnit.SECONDS)) {
+      if (!process.waitFor(hardTimeout.inWholeNanoseconds, TimeUnit.NANOSECONDS)) {
         process.destroyForcibly()
       }
     }
@@ -720,7 +729,8 @@ class Main : CliktCommand(
 
       val retries = if (options.retries == 0) -1 else options.retries
       val result = retry(retries) {
-        runCommand(command).let { if (it.second.exitValue() == 0) it else null }
+        runCommand(options.testTimeout, options.testHardTimeout, command)
+          .let { if (it.second.exitValue() == 0) it else null }
       }
 
       val diffRowGenerator = DiffRowGenerator

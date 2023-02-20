@@ -2,6 +2,7 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import java.net.URI
+import kotlin.time.Duration
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 /** Exception thrown when asked to scrape a domain for which there is no scraper.
@@ -23,7 +24,7 @@ object Scraper {
    * @param timeout the timeout in seconds to use
    * @return the [BibtexEntry] that was scraped
    */
-  fun scrape(url: URI, window: Boolean, verbose: Boolean, timeout: Double): BibtexEntry =
+  fun scrape(url: URI, window: Boolean, verbose: Boolean, timeout: Duration): BibtexEntry =
     // TODO: option for withLogFile
     // TODO: option for verbose
     Driver.make(headless = !window, verbose = verbose, timeout = timeout).use { driver ->

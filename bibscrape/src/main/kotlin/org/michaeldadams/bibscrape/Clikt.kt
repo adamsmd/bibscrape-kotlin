@@ -9,6 +9,8 @@ import com.github.ajalt.clikt.parsers.* // ktlint-disable no-wildcard-imports
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 // // Enum flags
 
@@ -21,6 +23,13 @@ inline fun <reified T : Enum<T>> RawOption.lowercaseEnum(
   ignoreCase: Boolean = true,
   key: (T) -> String = { it.name }
 ): NullableOption<T, T> = this.enum<T>(ignoreCase = ignoreCase, key = { key(it).lowercase() })
+
+// // Duration flags
+
+/** Converts the option values to a [Duration] in seconds. */
+fun RawOption.seconds(): OptionWithValues<Duration?, Duration, Duration> = convert({ localization.floatMetavar() }) {
+  it.toDoubleOrNull()?.seconds ?: throw BadParameterValue(context.localization.floatConversionError(it))
+}
 
 // // Collection flags (e.g., Map, List and Set)
 
