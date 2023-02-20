@@ -195,27 +195,10 @@ class Fixer(
     }
 
     // self.isbn($entry, 'issn', $.issn-media, &canonical-issn);
-    isn(entry, F.ISSN, issnMedia) { issn ->
-      val digits = issn.mapNotNull { it.digitToIntOrNull() ?: where(it.uppercase() == "X") { 10 } }
-      if (digits.size != 8) { TODO() }
-      val checkValue = 11 - digits.take(7).mapIndexed { i, c -> c * (8 - i) }.sum() % 11
-      val checkChar = if (checkValue == 10) 'X' else checkValue.toString()
-      if (checkValue != digits.last()) { println("Warning: Invalid Check Digit. TODO") }
-      digits.take(4).joinToString("") + issnSep + digits.drop(4).take(3).joinToString("") + checkChar
-    }
+    isn(entry, F.ISSN, issnMedia, ::canonicalizeIssn)
 
     // self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
-    isn(entry, F.ISBN, isbnMedia) { oldIsbn ->
-      val checkDigit: Char = ISBN.calculateCheckDigit(oldIsbn).last()
-      if (checkDigit.toString() != oldIsbn.last().uppercase()) { println("WARNING: Invalid Check Digit. Expected: ${checkDigit}. Got: ${oldIsbn.last()}.") }
-      val isbn = ISBN.parseIsbn(oldIsbn.replace(".$".r, "${checkDigit}"))
-      val dehyphenated = when (isbnType) {
-        IsbnType.ISBN13 -> isbn.isbn13
-        IsbnType.ISBN10 -> isbn.isbn10 ?: isbn.isbn13
-        IsbnType.PRESERVE -> if (ISBN.isIsbn13(oldIsbn)) isbn.isbn13 else isbn.isbn10
-      }
-      ISBNFormat(isbnSep).format(dehyphenated)
-    }
+    isn(entry, F.ISBN, isbnMedia, ::canonicalizeIsbn)
 
     // Change language codes (e.g., "en") to proper terms (e.g., "English")
     entry.update(F.LANGUAGE) { Locale.forLanguageTag(it)?.displayLanguage ?: it }
@@ -365,6 +348,42 @@ class Fixer(
     // TODO: Duplicate fields
 
     return entry
+  }
+
+  private object Issn {
+    const val X_VALUE = 10
+    const val NUM_DIGITS = 8
+    const val MOD = 11
+    const val PRE_SEP_LENGTH = 4
+    const val POST_SEP_LENGTH = 4
+  }
+
+  fun canonicalizeIssn(issn: String): String {
+    val digits = issn.mapNotNull { it.digitToIntOrNull() ?: where(it.uppercase() == "X") { Issn.X_VALUE } }
+    if (digits.size != Issn.NUM_DIGITS) { TODO() }
+    val checkValue =
+      Issn.MOD - digits.take(Issn.NUM_DIGITS - 1).mapIndexed { i, c -> c * (Issn.NUM_DIGITS - i) }.sum() % Issn.MOD
+    val checkChar = if (checkValue == Issn.X_VALUE) "X" else checkValue.toString()
+    if (checkValue != digits.last()) { println("Warning: Invalid Check Digit. TODO") }
+    return digits.take(Issn.PRE_SEP_LENGTH).joinToString("") +
+      issnSep +
+      digits.drop(Issn.PRE_SEP_LENGTH).take(Issn.POST_SEP_LENGTH - 1).joinToString("") +
+      checkChar
+  }
+
+  // self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
+  fun canonicalizeIsbn(oldIsbn: String): String {
+    val checkDigit: Char = ISBN.calculateCheckDigit(oldIsbn).last()
+    if (checkDigit.toString() != oldIsbn.last().uppercase()) {
+      println("WARNING: Invalid Check Digit. Expected: ${checkDigit}. Got: ${oldIsbn.last()}.")
+    }
+    val isbn = ISBN.parseIsbn(oldIsbn.replace(".$".r, "${checkDigit}"))
+    val dehyphenated = when (isbnType) {
+      IsbnType.ISBN13 -> isbn.isbn13
+      IsbnType.ISBN10 -> isbn.isbn10 ?: isbn.isbn13
+      IsbnType.PRESERVE -> if (ISBN.isIsbn13(oldIsbn)) isbn.isbn13 else isbn.isbn10
+    }
+    return ISBNFormat(isbnSep).format(dehyphenated)
   }
 
   fun isn(
