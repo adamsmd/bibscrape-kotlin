@@ -584,7 +584,7 @@ class Main : CliktCommand(
       omitEmpty = bibtexFieldOptions.omitEmpty
     )
 
-    val printer = BibtexPrinter(bibtexFieldOptions.field)
+    val printer = Bibtex.Printer(bibtexFieldOptions.field)
 
     val keepScrapedKey = false // TODO: as flag
     val keepReadKey = true // TODO: as flag
