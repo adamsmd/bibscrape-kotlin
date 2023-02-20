@@ -303,7 +303,7 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
     help = """
       How many times to retry a test. A value of zero retries infinite times.
       """
-  ).int().restrictTo(min = 0).default(3)
+  ).int().restrictTo(min = 0).default(1)
 
   val testTimeout: Duration by option(
     help = """
