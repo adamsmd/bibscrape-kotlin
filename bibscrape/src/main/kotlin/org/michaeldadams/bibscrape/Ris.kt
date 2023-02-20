@@ -38,7 +38,7 @@ object Ris {
     // my BibScrape::BibTeX::Entry:D $entry = BibScrape::BibTeX::Entry.new();
 
     // my Regex:D $doi = rx/^ (\s* 'doi:' \s* \w+ \s+)? (.*) $/;
-    val doi = "^ ( \\s* doi: \\s* \\w+ \\s+ )? (.*) $".r;
+    val doi = "^ ( \\s* doi: \\s* \\w+ \\s+ )? (.*) $".r
 
     // sub set(Str:D $key, Str:_ $value --> Any:U) {
     //   $entry.fields{$key} = BibScrape::BibTeX::Value.new($value)
