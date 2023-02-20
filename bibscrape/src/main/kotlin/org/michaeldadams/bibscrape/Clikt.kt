@@ -130,6 +130,7 @@ fun <C, F, L> NullableOption<String, String>.collection(
  * @param parseFirst how to parse the first line in a block into a [V]
  * @param parseLine how to parse a line in a block into a [K]
  * @return the result of converting the option
+ * @see collection
  */
 fun <K, V> NullableOption<String, String>.map(
   default: () -> String,
@@ -154,6 +155,7 @@ fun <K, V> NullableOption<String, String>.map(
  * @param default the default input to be parsed
  * @param parseLine how to parse a line into an [A]
  * @return the result of converting the option
+ * @see collection
  */
 fun <A> NullableOption<String, String>.list(
   default: () -> String,
@@ -176,6 +178,7 @@ fun <A> NullableOption<String, String>.list(
  * @param default the default input to be parsed
  * @param parseLine how to parse a line into an [A]
  * @return the result of converting the option
+ * @see collection
  */
 fun <A> NullableOption<String, String>.set(
   default: () -> String,
