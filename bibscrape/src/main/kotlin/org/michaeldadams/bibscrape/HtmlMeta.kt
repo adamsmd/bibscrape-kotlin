@@ -1,9 +1,11 @@
 package org.michaeldadams.bibscrape
 
+import bibtex.dom.BibtexAbstractValue
 import bibtex.dom.BibtexEntry
 import org.openqa.selenium.By
 import org.openqa.selenium.WebDriver
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.michaeldadams.bibscrape.Bibtex.Months as M
 
 typealias HtmlMetaTable = Map<String, List<String>>
 
@@ -26,14 +28,15 @@ object HtmlMeta {
    * @param fields TODO: document
    */
   fun bibtex(entry: BibtexEntry, meta: HtmlMetaTable, vararg fields: Pair<String, Boolean>): Unit {
-    val values: MutableMap<String, String> = mutableMapOf()
+    val values: MutableMap<String, BibtexAbstractValue> = mutableMapOf()
     val fieldsMap = fields.toMap()
     fun getFirst(vararg fields: String): String? =
       fields.flatMap { meta.getOrDefault(it, emptyList()) }.firstOrNull()
 
-    fun set(field: String, value: String?): Unit {
+    fun set(field: String, value: BibtexAbstractValue?): Unit {
       if (value != null) { values[field] = value }
     }
+    fun set(field: String, value: String?): Unit { set(field, value?.let { entry.ownerFile.makeString(it) }) }
     //   sub set(Str:D $field, $value where Any:U | Str:_ | BibScrape::BibTeX::Piece:_ --> Any:U) {
     //     if $value {
     //       %values{$field} = BibScrape::BibTeX::Value.new($value);
@@ -74,6 +77,14 @@ object HtmlMeta {
     //   } else {
     //     set( 'pages', %meta<pages>.head);
     //   }
+    set(
+      F.PAGES,
+      meta["citation_firstpage"]?.firstOrNull()?.let { first ->
+        meta["citation_lastpage"]?.firstOrNull()?.let { last ->
+          first + if (first == last) "" else "--${last}"
+        }
+      } ?: meta["pages"]?.firstOrNull()
+    )
 
     set(F.VOLUME, getFirst("citation_volume"))
     set(F.NUMBER, getFirst("citation_issue"))
@@ -115,6 +126,19 @@ object HtmlMeta {
     //     set( 'month', str2month($month));
     //   }
     // }
+    val (year, month) =
+      meta["citation_publication_date"]
+        ?.firstOrNull()
+        ?.find("^ (\\d{4}) [/-] (\\d{2}) ( [/-] (\\d{2}) )? $".r)
+        ?.let { it.groupValues }
+        ?: meta["citation_date"]
+          ?.firstOrNull()
+          ?.find("^ (\\d{2}) [/-] \\d{2} [/-] (\\d{4}) $".r)
+          ?.let { it.groupValues }
+        ?: listOf(null, null)
+    // TODO: citation_date ~~ /^ <[\ 0..9-]>*? <wb> (\w+) <wb> <[\ .0..9-]>*? <wb> (\d\d\d\d) <wb> /
+    set(F.YEAR, year)
+    set(F.MONTH, month?.let { M.intToMonth(entry.ownerFile, it) })
 
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     val types = listOf(
@@ -135,6 +159,12 @@ object HtmlMeta {
     // if %meta<citation_doi>:exists { set( 'doi', %meta<citation_doi>.head )}
     // elsif %meta<st.discriminator>:exists { set( 'doi', %meta<st.discriminator>.head) }
     // elsif %meta<dc.identifier>:exists and %meta<dc.identifier>.head ~~ /^ 'doi:' (.+) $/ { set( 'doi', $1) }
+    set(
+      F.DOI,
+      meta["citation_doi"]?.firstOrNull()
+        ?: meta["st.discriminator"]?.firstOrNull()
+        ?: meta["dc.identifier"]?.firstOrNull()?.find("^ doi: (.+) $".r)?.let { it.groupValues.firstOrNull() }
+    )
 
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
@@ -151,6 +181,14 @@ object HtmlMeta {
     // } elsif %meta<citation_issn>:exists and 1 == %meta<citation_issn>.elems {
     //   set( 'issn', %meta<citation_issn>.head);
     // }
+    set(
+      F.ISSN,
+      meta["st.printissn"]?.let { printIssn ->
+        meta["st.onlineissn"]?.let { onlineIssn ->
+          "${printIssn.first()} (Print) ${onlineIssn.first()} (Online)"
+        }
+      } ?: meta["citation_issn"]?.singleOrNull()
+    )
 
     set(F.LANGUAGE, getFirst("citation_language", "dc.language"))
 
@@ -159,6 +197,13 @@ object HtmlMeta {
     //     set( 'abstract', $d.head) if
     //         $d.defined and $d !~~ /^ [ '' $ | '****' | 'IEEE Xplore' | 'IEEE Computer Society' ] /;
     //   }
+    set(
+      F.ABSTRACT,
+      listOf("description", "Description")
+        .flatMap { meta[it] ?: emptyList() }
+        .filterNot { it.contains("^ ( $ | \\*{4} | IEEE\\ Xplore | IEEE\\ Computer\\ Society )".r) }
+        .firstOrNull()
+    )
 
     meta["citation_author_institution"]?.let {
       set(F.AFFILIATION, it.joinByAnd())
