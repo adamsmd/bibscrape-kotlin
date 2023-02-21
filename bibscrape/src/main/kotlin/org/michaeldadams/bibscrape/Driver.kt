@@ -6,7 +6,7 @@ import io.netty.handler.codec.http.HttpResponseStatus
 import io.netty.handler.codec.http.HttpVersion
 import net.lightbody.bmp.BrowserMobProxyServer
 import net.lightbody.bmp.client.ClientUtil
-import org.apache.commons.text.StringEscapeUtils
+import org.jsoup.nodes.Entities
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.TimeoutException
@@ -116,7 +116,7 @@ class Driver private constructor(
   //   }
   // }
 
-  fun textPlain(): String = StringEscapeUtils.unescapeHtml4(this.findElement(By.tagName("pre")).innerHtml)
+  fun textPlain(): String = Entities.unescape(this.findElement(By.tagName("pre")).innerHtml)
 
   companion object {
     /** The process of launched drivers. */

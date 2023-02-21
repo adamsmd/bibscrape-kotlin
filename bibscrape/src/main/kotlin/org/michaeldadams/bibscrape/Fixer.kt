@@ -4,19 +4,15 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexPerson
 import com.github.ladutsko.isbn.ISBN
 import com.github.ladutsko.isbn.ISBNFormat
-import org.apache.commons.text.StringEscapeUtils
-import org.apache.commons.text.translate.EntityArrays
-import org.apache.commons.text.translate.LookupTranslator
-import org.w3c.dom.CDATASection
-import org.w3c.dom.Comment
-import org.w3c.dom.Document
-import org.w3c.dom.Element
-import org.w3c.dom.Node
-import org.w3c.dom.NodeList
-import org.w3c.dom.ProcessingInstruction
-import org.w3c.dom.Text
+import org.jsoup.nodes.Comment
+import org.jsoup.nodes.DataNode
+import org.jsoup.nodes.DocumentType
+import org.jsoup.nodes.Element
+import org.jsoup.nodes.Node
+import org.jsoup.nodes.TextNode
+import org.jsoup.nodes.XmlDeclaration
+import org.jsoup.parser.Parser
 import java.util.Locale
-import javax.xml.parsers.DocumentBuilderFactory
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Months as M
 import org.michaeldadams.bibscrape.Bibtex.Names as N
@@ -232,13 +228,7 @@ class Fixer(
     for ((field, value) in entry.fields) {
       // unless $field ∈ @.no-encode {
       if (!noEncode.contains(field)) {
-        val xml = DocumentBuilderFactory
-          .newInstance()
-          .newDocumentBuilder()
-          .parse(entityTranslator.translate("<root>${value.string}</root>").byteInputStream())
-          .documentElement
-          .childNodes
-        var newValue = html(field == F.TITLE, xml)
+        var newValue = html(field == F.TITLE, Parser.parseBodyFragment(value.string, "").body())
         val doubleBrace = "\\{\\{ ([^{}]*) \\}\\}".r
         // Repeated to handle nested results
         while (newValue.matches(doubleBrace)) {
@@ -530,22 +520,15 @@ class Fixer(
     return Unicode.unicodeToTex(s, math) { "_^{}\\$".toSet().contains(it) }
   }
 
-  fun html(isTitle: Boolean, nodes: NodeList): String =
-    (0 until nodes.length).map { html(isTitle, nodes.item(it)) }.joinToString("")
+  fun html(isTitle: Boolean, nodes: List<Node>): String = nodes.map { html(isTitle, it) }.joinToString("")
 
   fun html(isTitle: Boolean, node: Node): String =
     when (node) {
-      is CDATASection -> text(isTitle, math = false, node.data)
-      is Comment -> "" // Remove HTML Comments
-      is Document -> html(isTitle, node.documentElement)
-      is ProcessingInstruction -> ""
-      is Text -> text(isTitle, false, node.data) // TODO: wrap node.text in decodeEntities
-      // when XML::Text { self.text($is-title, :!math, decode-entities($node.text)) }
+      is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
+      is TextNode -> text(isTitle, false, node.text()) // TODO: wrap node.text in decodeEntities
       is Element -> {
-        fun wrap(tag: String): String {
-          val string = html(isTitle, node.childNodes)
-          return if (string == "") "" else "\\${tag}{${string}}"
-        }
+        fun wrap(tag: String): String =
+          html(isTitle, node.children()).let { if (it == "") "" else "\\${tag}{${it}}" }
         // sub wrap(Str:D $tag --> Str:D) {
         //   my Str:D $str = self.html($is-title, $node.nodes);
         //   $str eq '' ?? '' !! "\\$tag\{" ~ $str ~ "\}"
@@ -553,17 +536,18 @@ class Fixer(
         // if ($node.attribs<aria-hidden> // '') eq 'true' {
         //   ''
         // } else {
-        if (node.getAttribute("aria-hidden") == "true") {
+        if (node.attributes()["aria-hidden"] == "true") {
           ""
         } else {
-          when (node.nodeName) {
+          when (node.tag().name) {
+            "body" -> html(isTitle, node.childNodes())
             "a" ->
-              if (node.getAttribute("class").contains("\\b xref-fn \\b".r)) {
+              if (node.attributes()["class"].contains("\\b xref-fn \\b".r)) {
                 "" // Omit footnotes added by Oxford when on-campus
               } else {
-                html(isTitle, node.childNodes) // Remove <a> links
+                html(isTitle, node.children()) // Remove <a> links
               }
-            "p", "par" -> html(isTitle, node.childNodes) + "\n\n" // Replace <p> with \n\n
+            "p", "par" -> html(isTitle, node.children()) + "\n\n" // Replace <p> with \n\n
             "i", "italic" -> wrap("textit")
             "em" -> wrap("emph")
             "b", "strong" -> wrap("textbf")
@@ -572,34 +556,31 @@ class Fixer(
             "sub" -> wrap("textsubscript")
             "svg" -> ""
             "script" -> ""
-            "math" -> if (node.childNodes.length == 0) "" else "\\ensuremath{${math(isTitle, node.childNodes)}}"
+            "math" -> node.childNodes().let { if (it.isEmpty()) "" else "\\ensuremath{${math(isTitle, it)}}" }
             // #when 'img' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
             //   # $str ~~ s:i:g/"<img src=\"/content/" <[A..Z0..9]>+ "/xxlarge" (\d+)
             //                ".gif\"" .*? ">"/{chr($0)}/; # Fix for Springer Link
             // #when 'email' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
             //   # $str ~~ s:i:g/"<email>" (.*?) "</email>"/$0/; # Fix for Cambridge
             // when 'span' {
-            "span" ->
+            "span" -> {
+              val classAttr = node.attributes()["class"]
               when {
-                node.getAttribute("style").contains("\\b font-family:monospace \b") -> wrap("texttt")
-                node.getAttribute("aria-hidden") == "true" -> ""
-                else -> {
-                  val attr = node.getAttribute("class")
-                  when {
-                    attr.contains("\\b monospace \\b".r) -> wrap("texttt")
-                    attr.contains("\\b italic \\b".r) -> wrap("textit")
-                    attr.contains("\\b bold \\b".r) -> wrap("textbf")
-                    attr.contains("\\b sup \\b".r) -> wrap("textsuperscript")
-                    attr.contains("\\b sub \\b".r) -> wrap("textsubscript")
-                    attr.contains("\\b ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) \\b".r) ->
-                      wrap("textsc")
-                    else -> html(isTitle, node.childNodes)
-                  }
-                }
+                node.attributes()["style"].contains("\\b font-family:monospace \b") -> wrap("texttt")
+                // node.attributes()["aria-hidden"] == "true" -> ""
+                classAttr.contains("\\b monospace \\b".r) -> wrap("texttt")
+                classAttr.contains("\\b italic \\b".r) -> wrap("textit")
+                classAttr.contains("\\b bold \\b".r) -> wrap("textbf")
+                classAttr.contains("\\b sup \\b".r) -> wrap("textsuperscript")
+                classAttr.contains("\\b sub \\b".r) -> wrap("textsubscript")
+                classAttr.contains("\\b ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) \\b".r) ->
+                  wrap("textsc")
+                else -> html(isTitle, node.childNodes())
               }
+            }
             else -> {
-              println("WARNING: Unknown HTML tag: ${node.nodeName}")
-              "[${node.nodeName}]${html(isTitle, node.childNodes)}[/${node.nodeName}]"
+              println("WARNING: Unknown HTML tag: ${node.tag().name}")
+              "[${node.tag().name}]${html(isTitle, node.childNodes())}[/${node.tag().name}]"
             }
           }
         }
@@ -608,63 +589,47 @@ class Fixer(
       else -> TODO("Unknown HTML node type '${node.javaClass.name}': ${node}")
     }
 
-  fun math(isTitle: Boolean, nodes: NodeList): String =
-    (0 until nodes.length).map { math(isTitle, nodes.item(it)) }.joinToString("")
+  fun math(isTitle: Boolean, nodes: List<Node>): String = nodes.map { math(isTitle, it) }.joinToString("")
 
   fun math(isTitle: Boolean, node: Node): String =
     when (node) {
-      is CDATASection -> text(isTitle, math = true, node.data)
-      is Comment -> "" // Remove HTML Comments
-      // when XML::Document { self.math($is-title, $node.root) }
-      is Document -> math(isTitle, node.documentElement)
-      is ProcessingInstruction -> ""
+      is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
       // when XML::Text { self.text($is-title, :math, decode-entities($node.text)) }
-      is Text -> text(isTitle, true, node.data) // TODO: wrap node.text in decodeEntities
+      is TextNode -> text(isTitle, true, node.text()) // TODO: wrap node.text in decodeEntities
       is Element ->
-        when (node.nodeName) {
-          "mtext" -> math(isTitle, node.childNodes)
+        when (node.tag().name) {
+          "mtext" -> math(isTitle, node.childNodes())
           // when 'mi' {
           //   ($node.attribs<mathvariant> // '') eq 'normal'
           //     ?? '\mathrm{' ~ self.math($is-title, $node.nodes) ~ '}'
           //     !! self.math($is-title, $node.nodes)
           // }
           "mi" ->
-            if (node.getAttribute("mathvariant") == "normal") {
-              "\\mathrm{${math(isTitle, node.childNodes)}}"
+            if (node.attributes()["mathvariant"] == "normal") {
+              "\\mathrm{${math(isTitle, node.childNodes())}}"
             } else {
-              math(isTitle, node.childNodes)
+              math(isTitle, node.childNodes())
             }
-          "mo" -> math(isTitle, node.childNodes)
-          "mn" -> math(isTitle, node.childNodes)
-          "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes)}}"
-          "mrow" -> "{${math(isTitle, node.childNodes)}}"
-          "mspace" -> "\\hspace{${node.getAttribute("width")}}"
+          "mo" -> math(isTitle, node.childNodes())
+          "mn" -> math(isTitle, node.childNodes())
+          "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes())}}"
+          "mrow" -> "{${math(isTitle, node.childNodes())}}"
+          "mspace" -> "\\hspace{${node.attributes()["width"]}}"
           "msubsup" ->
-            "{${math(isTitle, node.childNodes.item(0))}}" +
-              "_{${math(isTitle, node.childNodes.item(1))}}" +
-              "^{${math(isTitle, node.childNodes.item(2))}}"
+            "{${math(isTitle, node.childNodes()[0])}}" +
+              "_{${math(isTitle, node.childNodes()[1])}}" +
+              "^{${math(isTitle, node.childNodes()[2])}}"
           "msub" ->
-            "{${math(isTitle, node.childNodes.item(0))}}" +
-              "_{${math(isTitle, node.childNodes.item(1))}}"
+            "{${math(isTitle, node.childNodes()[0])}}" +
+              "_{${math(isTitle, node.childNodes()[1])}}"
           "msup" ->
-            "{${math(isTitle, node.childNodes.item(0))}}" +
-              "^{${math(isTitle, node.childNodes.item(1))}}"
+            "{${math(isTitle, node.childNodes()[0])}}" +
+              "^{${math(isTitle, node.childNodes()[1])}}"
           else -> {
-            println("WARNING: Unknown MathML tag: ${node.nodeName}")
-            "[${node.nodeName}]${math(isTitle, node.childNodes)}[/${node.nodeName}]"
+            println("WARNING: Unknown MathML tag: ${node.tag().name}")
+            "[${node.tag().name}]${math(isTitle, node.childNodes())}[/${node.tag().name}]"
           }
         }
       else -> TODO("Unknown MathML node type '${node.javaClass.name}': ${node}")
     }
-
-  companion object {
-    private val entityMap = (
-      EntityArrays.APOS_UNESCAPE +
-        EntityArrays.BASIC_UNESCAPE +
-        EntityArrays.HTML40_EXTENDED_UNESCAPE +
-        EntityArrays.ISO8859_1_UNESCAPE
-      )
-      .mapValues { StringEscapeUtils.escapeXml11(it.value.toString()) }
-    val entityTranslator = LookupTranslator(entityMap)
-  }
 }

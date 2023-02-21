@@ -25,8 +25,8 @@ dependencies {
   // Command-line argument parsing
   implementation("com.github.ajalt.clikt:clikt:3.5.1")
 
-  // HTML and XML Escapes
-  implementation("org.apache.commons:commons-text:1.10.0")
+  // HTML parsing
+  implementation("org.jsoup:jsoup:1.15.4")
 
   // ISBN
   implementation("com.github.ladutsko:isbn-core:1.1.1")
