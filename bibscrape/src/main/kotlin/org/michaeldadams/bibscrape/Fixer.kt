@@ -366,9 +366,9 @@ class Fixer(
     if (digits.size != Issn.NUM_DIGITS) { TODO() }
 
     val checkValue =
-      Issn.MOD - digits.take(Issn.NUM_DIGITS - 1).mapIndexed { i, c -> c * (Issn.NUM_DIGITS - i) }.sum() % Issn.MOD
+      (-digits.take(Issn.NUM_DIGITS - 1).mapIndexed { i, c -> c * (Issn.NUM_DIGITS - i) }.sum()).mod(Issn.MOD)
     val checkChar = if (checkValue == Issn.DIGIT_X_VALUE) "X" else checkValue.toString()
-    if (checkValue != digits.last()) { println("Warning: Invalid Check Digit. TODO") }
+    if (checkValue != digits.last()) { println("Warning: Invalid Check Digit in ${issn} TODO") }
 
     return digits.take(Issn.PRE_SEP_LENGTH).joinToString("") +
       issnSep +
