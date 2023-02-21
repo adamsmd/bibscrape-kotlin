@@ -25,7 +25,6 @@ import java.io.File
 import java.io.FileReader
 import java.io.InputStreamReader
 import java.lang.management.ManagementFactory
-import java.net.URI
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
