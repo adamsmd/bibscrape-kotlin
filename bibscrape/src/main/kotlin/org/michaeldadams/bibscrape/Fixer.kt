@@ -530,55 +530,6 @@ class Fixer(
     return Unicode.unicodeToTex(s, math) { "_^{}\\$".toSet().contains(it) }
   }
 
-  fun math(isTitle: Boolean, nodes: NodeList): String =
-    (0 until nodes.length).map { math(isTitle, nodes.item(it)) }.joinToString("")
-
-  fun math(isTitle: Boolean, node: Node): String =
-    when (node) {
-      is CDATASection -> text(isTitle, math = true, node.data)
-      is Comment -> "" // Remove HTML Comments
-      // when XML::Document { self.math($is-title, $node.root) }
-      is Document -> math(isTitle, node.documentElement)
-      is ProcessingInstruction -> ""
-      // when XML::Text { self.text($is-title, :math, decode-entities($node.text)) }
-      is Text -> text(isTitle, true, node.data) // TODO: wrap node.text in decodeEntities
-      is Element ->
-        when (node.nodeName) {
-          "mtext" -> math(isTitle, node.childNodes)
-          // when 'mi' {
-          //   ($node.attribs<mathvariant> // '') eq 'normal'
-          //     ?? '\mathrm{' ~ self.math($is-title, $node.nodes) ~ '}'
-          //     !! self.math($is-title, $node.nodes)
-          // }
-          "mi" ->
-            if (node.getAttribute("mathvariant") == "normal") {
-              "\\mathrm{${math(isTitle, node.childNodes)}}"
-            } else {
-              math(isTitle, node.childNodes)
-            }
-          "mo" -> math(isTitle, node.childNodes)
-          "mn" -> math(isTitle, node.childNodes)
-          "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes)}}"
-          "mrow" -> "{${math(isTitle, node.childNodes)}}"
-          "mspace" -> "\\hspace{${node.getAttribute("width")}}"
-          "msubsup" ->
-            "{${math(isTitle, node.childNodes.item(0))}}" +
-              "_{${math(isTitle, node.childNodes.item(1))}}" +
-              "^{${math(isTitle, node.childNodes.item(2))}}"
-          "msub" ->
-            "{${math(isTitle, node.childNodes.item(0))}}" +
-              "_{${math(isTitle, node.childNodes.item(1))}}"
-          "msup" ->
-            "{${math(isTitle, node.childNodes.item(0))}}" +
-              "^{${math(isTitle, node.childNodes.item(1))}}"
-          else -> {
-            println("WARNING: Unknown MathML tag: ${node.nodeName}")
-            "[${node.nodeName}]${math(isTitle, node.childNodes)}[/${node.nodeName}]"
-          }
-        }
-      else -> TODO("Unknown MathML node type '${node.javaClass.name}': ${node}")
-    }
-
   fun html(isTitle: Boolean, nodes: NodeList): String =
     (0 until nodes.length).map { html(isTitle, nodes.item(it)) }.joinToString("")
 
@@ -655,6 +606,55 @@ class Fixer(
       }
 
       else -> TODO("Unknown HTML node type '${node.javaClass.name}': ${node}")
+    }
+
+  fun math(isTitle: Boolean, nodes: NodeList): String =
+    (0 until nodes.length).map { math(isTitle, nodes.item(it)) }.joinToString("")
+
+  fun math(isTitle: Boolean, node: Node): String =
+    when (node) {
+      is CDATASection -> text(isTitle, math = true, node.data)
+      is Comment -> "" // Remove HTML Comments
+      // when XML::Document { self.math($is-title, $node.root) }
+      is Document -> math(isTitle, node.documentElement)
+      is ProcessingInstruction -> ""
+      // when XML::Text { self.text($is-title, :math, decode-entities($node.text)) }
+      is Text -> text(isTitle, true, node.data) // TODO: wrap node.text in decodeEntities
+      is Element ->
+        when (node.nodeName) {
+          "mtext" -> math(isTitle, node.childNodes)
+          // when 'mi' {
+          //   ($node.attribs<mathvariant> // '') eq 'normal'
+          //     ?? '\mathrm{' ~ self.math($is-title, $node.nodes) ~ '}'
+          //     !! self.math($is-title, $node.nodes)
+          // }
+          "mi" ->
+            if (node.getAttribute("mathvariant") == "normal") {
+              "\\mathrm{${math(isTitle, node.childNodes)}}"
+            } else {
+              math(isTitle, node.childNodes)
+            }
+          "mo" -> math(isTitle, node.childNodes)
+          "mn" -> math(isTitle, node.childNodes)
+          "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes)}}"
+          "mrow" -> "{${math(isTitle, node.childNodes)}}"
+          "mspace" -> "\\hspace{${node.getAttribute("width")}}"
+          "msubsup" ->
+            "{${math(isTitle, node.childNodes.item(0))}}" +
+              "_{${math(isTitle, node.childNodes.item(1))}}" +
+              "^{${math(isTitle, node.childNodes.item(2))}}"
+          "msub" ->
+            "{${math(isTitle, node.childNodes.item(0))}}" +
+              "_{${math(isTitle, node.childNodes.item(1))}}"
+          "msup" ->
+            "{${math(isTitle, node.childNodes.item(0))}}" +
+              "^{${math(isTitle, node.childNodes.item(1))}}"
+          else -> {
+            println("WARNING: Unknown MathML tag: ${node.nodeName}")
+            "[${node.nodeName}]${math(isTitle, node.childNodes)}[/${node.nodeName}]"
+          }
+        }
+      else -> TODO("Unknown MathML node type '${node.javaClass.name}': ${node}")
     }
 
   companion object {
