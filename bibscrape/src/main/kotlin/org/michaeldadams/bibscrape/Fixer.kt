@@ -241,7 +241,9 @@ class Fixer(
         var newValue = html(field == F.TITLE, xml)
         val doubleBrace = "\\{\\{ ([^{}]*) \\}\\}".r
         // Repeated to handle nested results
-        while (newValue.matches(doubleBrace)) newValue = newValue.replace(doubleBrace, "{$1}")
+        while (newValue.matches(doubleBrace)) {
+          newValue = newValue.replace(doubleBrace, "{$1}")
+        }
         entry[field] = newValue
         // update($entry, $field, {
         //   $_ = self.html($field eq 'title', from-xml("<root>{$_}</root>").root.nodes);
@@ -352,7 +354,7 @@ class Fixer(
   }
 
   private object Issn {
-    const val X_VALUE = 10
+    const val DIGIT_X_VALUE = 10
     const val NUM_DIGITS = 8
     const val MOD = 11
     const val PRE_SEP_LENGTH = 4
@@ -360,12 +362,14 @@ class Fixer(
   }
 
   fun canonicalizeIssn(issn: String): String {
-    val digits = issn.mapNotNull { it.digitToIntOrNull() ?: where(it.uppercase() == "X") { Issn.X_VALUE } }
+    val digits = issn.mapNotNull { it.digitToIntOrNull() ?: where(it.uppercase() == "X") { Issn.DIGIT_X_VALUE } }
     if (digits.size != Issn.NUM_DIGITS) { TODO() }
+
     val checkValue =
       Issn.MOD - digits.take(Issn.NUM_DIGITS - 1).mapIndexed { i, c -> c * (Issn.NUM_DIGITS - i) }.sum() % Issn.MOD
-    val checkChar = if (checkValue == Issn.X_VALUE) "X" else checkValue.toString()
+    val checkChar = if (checkValue == Issn.DIGIT_X_VALUE) "X" else checkValue.toString()
     if (checkValue != digits.last()) { println("Warning: Invalid Check Digit. TODO") }
+
     return digits.take(Issn.PRE_SEP_LENGTH).joinToString("") +
       issnSep +
       digits.drop(Issn.PRE_SEP_LENGTH).take(Issn.POST_SEP_LENGTH - 1).joinToString("") +

@@ -37,6 +37,7 @@ object Scraper {
    *
    * @param driver the [WebDriver] to use for scraping
    * @param url the URL to scrape
+   * @throws UnsupportedDomainException thrown if there is no scraper for the domain after all redirects in [url]
    * @return the [BibtexEntry] that was scraped
    */
   fun dispatch(driver: Driver, url: URI): BibtexEntry {

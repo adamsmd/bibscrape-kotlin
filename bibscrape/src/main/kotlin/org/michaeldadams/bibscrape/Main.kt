@@ -65,7 +65,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       Semicolons in <Str> are interpreted as newlines.
       """
   ).map(
-    userConfig(namesFilename),
+    userConfig(NAMES_FILENAME),
     { N.bibtexPerson(it, "bibscrape name configuration") },
     { N.simpleName(N.bibtexPerson(it, "bibscrape name configuration")).lowercase() }
   )
@@ -76,7 +76,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the NOUNS FILES section for details about nouns files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).map(userConfig(nounsFilename), { it }, { it.lowercase() })
+  ).map(userConfig(NOUNS_FILENAME), { it }, { it.lowercase() })
 
   val stopWord: Set<String> by option(
     help = """
@@ -84,7 +84,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the STOP-WORDS FILES section for details about stop-words files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).set(userConfig(stopWordsFilename), { it.lowercase() })
+  ).set(userConfig(STOP_WORDS_FILENAME), { it.lowercase() })
 
   companion object {
     private val windows = File.separator == "\\"
@@ -96,9 +96,9 @@ class Inputs : OptionGroup(name = "INPUTS") {
       }
     val bibscrapeConfigDir = File(userConfigDir + "/bibscrape")
 
-    const val namesFilename = "names.cfg"
-    const val nounsFilename = "nouns.cfg"
-    const val stopWordsFilename = "stop-words.cfg"
+    const val NAMES_FILENAME = "names.cfg"
+    const val NOUNS_FILENAME = "nouns.cfg"
+    const val STOP_WORDS_FILENAME = "stop-words.cfg"
 
     fun userConfig(filename: String): () -> String = {
       val file = bibscrapeConfigDir.resolve(filename)
@@ -168,6 +168,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).flag("--no-verbose")
 
+  @Suppress("MAGIC_NUMBER")
   val timeout: Duration by option(
     "-t",
     "--timeout",
@@ -313,6 +314,7 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
       """
   ).int().restrictTo(min = 0).default(1)
 
+  @Suppress("MAGIC_NUMBER")
   val testTimeout: Duration by option(
     help = """
       TODO: document --test-timeout
@@ -320,6 +322,7 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
       """
   ).seconds().restrictTo(min = 0.0.seconds).default(60.0.seconds)
 
+  @Suppress("MAGIC_NUMBER")
   val testHardTimeout: Duration by option(
     help = """
       TODO: document --test-timeout
@@ -541,20 +544,20 @@ class Main : CliktCommand(
     // TODO: warn if no args
     val options = testingOptions
     when {
-      options == null -> run(arg)
-      options.useTestArg -> run(options.testArg)
+      options == null -> runBibscrape(arg)
+      options.useTestArg -> runBibscrape(options.testArg)
       else -> runTests(options)
     }
   }
 
-  fun run(args: List<String>): Unit {
+  fun runBibscrape(args: List<String>): Unit {
     if (operatingModes.printConfigDir) {
       println("User-configuration directory: ${Inputs.bibscrapeConfigDir}")
     }
 
     if (operatingModes.init) {
       Inputs.bibscrapeConfigDir.mkdirs()
-      for (src in listOf(Inputs.namesFilename, Inputs.nounsFilename, Inputs.stopWordsFilename)) {
+      for (src in listOf(Inputs.NAMES_FILENAME, Inputs.NOUNS_FILENAME, Inputs.STOP_WORDS_FILENAME)) {
         val dst = Inputs.bibscrapeConfigDir.resolve(src)
         if (dst.exists()) {
           println("Not copying default ${src} since ${dst} already exists")
