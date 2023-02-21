@@ -46,19 +46,9 @@ dependencies {
   implementation("org.junit.platform:junit-platform-reporting:1.9.2")
 
   // WebDriver
-  // implementation("org.seleniumhq.selenium:selenium-java:4.8.0") // depends on version of io.netty incompatible with browsermob-core
-  implementation("org.seleniumhq.selenium:selenium-api:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-devtools-v107:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-devtools-v108:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-devtools-v109:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-devtools-v85:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-edge-driver:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-firefox-driver:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-ie-driver:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-remote-driver:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-safari-driver:4.8.0")
-  implementation("org.seleniumhq.selenium:selenium-support:4.8.0")
-
+  implementation("org.seleniumhq.selenium:selenium-java:4.8.1")
+  // This line fixes a NoSuchMethodError that is due the version of io.netty depended on by browsermob-core
+  implementation("org.seleniumhq.selenium:selenium-remote-driver:4.8.1")
   implementation("net.lightbody.bmp:browsermob-core:2.1.5")
 }
 
