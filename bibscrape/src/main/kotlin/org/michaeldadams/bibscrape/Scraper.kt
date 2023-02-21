@@ -10,7 +10,7 @@ import org.michaeldadams.bibscrape.Bibtex.Fields as F
  * @property domain the requested domain
  * @property url the url that resulted in the requested domain
  */
-data class UnsupportedDomainException(val domain: String, val url: URI) :
+data class UnsupportedDomainException(val domain: String, val url: String) :
   Exception("Unsupported domain '${domain}' while scraping '${url}'")
 
 /** Scraping functions for BibTeX data from publisher websites, but without
@@ -24,12 +24,12 @@ object Scraper {
    * @param timeout the timeout in seconds to use
    * @return the [BibtexEntry] that was scraped
    */
-  fun scrape(url: URI, window: Boolean, verbose: Boolean, timeout: Duration): BibtexEntry =
+  fun scrape(url: String, window: Boolean, verbose: Boolean, timeout: Duration): BibtexEntry =
     // TODO: option for withLogFile
     // TODO: option for verbose
     Driver.make(headless = !window, verbose = verbose, timeout = timeout).use { driver ->
       val entry = dispatch(driver, url)
-      entry[F.BIB_SCRAPE_URL] = url.toString()
+      entry[F.BIB_SCRAPE_URL] = url
       entry
     }
 
@@ -40,8 +40,8 @@ object Scraper {
    * @throws UnsupportedDomainException thrown if there is no scraper for the domain after all redirects in [url]
    * @return the [BibtexEntry] that was scraped
    */
-  fun dispatch(driver: Driver, url: URI): BibtexEntry {
-    driver.get(url.toString())
+  fun dispatch(driver: Driver, url: String): BibtexEntry {
+    driver.get(url.replace("^ doi: ( http s? :// (dx\\.)? doi\\.org/ )?".ri, "https://doi.org/"))
     val domain = URI(driver.currentUrl).host
 
     val scrapers = listOf(

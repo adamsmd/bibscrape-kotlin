@@ -592,12 +592,7 @@ class Main : CliktCommand(
     val keepReadKey = true // TODO: as flag
     for (a in args) {
       fun scrape(url: String): BibtexEntry =
-        Scraper.scrape(
-          URI(url.replace("^ doi: \\s*".ri, "")),
-          generalOptions.window,
-          generalOptions.verbose,
-          generalOptions.timeout
-        )
+        Scraper.scrape(url, generalOptions.window, generalOptions.verbose, generalOptions.timeout)
 
       fun fix(keepKey: Boolean, readKey: String?, entry: BibtexEntry): Unit {
         val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?

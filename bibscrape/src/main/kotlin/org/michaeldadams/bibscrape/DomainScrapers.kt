@@ -6,7 +6,6 @@ import ch.difty.kris.toRisRecords
 import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.Select
 import org.w3c.dom.Element
-import java.net.URI
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
@@ -26,9 +25,9 @@ object ScrapeAcm : DomainScraper {
         .mapNotNull { it.getAttribute("href") }
       // TODO: filter to non-acm links
       if (urls.size > 0) {
-        return Scraper.dispatch(driver, URI(urls.first()))
+        return Scraper.dispatch(driver, urls.first())
       } else {
-        TODO("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher")
+        println("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher") // TODO
       }
     }
 
