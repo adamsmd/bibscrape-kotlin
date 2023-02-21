@@ -168,7 +168,6 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).flag("--no-verbose")
 
-  @Suppress("MagicNumber", "MAGIC_NUMBER")
   val timeout: Duration by option(
     "-t",
     "--timeout",
@@ -699,7 +698,7 @@ class Main : CliktCommand(
     return Pair(output.get()!!, process)
   }
 
-  fun <A> retry(times: Int, block: () -> A?): A? =
+  fun <A> retry(times: Int, /* TODO: last: A?, */ block: () -> A?): A? =
     if (times == 0) { null } else { block() ?: retry(times - 1, block) }
 
   fun runTests(options: TestingOptions): Unit {
