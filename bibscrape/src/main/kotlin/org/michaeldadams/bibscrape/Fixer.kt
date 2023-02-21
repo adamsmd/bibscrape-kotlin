@@ -54,6 +54,7 @@ enum class IsbnType { ISBN13, ISBN10, PRESERVE }
  * @property isbnMedia which media type to prefer for an ISBN
  * @property isbnType which type of ISBN to prefer for an ISBN
  * @property isbnSep what separator to use an ISBN
+ * @property issnSep what separator to use an ISSN
  * @property noEncode which BibTeX fields to not convert to using LaTeX escapes
  * @property noCollapse which BibTeX fields to not collapse multiple whitespaces
  * @property omit which BibTeX fields to omit
