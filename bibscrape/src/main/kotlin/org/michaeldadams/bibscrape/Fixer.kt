@@ -424,10 +424,13 @@ class Fixer(
           # | \p{IsUpper} \. - \p{IsUpper} \.                 # Double initial
 
         """.trimIndent()
+
+        @Suppress("MultilineRawStringIndentation")
         val middle = """
             \p{IsUpper} \.                                    # Middle initial
 
         """.trimIndent()
+
         val last = """
             \p{IsUpper}\p{IsLower}+                           # Simple name
           | \p{IsUpper}\p{IsLower}+ - \p{IsUpper}\p{IsLower}+ # Hyphenated name with upper
