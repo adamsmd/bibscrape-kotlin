@@ -23,7 +23,6 @@ import java.io.File
 import java.time.Instant
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.math.roundToLong
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
@@ -51,7 +50,7 @@ class Driver private constructor(
   override fun close(): Unit {
     if (!closed.getAndSet(true)) {
       // TODO: do in another thread?
-      Thread.sleep(1_000) // Fixes "Timed out waiting for driver server to stop" (sometimes)
+      Thread.sleep(1.seconds.inWholeMilliseconds) // Fixes "Timed out waiting for driver server to stop" (sometimes)
       driver.quit()
       proxy.stop()
     }
@@ -68,9 +67,9 @@ class Driver private constructor(
    * @param block the code to execute and wait on
    * @return the value returned by the [block]
    */
-  fun <T> await(timeout: Double = 30.0, block: (WebDriver) -> T): T {
+  fun <T> await(timeout: Duration = 30.0.seconds, block: (WebDriver) -> T): T {
     val oldWait = this.manage().timeouts().implicitWaitTimeout
-    this.manage().timeouts().implicitlyWait(timeout.seconds.toJavaDuration())
+    this.manage().timeouts().implicitlyWait(timeout.toJavaDuration())
     val result = block(this)
     this.manage().timeouts().implicitlyWait(oldWait)
     return result
@@ -90,14 +89,15 @@ class Driver private constructor(
    */
   fun awaitFindElements(by: By): List<WebElement> = this.await { it.findElements(by) }
 
-  fun <T> awaitNonNull(timeout: Double = 30.0, sleep: Double = 0.5, block: () -> T?): T {
-    val end = Instant.now().plus(timeout.seconds.toJavaDuration())
+  fun <T> awaitNonNull(timeout: Duration = 30.0.seconds, sleep: Duration = 0.5.seconds, block: () -> T?): T {
+    // TODO: selenium.Wait
+    val end = Instant.now().plus(timeout.toJavaDuration())
     while (true) {
       runCatching { block()?.let { return it } }
       if (Instant.now().isAfter(end)) {
         throw TimeoutException()
       }
-      Thread.sleep((sleep * 1_000.0).roundToLong())
+      Thread.sleep(sleep.inWholeMilliseconds)
     }
   }
   // sub await(&block --> Any:D) is export {
@@ -251,8 +251,7 @@ class Driver private constructor(
       // // Firefox Driver
       val driver = FirefoxDriver(service, options)
       // TODO: fix timeouts
-      // driver.manage().timeouts().implicitlyWait(
-      //   Duration.ofMillis((timeout * MILLIS_PER_SECOND).roundToLong()))
+      // driver.manage().timeouts().implicitlyWait(timeout.toJavaDuration())
 
       // // Result
       return Driver(driver, proxy)
