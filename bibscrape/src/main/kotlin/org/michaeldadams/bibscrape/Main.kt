@@ -743,7 +743,7 @@ class Main : CliktCommand(
         .columnWidth(0) // No line wrapping. Default
         .mergeOriginalRevised(true) // Show diffs inline instead of two column
         .decompressDeltas(true) // Default
-        .inlineDiffByWord(false) // Use char-gradularity "word" diffs. Default
+        .inlineDiffByWord(true) // Use char-gradularity "word" diffs.
         // .inlineDiffBySplitter() // Handled by inlineDiffByWord()
         .lineNormalizer { it } // Don't muck with the inputs
         // .equalizer() // Handled by ignoreWhiteSpaces()
