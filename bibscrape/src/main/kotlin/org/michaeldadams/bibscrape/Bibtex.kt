@@ -293,7 +293,7 @@ object Bibtex {
      * @return a [BibtexMacroReference] for the given month or [null] if parsing failed
      */
     fun intToMonth(bibtexFile: BibtexFile, string: String): BibtexMacroReference? =
-      string.toIntOrNull()?.let { macroNames.getOrNull(it) }?.let { bibtexFile.makeMacroReference(it) }
+      string.toIntOrNull()?.let { macroNames.getOrNull(it - 1) }?.let { bibtexFile.makeMacroReference(it) }
 
     /** Converts a string containing a month name to the BibTeX macro for that month if it exists.
      *
