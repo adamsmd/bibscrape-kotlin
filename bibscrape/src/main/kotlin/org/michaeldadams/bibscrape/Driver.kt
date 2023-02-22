@@ -168,13 +168,12 @@ class Driver private constructor(
             application/x-bibtex |
             application/x-research-info-systems |
             text/x-bibtex
-            ) \b
+            ) (?= $ | ; )
         """.trimIndent().r
 
         response.headers().remove("Content-Disposition")
-        if (response.headers()["Content-Type"].contains(textPlainTypes)) {
-          response.headers()["Content-Type"] = "text/plain"
-        }
+        response.headers()["Content-Type"] =
+          response.headers()["Content-Type"].replace(textPlainTypes, "text/plain")
       }
       proxy.addRequestFilter {
           request, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
@@ -209,7 +208,7 @@ class Driver private constructor(
         """.trimIndent().r
 
         // Use dummy values for domains that are slow and that we don't actually need
-        val domain = request.headers()[HttpHeaderNames.HOST].replace(":443 $".r, "")
+        val domain = request.headers()[HttpHeaderNames.HOST].remove(":443 $".r)
         if (domain.contains(blockedDomains)) {
           DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
         } else {

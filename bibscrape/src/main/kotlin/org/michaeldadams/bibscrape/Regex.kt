@@ -36,3 +36,10 @@ fun String.find(regex: Regex): MatchResult? = regex.find(this)
  * @return the result of splitting with [regex]
  */
 fun String.split(regex: Regex): List<String> = regex.split(this)
+
+/** Removes all occurences of [regex] from the receiver.
+ *
+ * @param regex what to remove
+ * @return the string after all matches of [regex] are removed
+ */
+fun String.remove(regex: Regex): String = this.replace(regex, "")

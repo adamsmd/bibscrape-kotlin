@@ -51,7 +51,7 @@ private fun <C, F, L> parseBlocks(
   fun go(dir: Path, string: String): Unit {
     val lines = string
       .split("\\R".r)
-      .map { it.replace("\\s* \\# .* $".r, "").replace("^ \\s+".r, "") }
+      .map { it.remove("\\s* \\# .* $".r).remove("^ \\s+".r) }
     for (line in lines) {
       when {
         line.isEmpty() ->
@@ -78,6 +78,19 @@ private fun <C, F, L> parseBlocks(
   go(Paths.get("."), string)
   acc
 }
+
+// TODO: escape in config blocks
+
+// TODO: regex for lines in config blocks
+// prelim = @ | - | --
+// @ body comment
+// - body comment
+// - comment
+// -- comment
+// body comment
+// body = (char | string)*
+// string = " (non-quote)* "
+// non-quote = ... | \" | \\
 
 /** Converts an option to one supporting a collection type in "block" notation.
  *

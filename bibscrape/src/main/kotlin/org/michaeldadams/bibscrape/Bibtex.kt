@@ -27,18 +27,7 @@ fun Iterable<String>.joinByAnd(): String = this.joinToString(Bibtex.Names.AND)
  * @return `true` if [field] exists in the receiver and `false` if it does not
  */
 @Suppress("FUNCTION_BOOLEAN_PREFIX")
-fun BibtexEntry.contains(field: String): Boolean =
-  this.fields.containsKey(field)
-
-/** Runs [block] on the value of [field] if [field] exists in the receiver.
- *
- * @param A the type returned by [block]
- * @param field the name of the field to check
- * @param block the function to run if [field] exists.  Receives the value of the [field] as an argument.
- * @return the value returned by [block] if [field] exists in the receiver, otherwise `null`
- */
-inline fun <A> BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -> A): A? =
-  this[field]?.let(block)
+fun BibtexEntry.contains(field: String): Boolean = this.fields.containsKey(field)
 
 /** Prints a warning if [field] exists in the receiver, but [block] returns
  * `false` on the value of that field.
@@ -49,7 +38,7 @@ inline fun <A> BibtexEntry.ifField(field: String, block: (BibtexAbstractValue) -
  * @return [Unit] if [block] returns `true`, otherwise `null`
  */
 inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): Unit? =
-  this.ifField(field) {
+  this[field]?.let {
     val value = it.string
     if (!block(value)) {
       println("WARNING: ${msg}: ${value}")
@@ -110,7 +99,7 @@ inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? 
  * @return [Unit] if [field] existed in the receiver, otherwise `null`
  */
 inline fun BibtexEntry.updateValue(field: String, block: (BibtexAbstractValue) -> BibtexAbstractValue?): Unit? =
-  this.ifField(field) {
+  this[field]?.let {
     this[field] = block(it)
   }
 
@@ -125,7 +114,7 @@ inline fun BibtexEntry.updateValue(field: String, block: (BibtexAbstractValue) -
  * @return [Unit] if field [src] existed in the receiver, otherwise `null`
  */
 inline fun BibtexEntry.moveFieldIf(src: String, dst: String, block: (BibtexAbstractValue) -> Boolean): Unit? =
-  this.ifField(src) {
+  this[src]?.let {
     if (block(it)) {
       this[dst] = it
       this.undefineField(src)

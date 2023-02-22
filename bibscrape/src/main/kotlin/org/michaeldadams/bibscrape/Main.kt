@@ -605,7 +605,7 @@ class Main : CliktCommand(
 
       if (a.contains("^ http: | https: | doi: ".ri)) {
         // It's a URL
-        if (!operatingModes.scrape) { TODO("Scraping disabled but given URL: ${a}") }
+        if (!operatingModes.scrape) { error("Scraping disabled but given URL: ${a}") }
         fix(keepScrapedKey, null, scrape(a))
       } else {
         // Not a URL so try reading it as a file
@@ -633,14 +633,14 @@ class Main : CliktCommand(
             //   fix($key, $item);
             fix(keepReadKey, entry.entryKey, entry)
           } else {
-            entry.ifField(F.BIB_SCRAPE_URL) {
+            entry[F.BIB_SCRAPE_URL]?.let {
               fix(keepReadKey, entry.entryKey, scrape(it.string))
-            } ?: entry.ifField(F.DOI) {
-              val doi = "doi:${it.string.replace("^ doi:".r, "")}"
+            } ?: entry[F.DOI]?.let {
+              val doi = "doi:${it.string.remove("^ doi:".r)}"
               fix(keepReadKey, entry.entryKey, scrape(doi))
             } ?: run {
               for (field in listOf(F.URL, F.HOWPUBLISHED)) {
-                entry.ifField(field) {
+                entry[field]?.let {
                   runCatching { scrape(it.string) }.getOrNull() // Intentionally ignore if scrape fails
                 }?.let {
                   fix(keepReadKey, entry.entryKey, it)

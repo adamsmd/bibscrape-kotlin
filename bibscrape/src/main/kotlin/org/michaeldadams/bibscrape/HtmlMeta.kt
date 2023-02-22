@@ -33,16 +33,8 @@ object HtmlMeta {
     fun getFirst(vararg fields: String): String? =
       fields.flatMap { meta.getOrDefault(it, emptyList()) }.firstOrNull()
 
-    fun set(field: String, value: BibtexAbstractValue?): Unit {
-      if (value != null) { values[field] = value }
-    }
+    fun set(field: String, value: BibtexAbstractValue?): Unit { if (value != null) { values[field] = value } }
     fun set(field: String, value: String?): Unit { set(field, value?.let { entry.ownerFile.makeString(it) }) }
-    //   sub set(Str:D $field, $value where Any:U | Str:_ | BibScrape::BibTeX::Piece:_ --> Any:U) {
-    //     if $value {
-    //       %values{$field} = BibScrape::BibTeX::Value.new($value);
-    //     }
-    //     return;
-    //   }
 
     // The meta-data is highly redundent and multiple fields contain
     // similar information.  In the following we choose fields that
@@ -51,13 +43,8 @@ object HtmlMeta {
 
     // 'author', 'dc.contributor', 'dc.creator', 'rft_aufirst', 'rft_aulast', and 'rft_au'
     // also contain authorship information
-    // my Str:D @authors;
-    // if %meta<citation_author>:exists { @authors = @(%meta<citation_author>) }
-    // elsif %meta<citation_authors> { @authors = %meta<citation_authors>.head.split(';') }
-    // set( 'author', @authors.map({ s:g/^ ' '+//; s:g/ ' '+ $//; $_ }).join( ' and ' ))
-    //   if @authors;
     val authorList = meta["citation_author"] ?: meta["citation_authors"]?.firstOrNull()?.split(";".r) ?: emptyList()
-    val authorString = authorList.map { it.replace("^ \\ +".r, "").replace("\\ + $".r, "") }.joinByAnd()
+    val authorString = authorList.map { it.trim() }.joinByAnd()
     if (authorString.isNotEmpty()) {
       set(F.AUTHOR, authorString)
     }
@@ -67,16 +54,6 @@ object HtmlMeta {
 
     // test/acm-17.t has the article number in 'citation_firstpage' but no 'citation_firstpage'
     // test/ieee-computer-1.t has 'pages' but empty 'citation_firstpage'
-    //   if %meta<citation_firstpage>:exists and %meta<citation_firstpage>.head
-    //       and %meta<citation_lastpage>:exists and %meta<citation_lastpage>.head {
-    //     set( 'pages',
-    //       %meta<citation_firstpage>.head ~
-    //       (%meta<citation_firstpage>.head ne %meta<citation_lastpage>.head
-    //         ?? "--" ~ %meta<citation_lastpage>.head
-    //         !! ""));
-    //   } else {
-    //     set( 'pages', %meta<pages>.head);
-    //   }
     set(
       F.PAGES,
       meta["citation_firstpage"]?.firstOrNull()?.let { first ->
@@ -90,15 +67,8 @@ object HtmlMeta {
     set(F.NUMBER, getFirst("citation_issue"))
 
     // 'keywords' also contains keyword information
-    if (meta.containsKey("citation_keywords")) {
-      set(
-        F.KEYWORDS,
-        meta
-          .getOrDefault("citation_keywords", emptyList())
-          .map { it.replace("^ \\s* ;* ".r, "").replace(" ;* \\s* $".r, "") }
-          .joinToString("; ")
-      )
-    }
+    set(F.KEYWORDS, meta["citation_keywords"]?.map { it.trim().trim(';') }?.joinToString("; "))
+    // TODO: check and remove old code
     // set( 'keywords',
     //   %meta<citation_keywords>
     //   .map({ s/^ \s* ';'* //; s/ ';'* \s* $//; $_ })
@@ -109,6 +79,7 @@ object HtmlMeta {
     set(F.PUBLISHER, getFirst("citation_publisher", "dc.publisher", "st.publisher"))
 
     // 'dc.date', 'rft_date', 'citation_online_date' also contain date information
+    // TODO: check and remove old code
     // if %meta<citation_publication_date>:exists {
     //   if (%meta<citation_publication_date>.head ~~ /^ (\d\d\d\d) <[/-]> (\d\d) [ <[/-]> (\d\d) ]? $/) {
     //     my Str:D ($year, $month) = ($0.Str, $1.Str);
@@ -130,15 +101,21 @@ object HtmlMeta {
       meta["citation_publication_date"]
         ?.firstOrNull()
         ?.find("^ (\\d{4}) [/-] (\\d{2}) ( [/-] (\\d{2}) )? $".r)
-        ?.let { it.groupValues }
+        ?.groupValues
+        ?.let { Pair(it[1], M.intToMonth(entry.ownerFile, it[2])) }
         ?: meta["citation_date"]
           ?.firstOrNull()
           ?.find("^ (\\d{2}) [/-] \\d{2} [/-] (\\d{4}) $".r)
-          ?.let { it.groupValues }
-        ?: listOf(null, null)
-    // TODO: citation_date ~~ /^ <[\ 0..9-]>*? <wb> (\w+) <wb> <[\ .0..9-]>*? <wb> (\d\d\d\d) <wb> /
+          ?.groupValues
+          ?.let { Pair(it[2], M.intToMonth(entry.ownerFile, it[1])) }
+        ?: meta["citation_date"]
+          ?.firstOrNull()
+          ?.find("^ [\\ 0-9]*? \b (\\w+) \b [\\ 0-9]*? \b (\\d{4}) \b".r)
+          ?.groupValues
+          ?.let { Pair(it[2], M.stringToMonth(entry.ownerFile, it[1])) }
+        ?: Pair(null, null)
     set(F.YEAR, year)
-    set(F.MONTH, month?.let { M.intToMonth(entry.ownerFile, it) })
+    set(F.MONTH, month)
 
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     val types = listOf(
@@ -156,9 +133,6 @@ object HtmlMeta {
     }
 
     // 'rft_id' and 'doi' also contain doi information
-    // if %meta<citation_doi>:exists { set( 'doi', %meta<citation_doi>.head )}
-    // elsif %meta<st.discriminator>:exists { set( 'doi', %meta<st.discriminator>.head) }
-    // elsif %meta<dc.identifier>:exists and %meta<dc.identifier>.head ~~ /^ 'doi:' (.+) $/ { set( 'doi', $1) }
     set(
       F.DOI,
       meta["citation_doi"]?.firstOrNull()
@@ -168,9 +142,7 @@ object HtmlMeta {
 
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
-    meta["citation_isbn"]?.let {
-      if (it.size == 1) { set(F.ISBN, it.first()) }
-    }
+    set(F.ISBN, meta["citation_isbn"]?.singleOrNull())
     // if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
     //   set( 'isbn', %meta<citation_isbn>.head);
     // }
@@ -183,9 +155,9 @@ object HtmlMeta {
     // }
     set(
       F.ISSN,
-      meta["st.printissn"]?.let { printIssn ->
-        meta["st.onlineissn"]?.let { onlineIssn ->
-          "${printIssn.first()} (Print) ${onlineIssn.first()} (Online)"
+      meta["st.printissn"]?.firstOrNull()?.let { printIssn ->
+        meta["st.onlineissn"]?.firstOrNull()?.let { onlineIssn ->
+          "${printIssn} (Print) ${onlineIssn} (Online)"
         }
       } ?: meta["citation_issn"]?.singleOrNull()
     )
@@ -199,15 +171,13 @@ object HtmlMeta {
     //   }
     set(
       F.ABSTRACT,
-      listOf("description", "Description")
+      listOf("Description", "description")
         .flatMap { meta[it] ?: emptyList() }
         .filterNot { it.contains("^ ( $ | \\*{4} | IEEE\\ Xplore | IEEE\\ Computer\\ Society )".r) }
         .firstOrNull()
     )
 
-    meta["citation_author_institution"]?.let {
-      set(F.AFFILIATION, it.joinByAnd())
-    }
+    set(F.AFFILIATION, meta["citation_author_institution"]?.joinByAnd())
     //   set( 'affiliation', %meta<citation_author_institution>.join( ' and ' ))
     //     if %meta<citation_author_institution>:exists;
 
@@ -217,12 +187,6 @@ object HtmlMeta {
         entry[k] = v // TODO: BibtexPersonList
       }
     }
-    //   for %values.kv -> Str:D $key, BibScrape::BibTeX::Value:D $value {
-    //     if %fields{$key}:exists ?? %fields{$key} !! not $entry.fields{$key}:exists {
-    //       $entry.fields{$key} = $value;
-    //     }
-    //   }
-    // }
 
     // ### Other fields
     //

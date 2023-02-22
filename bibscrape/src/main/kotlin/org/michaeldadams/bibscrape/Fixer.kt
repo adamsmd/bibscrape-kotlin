@@ -23,6 +23,7 @@ typealias NounMap = Map<String, String>
 typealias StopWordSet = Set<String>
 
 // TODO: put [where] somewhere appropriate
+// TODO: rename to ifOrNull
 /** When [test] is true, returns the result of calling [block], otherwise returns [null].
  *
  * @param A the type to be returned
@@ -82,7 +83,7 @@ class Fixer(
   val omit: Set<String>,
   val omitEmpty: Set<String>
 ) {
-  /** Returns a [BibtexEntry] that is a copy of [oldEntry] but with various fixes.
+  /** Returns a [BibtexEntry] that is a copy of [oldEntry] but with commons errors fixed.
    *
    * @param oldEntry the [BibtexEntry] to fix
    * @return a copy of [oldEntry] but with various fixes applied
@@ -108,7 +109,7 @@ class Fixer(
     }
 
     // Fix Springer's use of 'note' to store 'doi'
-    entry.update(F.NOTE) { where(it != entry[F.DOI] ?: "") { it } }
+    entry.update(F.NOTE) { where(it != entry[F.DOI]?.string) { it } }
 
     // ///////////////////////////////
     // Post-omit fixes              //
@@ -118,14 +119,10 @@ class Fixer(
     omit.forEach { entry.undefineField(it) }
 
     // Doi: remove "http://hostname/" or "DOI: "
-    entry.update(F.DOI) {
-      it
-        .replace("http s? :// [^/]+ /".ri, "")
-        .replace("doi: \\s*".ri, "")
-    }
+    entry.update(F.DOI) { it.remove("http s? :// [^/]+ /".ri).remove("doi: \\s*".ri) }
 
     // Page numbers: remove "pp." or "p."
-    entry.update(F.PAGES) { it.replace("p p? \\. \\s*".ri, "") }
+    entry.update(F.PAGES) { it.remove("p p? \\. \\s*".ri) }
 
     // Ranges: convert "-" to "--"
     for (field in listOf(F.CHAPTER, F.MONTH, F.NUMBER, F.PAGES, F.VOLUME, F.YEAR)) {
@@ -133,7 +130,7 @@ class Fixer(
       val dash = if (entry.entryType == T.TECHREPORT && field == F.NUMBER) "-" else "--"
 
       entry.update(field) { it.replace("\\s* (- | \\N{EN DASH} | \\N{EM DASH})+ \\s*".ri, dash) }
-      entry.update(field) { it.replace("n/a -- n/a".ri, "") }
+      entry.update(field) { it.remove("n/a -- n/a".ri) }
       entry.removeIf(field) { it.isEmpty() } // TODO: let omit-if-empty handle this?
       entry.update(field) { it.replace("\\b (\\w+) -- \\1".ri, "$1") }
       entry.update(field) { it.replace("(^|\\ ) (\\w+)--(\\w+)--(\\w+)--(\\w+) ($|,)".ri, "$1$2-$3--$4-$5$6") }
@@ -173,12 +170,10 @@ class Fixer(
     }
 
     entry.check(F.VOLUME, "Possibly incorrect volume") {
-      /* ktlint-disable indent */
-      it.contains("^ \\d+          $".r) ||
-      it.contains("^ \\d+  - \\d+  $".r) ||
-      it.contains("^ [A-Z] - \\d+  $".r) ||
-      it.contains("^ \\d+  - [A-Z] $".r)
-      /* ktlint-enable indent */
+      it.contains("^   \\d+          $".r) ||
+        it.contains("^ \\d+  - \\d+  $".r) ||
+        it.contains("^ [A-Z] - \\d+  $".r) ||
+        it.contains("^ \\d+  - [A-Z] $".r)
     }
 
     entry.check(F.NUMBER, "Possibly incorrect number") {
@@ -191,10 +186,7 @@ class Fixer(
         it.contains("^ Special\\ Issue\\ \\d+ (--\\d+)? $".r)
     }
 
-    // self.isbn($entry, 'issn', $.issn-media, &canonical-issn);
     isn(entry, F.ISSN, issnMedia, ::canonicalizeIssn)
-
-    // self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
     isn(entry, F.ISBN, isbnMedia, ::canonicalizeIsbn)
 
     // Change language codes (e.g., "en") to proper terms (e.g., "English")
@@ -217,28 +209,22 @@ class Fixer(
     """.trimIndent().r
     entry.removeIf(F.URL) { it.contains(publisherUrl) }
 
-    // Year
     entry.check(F.YEAR, "Possibly incorrect year") { it.contains("^ \\d\\d\\d\\d $".r) }
 
-    // // Keywords
     entry.update(F.KEYWORDS) { it.replace("\\s* ; \\s*".r, "; ") }
 
     // Eliminate Unicode but not for no-encode fields (e.g. doi, url, etc.)
-    //   for $entry.fields.keys -> Str:D $field {
     for ((field, value) in entry.fields) {
-      // unless $field ∈ @.no-encode {
-      if (!noEncode.contains(field)) {
+      if (field !in noEncode) {
         var newValue = html(field == F.TITLE, Parser.parseBodyFragment(value.string, "").body())
-        val doubleBrace = "\\{\\{ ([^{}]*) \\}\\}".r
+
         // Repeated to handle nested results
-        while (newValue.matches(doubleBrace)) {
-          newValue = newValue.replace(doubleBrace, "{$1}")
+        var oldValue: String? = null
+        while (oldValue != newValue) {
+          oldValue = newValue
+          newValue = newValue.replace("\\{\\{ ([^{}]*) \\}\\}".r, "{$1}")
         }
         entry[field] = newValue
-        // update($entry, $field, {
-        //   $_ = self.html($field eq 'title', from-xml("<root>{$_}</root>").root.nodes);
-        //   # Repeated to handle nested results
-        //   while s:g/ '{{' (<-[{}]>*) '}}' /\{$0\}/ {};
       }
     }
 
@@ -253,11 +239,10 @@ class Fixer(
 
     // Collapse spaces and newlines.  After Unicode encoding so stuff from XML is caught.
     for (field in entry.fields.keys) {
-      if (!noCollapse.contains(field)) {
+      if (field !in noCollapse) {
         entry.update(field) {
           it
-            .replace("\\s+ $".r, "") // Remove trailing whitespace
-            .replace("^ \\s+".r, "") // Remove leading whitespace
+            .trim()
             .replace("(\\n\\ *){2,}", "{\\par}") // BibTeX eats whitespace so convert "\n\n" to paragraph break
             .replace("^ \\s* \\n \\s*".r, " ") // Remove extra line breaks
             .replace(" ( \\s | \\{~\\} )* \\s ( \\s | \\{~\\} )* ".r, " ") // Remove duplicate whitespace
@@ -268,9 +253,9 @@ class Fixer(
 
     // Warn about capitalization of non-initial "A".
     // After collapsing spaces and newline because we are about initial "A".
-    entry.ifField(F.TITLE) {
+    entry[F.TITLE]?.let {
       if (escapeAcronyms && it.string.contains("\\ A\\ ".r)) {
-        println("WARNING: 'A' may need to be wrapped in curly braces if it needs to stay capitalized")
+        println("WARNING: An 'A' in the title may need to be wrapped in curly braces if it needs to stay capitalized")
       }
     }
 
@@ -294,6 +279,7 @@ class Fixer(
       when (parts.size) {
         0 -> entry.ownerFile.makeString("")
         1 -> parts.first()
+        // TODO: dropFirst()
         else -> parts.drop(1).fold(parts.first(), entry.ownerFile::makeConcatenatedValue)
       }
     }
@@ -315,25 +301,27 @@ class Fixer(
       ).first()
         .last
         .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
-        .replace("[^A-Za-z0-9]".r, "") // Remove non-alphanum
+        .remove("[^A-Za-z0-9]".r) // Remove non-alphanum
 
-    val titleWord = (entry[F.TITLE]?.string ?: "")
+    val title = entry[F.TITLE]
+      ?.string
+      .orEmpty()
       .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
-      .replace("[^\\ ^A-Za-z0-9-]".r, "") // Remove non-alphanum, space or hyphen
+      .remove("[^\\ ^A-Za-z0-9-]".r) // Remove non-alphanum, space or hyphen
       .split("\\s+".r)
-      .filter { !stopWords.contains(it.lowercase()) }
+      .filter { it.lowercase() !in stopWords }
       .filter { it.isNotEmpty() }
       .firstOrNull()
-    val title = if (titleWord == null) "" else ":${titleWord}"
+      ?.let { ":${it}" }
 
-    val year = entry.ifField(F.YEAR) { ":${it.string}" } ?: ""
+    val year = entry[F.YEAR]?.let { ":${it.string}" }.orEmpty()
 
     val doi =
-      entry.ifField(F.ARCHIVEPREFIX) { archiveprefix ->
-        entry.ifField(F.EPRINT) { eprint ->
+      entry[F.ARCHIVEPREFIX]?.let { archiveprefix ->
+        entry[F.EPRINT]?.let { eprint ->
           where(archiveprefix.string == "arXiv") { ":arXiv.${eprint.string}" }
         }
-      } ?: entry.ifField(F.DOI) { ":${it.string}" } ?: ""
+      } ?: entry[F.DOI]?.let { ":${it.string}" }.orEmpty()
     entry.entryKey = name + year + title + doi
 
     // val unknownFields = entry.fields.keys subtract field
@@ -457,35 +445,20 @@ class Fixer(
     var s = string
     // if $is-title {
     if (isTitle) {
+      // TODO: combine these loops
       // Keep proper nouns capitalized
       // Inside html()/math() in case a tag or attribute looks like a proper noun
-      // for @.noun-groups -> Str:D @noun-group {
-      //   for @noun-group -> Str:D $noun {
-      //     my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
-      //     $str ~~ s:g/ « [$noun | $noun-no-brace] » /{@noun-group.head}/;
-      //   }
-      // }
       for ((key, value) in nouns) {
-        val keyNoBrace = key.replace("[{}]".r, "")
+        val keyNoBrace = key.remove("[{}]".r)
         s = s.replace(
           "\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".r,
           "{${Regex.escapeReplacement(value)}}"
         )
       }
-      // for @.noun-groups -> Str:D @noun-group {
-      //   for @noun-group -> Str:D $noun {
-      //     my Str:D $noun-no-brace = $noun.subst(rx/ <[{}]> /, '', :g);
-      //     for $str ~~ m:i:g/ « [$noun | $noun-no-brace] » / {
-      //       if $/ ne @noun-group.head {
-      //         say "WARNING: Possibly incorrectly capitalized noun '$/' in title";
-      //       }
-      //     }
-      //   }
-      // }
-      // Re-run things case insentitively in case the user didn't catch something
+      // Re-run things case insentitively in case the "nouns" setting didn't catch something
       // (We don't want to automatically convert case insensitively, since that might be too broad.)
       for ((key, value) in nouns) {
-        val keyNoBrace = key.replace("[{}]".r, "")
+        val keyNoBrace = key.remove("[{}]".r)
         s.find("\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".ri)?.let {
           if (it.value != value) {
             println("WARNING: Possibly incorrectly capitalized noun '${it.value}' in title")
@@ -493,19 +466,14 @@ class Fixer(
         }
       }
 
-      // # Keep acronyms capitalized
-      // # Note that non-initial "A" are warned after collapsing spaces and newlines.
-      // # Anything other than "Aaaa" or "aaaa" triggers an acronym.
-      // # After eliminating Unicode in case a tag or attribute looks like an acronym
-      // $str ~~ s:g/ <!after '{'> ([<!before '_'> <alnum>]+ <upper> [<!before '_'> <alnum>]*) /\{$0\}/
-      //   if $.escape-acronyms;
-      // $str ~~ s:g/ <wb> <!after '{'> ( <!after ' '> 'A' <!before ' '> | <!before 'A'> <upper>) <!before "'"> <wb>
-      //            /\{$0\}/
-      //   if $.escape-acronyms;
-      // }
+      // Keep acronyms capitalized
+      // Note that non-initial "A" are warned after collapsing spaces and newlines.
+      // Anything other than "Aaaa" or "aaaa" triggers an acronym.
+      // After eliminating Unicode in case a tag or attribute looks like an acronym
       if (escapeAcronyms) {
         val alnum = """(?: \p{IsAlphabetic} | \p{IsDigit} )"""
         val notAfterBrace = """(?<! \{ )"""
+        // TODO: revise these regexes and position of ?!
         s = s
           .replace("""${notAfterBrace} \b ( ${alnum}+ \p{IsUppercase} ${alnum}* )""".r, "{$1}")
           .replace("""${notAfterBrace} \b ( (?<! \\ ) A (?! \\ ) ) (?! ') \b""".r, "{$1}")
@@ -513,11 +481,8 @@ class Fixer(
       }
     }
 
-    // # NOTE: Ignores LaTeX introduced by translation from XML
-    // $str = unicode2tex($str, :$math, :ignore(rx/<[_^{}\\\$]>/));
-
-    // $str;
-    return Unicode.unicodeToTex(s, math) { "_^{}\\$".toSet().contains(it) }
+    // NOTE: Ignores LaTeX introduced by translation from XML
+    return Unicode.unicodeToTex(s, math) { it in "_^{}\\$".toSet() }
   }
 
   fun html(isTitle: Boolean, nodes: List<Node>): String = nodes.map { html(isTitle, it) }.joinToString("")
@@ -527,35 +492,31 @@ class Fixer(
       is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
       is TextNode -> text(isTitle, false, node.text()) // TODO: wrap node.text in decodeEntities
       is Element -> {
-        fun wrap(tag: String): String =
-          html(isTitle, node.children()).let { if (it == "") "" else "\\${tag}{${it}}" }
-        // sub wrap(Str:D $tag --> Str:D) {
-        //   my Str:D $str = self.html($is-title, $node.nodes);
-        //   $str eq '' ?? '' !! "\\$tag\{" ~ $str ~ "\}"
-        // }
-        // if ($node.attribs<aria-hidden> // '') eq 'true' {
-        //   ''
-        // } else {
+        fun tex(tag: String): String =
+          html(isTitle, node.children()).let { if (it.isEmpty()) "" else "\\${tag}{${it}}" }
         if (node.attributes()["aria-hidden"] == "true") {
           ""
         } else {
           when (node.tag().name) {
+            "script", "svg" -> ""
+
             "body" -> html(isTitle, node.childNodes())
+            "p", "par" -> html(isTitle, node.children()) + "\n\n" // Replace <p> with \n\n
+
             "a" ->
               if (node.attributes()["class"].contains("\\b xref-fn \\b".r)) {
                 "" // Omit footnotes added by Oxford when on-campus
               } else {
                 html(isTitle, node.children()) // Remove <a> links
               }
-            "p", "par" -> html(isTitle, node.children()) + "\n\n" // Replace <p> with \n\n
-            "i", "italic" -> wrap("textit")
-            "em" -> wrap("emph")
-            "b", "strong" -> wrap("textbf")
-            "tt", "code" -> wrap("texttt")
-            "sup", "supscrpt" -> wrap("textsuperscript")
-            "sub" -> wrap("textsubscript")
-            "svg" -> ""
-            "script" -> ""
+
+            "i", "italic" -> tex("textit")
+            "em" -> tex("emph")
+            "b", "strong" -> tex("textbf")
+            "tt", "code" -> tex("texttt")
+            "sup", "supscrpt" -> tex("textsuperscript")
+            "sub" -> tex("textsubscript")
+
             "math" -> node.childNodes().let { if (it.isEmpty()) "" else "\\ensuremath{${math(isTitle, it)}}" }
             // #when 'img' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
             //   # $str ~~ s:i:g/"<img src=\"/content/" <[A..Z0..9]>+ "/xxlarge" (\d+)
@@ -566,15 +527,14 @@ class Fixer(
             "span" -> {
               val classAttr = node.attributes()["class"]
               when {
-                node.attributes()["style"].contains("\\b font-family:monospace \b") -> wrap("texttt")
-                // node.attributes()["aria-hidden"] == "true" -> ""
-                classAttr.contains("\\b monospace \\b".r) -> wrap("texttt")
-                classAttr.contains("\\b italic \\b".r) -> wrap("textit")
-                classAttr.contains("\\b bold \\b".r) -> wrap("textbf")
-                classAttr.contains("\\b sup \\b".r) -> wrap("textsuperscript")
-                classAttr.contains("\\b sub \\b".r) -> wrap("textsubscript")
-                classAttr.contains("\\b ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) \\b".r) ->
-                  wrap("textsc")
+                node.attributes()["style"].contains("\\b font-family:monospace \b") -> tex("texttt")
+                // TODO: remove: node.attributes()["aria-hidden"] == "true" -> ""
+                classAttr.contains("\\b monospace \\b".r) -> tex("texttt")
+                classAttr.contains("\\b italic \\b".r) -> tex("textit")
+                classAttr.contains("\\b bold \\b".r) -> tex("textbf")
+                classAttr.contains("\\b sup \\b".r) -> tex("textsuperscript")
+                classAttr.contains("\\b sub \\b".r) -> tex("textsubscript")
+                classAttr.contains("\\b ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) \\b".r) -> tex("textsc")
                 else -> html(isTitle, node.childNodes())
               }
             }
@@ -586,7 +546,7 @@ class Fixer(
         }
       }
 
-      else -> TODO("Unknown HTML node type '${node.javaClass.name}': ${node}")
+      else -> error("Unknown HTML node type '${node.javaClass.name}': ${node}")
     }
 
   fun math(isTitle: Boolean, nodes: List<Node>): String = nodes.map { math(isTitle, it) }.joinToString("")
@@ -594,24 +554,16 @@ class Fixer(
   fun math(isTitle: Boolean, node: Node): String =
     when (node) {
       is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
-      // when XML::Text { self.text($is-title, :math, decode-entities($node.text)) }
       is TextNode -> text(isTitle, true, node.text()) // TODO: wrap node.text in decodeEntities
       is Element ->
         when (node.tag().name) {
-          "mtext" -> math(isTitle, node.childNodes())
-          // when 'mi' {
-          //   ($node.attribs<mathvariant> // '') eq 'normal'
-          //     ?? '\mathrm{' ~ self.math($is-title, $node.nodes) ~ '}'
-          //     !! self.math($is-title, $node.nodes)
-          // }
+          "mn", "mo", "mtext" -> math(isTitle, node.childNodes())
           "mi" ->
             if (node.attributes()["mathvariant"] == "normal") {
               "\\mathrm{${math(isTitle, node.childNodes())}}"
             } else {
               math(isTitle, node.childNodes())
             }
-          "mo" -> math(isTitle, node.childNodes())
-          "mn" -> math(isTitle, node.childNodes())
           "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes())}}"
           "mrow" -> "{${math(isTitle, node.childNodes())}}"
           "mspace" -> "\\hspace{${node.attributes()["width"]}}"
@@ -630,6 +582,6 @@ class Fixer(
             "[${node.tag().name}]${math(isTitle, node.childNodes())}[/${node.tag().name}]"
           }
         }
-      else -> TODO("Unknown MathML node type '${node.javaClass.name}': ${node}")
+      else -> error("Unknown MathML node type '${node.javaClass.name}': ${node}")
     }
 }

@@ -74,7 +74,7 @@ object ScrapeAcm : DomainScraper {
         .split("\\s+".r)
         .first()
     }
-    entry.ifField(F.ISSUE_DATE) {
+    entry[F.ISSUE_DATE]?.let {
       val month = it.string.split("\\s+".r).first()
       if (Bibtex.Months.stringToMonth(entry.ownerFile, month) != null) {
         entry[F.MONTH] = month
@@ -155,6 +155,7 @@ object ScrapeArxiv : DomainScraper {
 
     // Use the arXiv API to download meta-data
     driver.get("https://export.arxiv.org/api/query?id_list=${id}")
+    // TODO: use Jsoup
     val xml = DocumentBuilderFactory
       .newInstance()
       .newDocumentBuilder()
@@ -176,7 +177,7 @@ object ScrapeArxiv : DomainScraper {
     val xmlEntry: Element = xml.getElementListByTagName("entry")[0]
 
     fun Element.text(tag: String): String =
-      this.getElementListByTagName(tag).let { it.getOrNull(0)?.textContent ?: "" }
+      this.getElementListByTagName(tag).let { it.firstOrNull()?.textContent.orEmpty() }
     // sub text(XML::Element:D $element, Str:D $str --> Str:D) {
     //   my XML::Element:D @elements = $element.getElementsByTagName($str);
     //   if @elements {
@@ -201,8 +202,8 @@ object ScrapeArxiv : DomainScraper {
     // // Affiliation
     // affiliation=<author><arxiv:affiliation>:
     //   The author's affiliation included as a subelement of <author> if present.
-    authors.map { it.text("arxiv:affiliation") }.filter { it != "" }.joinByAnd().let {
-      if (it != "") { entry[F.AFFILIATION] = it }
+    authors.map { it.text("arxiv:affiliation") }.filter { it.isNotEmpty() }.joinByAnd().let {
+      if (it.isEmpty()) { entry[F.AFFILIATION] = it }
     }
 
     // // How published
@@ -397,7 +398,7 @@ object ScrapeIeeeExplore : DomainScraper {
     }
 
     // // Abstract
-    entry.update(F.ABSTRACT) { it.replace("&lt;&gt; $".r, "") }
+    entry.update(F.ABSTRACT) { it.remove("&lt;&gt; $".r) }
 
     return entry
   }
@@ -426,7 +427,7 @@ object ScrapeIosPress : DomainScraper {
     entry[F.TITLE] = driver
       .findElement(By.cssSelector("[data-p13n-title]"))
       .getDomAttribute("data-p13n-title")
-      .replace("\\\\n".r, "")
+      .remove("\\\\n".r)
 
     // // Abstract
     entry[F.ABSTRACT] = driver
@@ -682,7 +683,7 @@ object ScrapeSpringer : DomainScraper {
     // // Publisher
     // The publisher field should not include the address
     entry.update("publisher") {
-      val address = entry[F.ADDRESS]?.string ?: ""
+      val address = entry[F.ADDRESS]?.string.orEmpty()
       if (it == "Springer, ${address}") "Springer" else it
     }
 
