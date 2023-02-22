@@ -1,7 +1,9 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
+import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexPerson
+import bibtex.expansions.MacroReferenceExpander
 import com.github.ladutsko.isbn.ISBN
 import com.github.ladutsko.isbn.ISBNFormat
 import org.jsoup.nodes.Comment
@@ -89,8 +91,15 @@ class Fixer(
    * @return a copy of [oldEntry] but with various fixes applied
    */
   fun fix(oldEntry: BibtexEntry): BibtexEntry {
-    val entry = oldEntry.ownerFile.makeEntry(oldEntry.entryType, oldEntry.entryKey)
-    oldEntry.fields.forEach { name, value -> entry[name] = value }
+    val entry = BibtexFile().makeEntry(oldEntry.entryType, oldEntry.entryKey)
+    entry.ownerFile.addEntry(entry)
+    oldEntry.fields.forEach { name, value -> entry[name] = value } // TODO: copy value to new type
+    val expander = MacroReferenceExpander(
+		  /* expandStandardMacros = */ true,
+		  /* expandMonthAbbreviations = */ true,
+		  /* removeMacros = */ false,
+		  /* throwAllExpansionExceptions = */ true)
+    expander.expand(entry.ownerFile)
 
     // ///////////////////////////////
     //  Pre-omit fixes              //
