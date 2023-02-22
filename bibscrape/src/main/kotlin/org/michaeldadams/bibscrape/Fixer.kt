@@ -31,7 +31,7 @@ typealias StopWordSet = Set<String>
  * @param block the block to run if [test] is [true]
  * @return either [null] or the result of calling [block]
  */
-inline fun <A> where(test: Boolean, block: () -> A): A? = if (test) block() else null
+inline fun <A> ifOrNull(test: Boolean, block: () -> A): A? = if (test) block() else null
 
 /** What type of ISBN or ISSN media type to prefer. */
 @Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
@@ -109,7 +109,7 @@ class Fixer(
     }
 
     // Fix Springer's use of 'note' to store 'doi'
-    entry.update(F.NOTE) { where(it != entry[F.DOI]?.string) { it } }
+    entry.update(F.NOTE) { ifOrNull(it != entry[F.DOI]?.string) { it } }
 
     // ///////////////////////////////
     // Post-omit fixes              //
@@ -319,7 +319,7 @@ class Fixer(
     val doi =
       entry[F.ARCHIVEPREFIX]?.let { archiveprefix ->
         entry[F.EPRINT]?.let { eprint ->
-          where(archiveprefix.string == "arXiv") { ":arXiv.${eprint.string}" }
+          ifOrNull(archiveprefix.string == "arXiv") { ":arXiv.${eprint.string}" }
         }
       } ?: entry[F.DOI]?.let { ":${it.string}" }.orEmpty()
     entry.entryKey = name + year + title + doi
@@ -340,7 +340,7 @@ class Fixer(
   }
 
   fun canonicalizeIssn(issn: String): String {
-    val digits = issn.mapNotNull { it.digitToIntOrNull() ?: where(it.uppercase() == "X") { Issn.DIGIT_X_VALUE } }
+    val digits = issn.mapNotNull { it.digitToIntOrNull() ?: ifOrNull(it.uppercase() == "X") { Issn.DIGIT_X_VALUE } }
     if (digits.size != Issn.NUM_DIGITS) { TODO() }
 
     val checkValue =
