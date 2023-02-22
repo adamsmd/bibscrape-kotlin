@@ -3,12 +3,14 @@ package org.michaeldadams.bibscrape
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import ch.difty.kris.toRisRecords
+import org.jsoup.nodes.Element
+import org.jsoup.parser.Parser
 import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.Select
-import org.w3c.dom.Element
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.text.toRegex
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.jsoup.select.Evaluator as E
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : DomainScraper {
@@ -36,8 +38,7 @@ object ScrapeAcm : DomainScraper {
     val entries: List<BibtexEntry> =
       driver.awaitFindElements(By.cssSelector("#exportCitation .csl-right-inline"))
         .flatMap { Bibtex.parseEntries(it.text) }
-        // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering
-        // non-journal over journal
+        // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering non-journal over journal
         .sortedBy { it.contains(F.JOURNAL) }
     val entry = entries.first()
 
@@ -155,67 +156,53 @@ object ScrapeArxiv : DomainScraper {
 
     // Use the arXiv API to download meta-data
     driver.get("https://export.arxiv.org/api/query?id_list=${id}")
-    // TODO: use Jsoup
-    val xml = DocumentBuilderFactory
-      .newInstance()
-      .newDocumentBuilder()
-      .parse(driver.textPlain().byteInputStream())
-      .documentElement
+    val xml = Parser.parseBodyFragment(driver.textPlain(), "").body()
     driver.navigate().back()
 
-    fun Element.getElementListByTagName(tag: String): List<Element> =
-      this.getElementsByTagName(tag).let { nodes ->
-        (0 until nodes.length).map { nodes.item(it) as Element }
-      }
+    val doi = xml.select(E.Tag("arxiv:doi"))
 
-    val doi = xml.getElementListByTagName("arxiv:doi")
     // if @doi and Backtrace.new.map({$_.subname}).grep({$_ eq 'scrape-arxiv'}) <= 1 {
     //   # Use publisher page if it exists
     //   dispatch('doi:' ~ @doi.head.contents».text.join(''));
     // } else {
 
-    val xmlEntry: Element = xml.getElementListByTagName("entry")[0]
+    val xmlEntry = xml.selectFirst(E.Tag("entry"))!!
 
-    fun Element.text(tag: String): String =
-      this.getElementListByTagName(tag).let { it.firstOrNull()?.textContent.orEmpty() }
-    // sub text(XML::Element:D $element, Str:D $str --> Str:D) {
-    //   my XML::Element:D @elements = $element.getElementsByTagName($str);
-    //   if @elements {
-    //     @elements.head.contents».text.join('');
-    //   } else {
-    //     '';
-    //   }
-    // }
+    fun Element.tagText(tag: String): String = this.selectFirst(E.Tag(tag))?.wholeText().orEmpty()
 
     // // BibTeX object
     val entry = BibtexFile().makeEntry("misc", "arxiv.${id}")
 
     // // Title
-    entry[F.TITLE] = xmlEntry.text("title")
+    entry[F.TITLE] = xmlEntry.tagText("title")
 
-    val authors = xmlEntry.getElementListByTagName("author")
+    val authors = xmlEntry.select(E.Tag("author"))
 
     // // Author
     // author=<author><name>: One for each author. Has child element <name> containing the author name.
-    entry[F.AUTHOR] = authors.map { it.text("name") }.joinByAnd()
+    entry[F.AUTHOR] = authors.map { it.tagText("name") }.joinByAnd()
 
     // // Affiliation
     // affiliation=<author><arxiv:affiliation>:
     //   The author's affiliation included as a subelement of <author> if present.
-    authors.map { it.text("arxiv:affiliation") }.filter { it.isNotEmpty() }.joinByAnd().let {
-      if (it.isEmpty()) { entry[F.AFFILIATION] = it }
+    authors.map { it.tagText("arxiv:affiliation") }.filter { it.isNotEmpty() }.joinByAnd().let {
+      if (it.isNotEmpty()) { entry[F.AFFILIATION] = it }
     }
 
     // // How published
     entry[F.HOWPUBLISHED] = "arXiv.org"
 
     // // Year, month and day
-    val published = xmlEntry.text("published")
+    val (_, year, month, day) =
+      xmlEntry.tagText("published").find("^ (\\d{4}) - (\\d{2}) - (\\d{2}) T".r)!!.groupValues
     // $published ~~ /^ (\d ** 4) '-' (\d ** 2) '-' (\d ** 2) 'T'/;
     // my (Str:D $year, Str:D $month, Str:D $day) = ($0.Str, $1.Str, $2.Str);
-    //   # year, month, day = <published> 	The date that version 1 of the article was submitted.
-    //   # <updated> 	The date that the retrieved version of the article was
-    //           submitted. Same as <published> if the retrieved version is version 1.
+    // year, month, day = <published> 	The date that version 1 of the article was submitted.
+    // <updated> 	The date that the retrieved version of the article was
+    //            submitted. Same as <published> if the retrieved version is version 1.
+    entry[F.YEAR] = year
+    entry[F.MONTH] = month
+    entry[F.DAY] = day
     // $entry.fields<year> = BibScrape::BibTeX::Value.new($year);
     // $entry.fields<month> = BibScrape::BibTeX::Value.new($month);
     // $entry.fields<day> = BibScrape::BibTeX::Value.new($day);
@@ -223,6 +210,12 @@ object ScrapeArxiv : DomainScraper {
     // my Str:D $doi = $xml-entry.elements(:TAG<link>, :title<doi>).map({$_.attribs<href>}).join(';');
     // $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi)
     //   if $doi ne '';
+    // println(xmlEntry)
+    entry[F.DOI] = xmlEntry
+      .select(E.Tag("link"))
+      .flatMap { it.select(E.AttributeWithValue("title", "doi")) }
+      .mapNotNull {it.attributes().get("href") }
+      .firstOrNull()
 
     // // Eprint
     entry[F.EPRINT] = id
@@ -231,11 +224,12 @@ object ScrapeArxiv : DomainScraper {
     entry[F.ARCHIVEPREFIX] = "arXiv"
 
     // // Primary class
+    entry[F.PRIMARYCLASS] = xmlEntry.selectFirst(E.Tag("arxiv:primary_category"))?.attributes()?.get("term")
     // my Str:D $primaryClass = $xml-entry.getElementsByTagName('arxiv:primary_category').head.attribs<term>;
     // $entry.fields<primaryclass> = BibScrape::BibTeX::Value.new($primaryClass);
 
     // // Abstract
-    entry[F.ABSTRACT] = xmlEntry.text("summary")
+    entry[F.ABSTRACT] = xmlEntry.tagText("summary")
 
     // The following XML elements are ignored
     // <link>              Can be up to 3 given url's associated with this article.
@@ -273,7 +267,7 @@ object ScrapeCambridge : DomainScraper {
     HtmlMeta.bibtex(entry, meta, F.ABSTRACT to false)
 
     // // Title
-    // entry[F.TITLE] = driver.awaitFindElement(By.className("article-title")).innerHtml
+    // entry[F.TITLE] = driver.awaitFindElement(E.className("article-title")).innerHtml
 
     // // Abstract
     // my #`(Inline::Python::PythonObject:D) @abstract = $web-driver.find_elements_by_class_name( 'abstract' );
@@ -288,8 +282,8 @@ object ScrapeCambridge : DomainScraper {
     // }
 
     // // ISSN
-    // val pissn = driver.findElement(By.name("productIssn")).getAttribute("value")
-    // val eissn = driver.findElement(By.name("productEissn")).getAttribute("value")
+    // val pissn = driver.findElement(E.name("productIssn")).getAttribute("value")
+    // val eissn = driver.findElement(E.name("productEissn")).getAttribute("value")
     // entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
 
     return entry
