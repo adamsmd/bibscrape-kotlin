@@ -695,8 +695,8 @@ class Main : CliktCommand(
     return Pair(output.get()!!, process)
   }
 
-  fun <A> retry(times: Int, /* TODO: last: A?, */ block: () -> A?): A? =
-    if (times == 0) { null } else { block() ?: retry(times - 1, block) }
+  fun <A> retry(times: Int, test: (A) -> Boolean, block: () -> A): A =
+    block().let { if (times <= 1 || test(it)) it else retry(times - 1, test, block) }
 
   fun runTests(options: TestingOptions): Unit {
     val javaExe = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java"
@@ -727,9 +727,8 @@ class Main : CliktCommand(
           originalArgv
 
       val retries = if (options.retries == 0) -1 else options.retries
-      val result = retry(retries) {
+      val result = retry(retries, { it.second.exitValue() == 0 }) {
         runCommand(options.testTimeout, options.testHardTimeout, command)
-          .let { if (it.second.exitValue() == 0) it else null }
       }
 
       val diffRowGenerator = DiffRowGenerator
@@ -749,7 +748,7 @@ class Main : CliktCommand(
         // .equalizer() // Handled by ignoreWhiteSpaces()
         .replaceOriginalLinefeedInChangesWithSpaces(false) // Default
         .build()
-      val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result!!.first.lines())
+      val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result?.first?.lines().orEmpty())
       for (row in diffRows) {
         if (row.tag != DiffRow.Tag.EQUAL) { // TODO: || show-all-lines
           println(row.oldLine) // TODO: show line number?
