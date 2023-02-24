@@ -308,7 +308,7 @@ class Fixer(
         entry[F.AUTHOR]?.string ?: entry[F.EDITOR]?.string ?: "anon",
         entry.entryKey
       ).first()
-        .last
+        .let { it.preLast.orEmpty() + it.last }
         .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
         .remove("[^A-Za-z0-9]".r) // Remove non-alphanum
 
