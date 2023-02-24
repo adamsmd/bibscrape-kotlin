@@ -75,7 +75,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
       See the NOUNS FILES section for details about nouns files.
       Semicolons in <Str> are interpreted as newlines.
       """
-  ).map(userConfig(NOUNS_FILENAME), { it }, { it.lowercase() })
+  ).map(userConfig(NOUNS_FILENAME), { it }, { it })
 
   val stopWord: Set<String> by option(
     help = """
