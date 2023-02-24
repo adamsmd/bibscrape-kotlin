@@ -24,17 +24,6 @@ typealias NameMap = Map<String, BibtexPerson>
 typealias NounMap = Map<String, String>
 typealias StopWordSet = Set<String>
 
-// TODO: put [where] somewhere appropriate
-// TODO: rename to ifOrNull
-/** When [test] is true, returns the result of calling [block], otherwise returns [null].
- *
- * @param A the type to be returned
- * @param test the test to determine whether to call [block] or just return [null]
- * @param block the block to run if [test] is [true]
- * @return either [null] or the result of calling [block]
- */
-inline fun <A> ifOrNull(test: Boolean, block: () -> A): A? = if (test) block() else null
-
 /** What type of ISBN or ISSN media type to prefer. */
 @Suppress("BRACES_BLOCK_STRUCTURE_ERROR")
 enum class MediaType { PRINT, ONLINE, BOTH }

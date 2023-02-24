@@ -7,8 +7,6 @@ import ch.difty.kris.domain.RisType
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Types as T
 
-fun <A> List<A>.nonEmpty(): List<A>? = this.ifEmpty { null } // TODO: place for nonEmpty()
-
 /** RIS utility functions. */
 object Ris {
   val risTypes = mapOf(
