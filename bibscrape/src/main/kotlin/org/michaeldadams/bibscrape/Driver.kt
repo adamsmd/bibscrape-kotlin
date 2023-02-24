@@ -60,14 +60,7 @@ class Driver private constructor(
    * not already do so. */
   protected override fun finalize(): Unit = this.close()
 
-  /** Sets the driver's wait time while running a given [block].
-   *
-   * @param T the type returned by [block]
-   * @param timeout the time to wait in seconds
-   * @param block the code to execute and wait on
-   * @return the value returned by the [block]
-   */
-  fun <T> await(timeout: Duration = 30.0.seconds, block: (WebDriver) -> T): T {
+  private fun <T> awaitFind(timeout: Duration = 30.0.seconds, block: (WebDriver) -> T): T {
     val oldWait = this.manage().timeouts().implicitWaitTimeout
     this.manage().timeouts().implicitlyWait(timeout.toJavaDuration())
     val result = block(this)
@@ -75,22 +68,35 @@ class Driver private constructor(
     return result
   }
 
-  /** Calls [findElement] in an [await] block.
+  /** Calls [findElement] with a timeout.
    *
-   * @param by TODO: document
-   * @return TODO: document
+   * @param timeout the time to wait in seconds
+   * @param by the locating mechanism to use
+   * @return the first matching element on the current page
    */
-  fun awaitFindElement(by: By): WebElement = this.await { it.findElement(by) }
+  fun awaitFindElement(by: By, timeout: Duration = 30.0.seconds): WebElement =
+    this.awaitFind(timeout) { it.findElement(by) }
 
-  /** Calls [findElements] in an [await] block.
+  /** Calls [findElements] with a timeout.
    *
-   * @param by TODO: document
-   * @return TODO: document
+   * @param timeout the time to wait in seconds
+   * @param by the locating mechanism to use
+   * @return the matching elements on the current page
    */
-  fun awaitFindElements(by: By): List<WebElement> = this.await { it.findElements(by) }
+  fun awaitFindElements(by: By, timeout: Duration = 30.0.seconds): List<WebElement> =
+    this.awaitFind(timeout) { it.findElements(by) }
 
+  /** Calls [block] until it produces a non-null result without throwing an exception.
+   *  Sets the driver's wait time while running a given [block].
+   *
+   * @param T the type returned by [block]
+   * @param timeout the time to wait in seconds
+   * @param sleep how long to wait between calls to [block]
+   * @param block the code to execute and wait on
+   * @return the value returned by the [block]
+   * @throws TimeoutException thrown if the timeout expires
+   */
   fun <T> awaitNonNull(timeout: Duration = 30.0.seconds, sleep: Duration = 0.5.seconds, block: () -> T?): T {
-    // TODO: selenium.Wait
     val end = Instant.now().plus(timeout.toJavaDuration())
     while (true) {
       runCatching { block()?.let { return it } }
@@ -100,21 +106,6 @@ class Driver private constructor(
       Thread.sleep(sleep.inWholeMilliseconds)
     }
   }
-  // sub await(&block --> Any:D) is export {
-  //   my Rat:D constant $timeout = 30.0;
-  //   my Rat:D constant $sleep = 0.5;
-  //   my Any:_ $result;
-  //   my Num:D $start = now.Num;
-  //   while True {
-  //     $result = &block();
-  //     if $result { return $result }
-  //     if now - $start > $timeout {
-  //       die "Timeout while waiting for the browser"
-  //     }
-  //     sleep $sleep;
-  //     CATCH { default { sleep $sleep; } }
-  //   }
-  // }
 
   fun textPlain(): String = Entities.unescape(this.findElement(By.tagName("pre")).innerHtml)
 

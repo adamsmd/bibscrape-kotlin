@@ -748,7 +748,7 @@ class Main : CliktCommand(
         // .equalizer() // Handled by ignoreWhiteSpaces()
         .replaceOriginalLinefeedInChangesWithSpaces(false) // Default
         .build()
-      val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result?.first?.lines().orEmpty())
+      val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result.first.lines().orEmpty())
       for (row in diffRows) {
         if (row.tag != DiffRow.Tag.EQUAL) { // TODO: || show-all-lines
           println(row.oldLine) // TODO: show line number?

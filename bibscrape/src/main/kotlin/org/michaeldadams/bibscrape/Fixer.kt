@@ -95,10 +95,11 @@ class Fixer(
     entry.ownerFile.addEntry(entry)
     oldEntry.fields.forEach { name, value -> entry[name] = value } // TODO: copy value to new type
     val expander = MacroReferenceExpander(
-		  /* expandStandardMacros = */ true,
-		  /* expandMonthAbbreviations = */ true,
-		  /* removeMacros = */ false,
-		  /* throwAllExpansionExceptions = */ true)
+      /* expandStandardMacros = */ true,
+      /* expandMonthAbbreviations = */ true,
+      /* removeMacros = */ false,
+      /* throwAllExpansionExceptions = */ true
+    )
     expander.expand(entry.ownerFile)
 
     // ///////////////////////////////

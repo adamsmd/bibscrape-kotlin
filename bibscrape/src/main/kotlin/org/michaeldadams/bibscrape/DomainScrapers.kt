@@ -7,10 +7,8 @@ import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
 import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.Select
-import javax.xml.parsers.DocumentBuilderFactory
-import kotlin.text.toRegex
-import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.jsoup.select.Evaluator as E
+import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : DomainScraper {
@@ -214,7 +212,7 @@ object ScrapeArxiv : DomainScraper {
     entry[F.DOI] = xmlEntry
       .select(E.Tag("link"))
       .flatMap { it.select(E.AttributeWithValue("title", "doi")) }
-      .mapNotNull {it.attributes().get("href") }
+      .mapNotNull { it.attributes().get("href") }
       .firstOrNull()
 
     // // Eprint
@@ -247,10 +245,9 @@ object ScrapeCambridge : DomainScraper {
   override val domains = listOf("cambridge.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    val match = driver.currentUrl.find("^ http s? ://www.cambridge.org/core/services/aop-cambridge-core/content/view/ (S \\d+) $".r)
-    if (match != null) {
-      driver.get("https://doi.org/10.1017/${match.groupValues[1]}")
-    }
+    driver.currentUrl.find(
+      "^ http s? ://www.cambridge.org/core/services/aop-cambridge-core/content/view/ (S \\d+) $".r
+    )?.let { driver.get("https://doi.org/10.1017/${it.groupValues[1]}") }
 
     // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box
     val meta = HtmlMeta.parse(driver)
@@ -258,7 +255,7 @@ object ScrapeCambridge : DomainScraper {
     // // BibTeX
     driver.awaitNonNull {
       driver.findElements(By.cssSelector("[data-export-type=\"bibtex\"]")).firstOrNull()?.click()
-      ?: driver.findElements(By.className("export-citation-product")).firstOrNull()?.click()?.let{ null }
+        ?: driver.findElements(By.className("export-citation-product")).firstOrNull()?.click()?.let { null }
     }
     val entry = Bibtex.parseEntries(driver.textPlain()).first()
     driver.navigate().back()
@@ -281,15 +278,16 @@ object ScrapeCambridge : DomainScraper {
     //   $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract)
     //     unless $abstract ~~ /^ '//static.cambridge.org/content/id/urn' /;
     // }
-    entry[F.ABSTRACT] =
-      driver.findElements(By.className("abstract"))
+    entry[F.ABSTRACT] = driver
+      .findElements(By.className("abstract"))
       .firstOrNull()
       ?.innerHtml
-      ?.remove("""\\R\ \ \ \ \ \ \\R\ \ \ \ \ \ """.r)
-      ?.remove("^ <div\\ [^>]* >".r)
-      ?.remove(" </div> $".r)
-      ?.remove("""^ //static.cambridge.org/content/id/urn .*""".r)
-      ?.ifEmpty { null } // TODO: ifEmpty
+      .orEmpty()
+      .remove("""\\R\ \ \ \ \ \ \\R\ \ \ \ \ \ """.r)
+      .remove("^ <div\\ [^>]* >".r)
+      .remove(" </div> $".r)
+      .remove("""^ //static.cambridge.org/content/id/urn .*""".r)
+      .ifEmpty { null } // TODO: ifEmpty
 
     // // ISSN
     // val pissn = driver.findElement(E.name("productIssn")).getAttribute("value")
