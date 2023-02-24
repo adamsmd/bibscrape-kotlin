@@ -431,7 +431,7 @@ class Fixer(
 
         """.trimIndent()
         if (!name.contains("^ \\s* (${first}) \\s+ ((${middle}) \\s+)? (${last}) \\s* $".r)) {
-          println("WARNING: Publishers sometimes mangle names such as: ${name}")
+          println("WARNING: Publishers sometimes mangle names such as: ${person}")
         }
 
         person

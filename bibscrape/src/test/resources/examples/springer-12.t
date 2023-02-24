@@ -1,22 +1,22 @@
 http://link.springer.com/article/10.1023%2FA%3A1010051815785
 Authors with IV or Jr. that are omitted in some sources of author information
 
-WARNING: Possibly incorrect name: Abelson, H.
-WARNING: Possibly incorrect name: Dybvig, R.K.
-WARNING: Possibly incorrect name: Haynes, C.T.
-WARNING: Possibly incorrect name: Rozas, G.J.
-WARNING: Possibly incorrect name: IV, N.I. Adams
-WARNING: Possibly incorrect name: Friedman, D.P.
-WARNING: Possibly incorrect name: Kohlbecker, E.
-WARNING: Possibly incorrect name: Jr., G.L. Steele
-WARNING: Possibly incorrect name: Bartley, D.H.
-WARNING: Possibly incorrect name: Halstead, R.
-WARNING: Possibly incorrect name: Oxley, D.
-WARNING: Possibly incorrect name: Sussman, G.J.
-WARNING: Possibly incorrect name: Brooks, G.
-WARNING: Possibly incorrect name: Hanson, C.
-WARNING: Possibly incorrect name: Pitman, K.M.
-WARNING: Possibly incorrect name: Wand, M.
+WARNING: Publishers sometimes mangle names such as: Abelson, H.
+WARNING: Publishers sometimes mangle names such as: Dybvig, R.K.
+WARNING: Publishers sometimes mangle names such as: Haynes, C.T.
+WARNING: Publishers sometimes mangle names such as: Rozas, G.J.
+WARNING: Publishers sometimes mangle names such as: IV, N.I. Adams
+WARNING: Publishers sometimes mangle names such as: Friedman, D.P.
+WARNING: Publishers sometimes mangle names such as: Kohlbecker, E.
+WARNING: Publishers sometimes mangle names such as: Jr., G.L. Steele
+WARNING: Publishers sometimes mangle names such as: Bartley, D.H.
+WARNING: Publishers sometimes mangle names such as: Halstead, R.
+WARNING: Publishers sometimes mangle names such as: Oxley, D.
+WARNING: Publishers sometimes mangle names such as: Sussman, G.J.
+WARNING: Publishers sometimes mangle names such as: Brooks, G.
+WARNING: Publishers sometimes mangle names such as: Hanson, C.
+WARNING: Publishers sometimes mangle names such as: Pitman, K.M.
+WARNING: Publishers sometimes mangle names such as: Wand, M.
 @article{abelson:1998:revised:10.1023/a:1010051815785,
   author = {Abelson, H. and Dybvig, R.K. and Haynes, C.T. and Rozas, G.J. and IV, N.I. Adams and Friedman, D.P. and Kohlbecker, E. and Jr., G.L. Steele and Bartley, D.H. and Halstead, R. and Oxley, D. and Sussman, G.J. and Brooks, G. and Hanson, C. and Pitman, K.M. and Wand, M.},
   title = {Revised 5 Report on the Algorithmic Language {S}cheme},

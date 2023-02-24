@@ -1,15 +1,15 @@
 https://www.jstor.org/stable/10.2307/2893230
 Info from JSTOR is broken
 
-WARNING: Possibly incorrect name: Autran, B.
-WARNING: Possibly incorrect name: Carcelain, G.
-WARNING: Possibly incorrect name: Li, T. S.
-WARNING: Possibly incorrect name: Blanc, C.
-WARNING: Possibly incorrect name: Mathez, D.
-WARNING: Possibly incorrect name: Tubiana, R.
-WARNING: Possibly incorrect name: Katlama, C.
-WARNING: Possibly incorrect name: Debré, P.
-WARNING: Possibly incorrect name: Leibowitch, J.
+WARNING: Publishers sometimes mangle names such as: Autran, B.
+WARNING: Publishers sometimes mangle names such as: Carcelain, G.
+WARNING: Publishers sometimes mangle names such as: Li, T. S.
+WARNING: Publishers sometimes mangle names such as: Blanc, C.
+WARNING: Publishers sometimes mangle names such as: Mathez, D.
+WARNING: Publishers sometimes mangle names such as: Tubiana, R.
+WARNING: Publishers sometimes mangle names such as: Katlama, C.
+WARNING: Publishers sometimes mangle names such as: Debré, P.
+WARNING: Publishers sometimes mangle names such as: Leibowitch, J.
 @article{autran:1997:positive:10.2307/2893230,
   author = {Autran, B. and Carcelain, G. and Li, T. S. and Blanc, C. and Mathez, D. and Tubiana, R. and Katlama, C. and Debr{\'e}, P. and Leibowitch, J.},
   title = {Positive Effects of Combined Antiretroviral Therapy on {CD4}$^+$ {T} Cell Homeostasis and Function in Advanced {HIV} Disease},

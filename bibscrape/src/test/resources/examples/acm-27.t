@@ -1,7 +1,7 @@
 https://dl.acm.org/doi/10.1145/3341704
 Noun in title
 
-WARNING: Possibly incorrect name: Christiansen, David Thrane
+WARNING: Publishers sometimes mangle names such as: Christiansen, David Thrane
 @article{christiansen:2019:dependently:10.1145/3341704,
   author = {Christiansen, David Thrane and Diatchki, Iavor S. and Dockins, Robert and Hendrix, Joe and Ravitch, Tristan},
   title = {Dependently typed {H}askell in industry (experience report)},
