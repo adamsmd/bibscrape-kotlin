@@ -118,6 +118,7 @@ object HtmlMeta {
     set(F.MONTH, month)
 
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
+    @Suppress("ktlint:trailing-comma-on-call-site")
     val types = listOf(
       // Note that the order of these matter
       "citation_conference" to F.BOOKTITLE,

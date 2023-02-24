@@ -9,7 +9,8 @@ import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 /** RIS utility functions. */
 object Ris {
-  val risTypes = mapOf(
+  @Suppress("ktlint:trailing-comma-on-call-site")
+  private val risTypes = mapOf(
     RisType.BOOK to T.BOOK,
     RisType.CONF to T.PROCEEDINGS,
     RisType.CHAP to T.INBOOK,
@@ -32,6 +33,12 @@ object Ris {
       .filter { it.contains("[^,\\ ]") }
       .joinByAnd()
 
+  /** Generates a BibTeX entry from an RIS record.
+   *
+   * @param bibtexFile the [BibtexFile] that shoud own the generated entry
+   * @param ris the RIS record from which to generate the entry
+   * @return the generated BibTeX entry
+   */
   fun bibtex(bibtexFile: BibtexFile, ris: RisRecord): BibtexEntry {
     // TY: ref type (INCOL|CHAPTER -> CHAP, REP -> RPRT)
     val type = risTypes[ris.type] ?: run { println("Unknown RIS TY: ${ris.type}. Using misc."); T.MISC }
@@ -92,7 +99,8 @@ object Ris {
     // }
     // TODO: is the RIS C1 code still needed
     ris.custom1?.find("Full\\ publication\\ date:\\ (\\w+) \\.? (\\ \\d+)? ,\\ (\\d+)".r)?.let { match ->
-      val (c1Month, c1Day, c1Year) = match.groupValues + listOf(null, null, null)
+      val (c1Month, c1Day, /* c1Year */ _) = // ktlint-disable experimental:comment-wrapping
+        match.groupValues + listOf(null, null, null)
       entry[F.MONTH] = c1Month ?: entry[F.MONTH]?.string
       entry[F.DAY] = c1Day ?: entry[F.DAY]?.string
     }
@@ -103,7 +111,7 @@ object Ris {
     // N1|AB: notes (skip leading doi)
     // N2: abstract (skip leading doi)
     val abstract = (ris.notes ?: ris.abstr ?: ris.abstr2).orEmpty().remove(doi)
-    if (abstract.length > 0) { // TODO: better way for length > 0
+    if (abstract.isNotEmpty()) {
       entry[F.ABSTRACT] = abstract
     }
     // KW: keyword. multiple
@@ -122,11 +130,11 @@ object Ris {
     // PB: publisher
     entry[F.PUBLISHER] = ris.publisher
     // SN: isbn or issn
-    if (ris.isbnIssn.orEmpty().contains("\\b ${ISSN_REGEX} \\b".r)) {
-      entry[F.ISSN] = ris.isbnIssn
-    }
     if (ris.isbnIssn.orEmpty().contains("\\b ${ISBN_REGEX} \\b".ri)) {
       entry[F.ISBN] = ris.isbnIssn
+    }
+    if (ris.isbnIssn.orEmpty().contains("\\b ${ISSN_REGEX} \\b".r)) {
+      entry[F.ISSN] = ris.isbnIssn
     }
     // AD: address
     // AV: (unneeded)

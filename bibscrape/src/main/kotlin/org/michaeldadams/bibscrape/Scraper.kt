@@ -5,16 +5,9 @@ import java.net.URI
 import kotlin.time.Duration
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 
-/** Exception thrown when asked to scrape a domain for which there is no scraper.
- *
- * @property domain the requested domain
- * @property url the url that resulted in the requested domain
- */
-data class UnsupportedDomainException(val domain: String, val url: String) :
-  Exception("Unsupported domain '${domain}' while scraping '${url}'")
-
 /** Scraping functions for BibTeX data from publisher websites, but without
- * making an effort to format them nicely. */
+ * making an effort to format them nicely.
+ */
 object Scraper {
   /** Scrapes an arbitrary URL.
    *
@@ -37,13 +30,14 @@ object Scraper {
    *
    * @param driver the [WebDriver] to use for scraping
    * @param url the URL to scrape
-   * @throws UnsupportedDomainException thrown if there is no scraper for the domain after all redirects in [url]
    * @return the [BibtexEntry] that was scraped
+   * @throws UnsupportedDomainException thrown if there is no scraper for the domain after all redirects in [url]
    */
   fun dispatch(driver: Driver, url: String): BibtexEntry {
     driver.get(url.replace("^ doi: ( http s? :// (dx\\.)? doi\\.org/ )?".ri, "https://doi.org/"))
     val domain = URI(driver.currentUrl).host
 
+    @Suppress("ktlint:trailing-comma-on-call-site")
     val scrapers = listOf(
       ScrapeAcm,
       ScrapeArxiv,
@@ -66,4 +60,12 @@ object Scraper {
 
     throw UnsupportedDomainException(domain, url)
   }
+
+  /** Exception thrown when asked to scrape a domain for which there is no scraper.
+   *
+   * @property domain the requested domain
+   * @property url the url that resulted in the requested domain
+   */
+  data class UnsupportedDomainException(val domain: String, val url: String) :
+    Exception("Unsupported domain '${domain}' while scraping '${url}'")
 }

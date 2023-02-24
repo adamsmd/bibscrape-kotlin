@@ -15,7 +15,13 @@ object Unicode {
   private const val CCC_DOUBLE_ABOVE = 234
 
   /** Map from code points to combining character class. */
-  @Suppress("MagicNumber", "MAGIC_NUMBER", "LONG_NUMERICAL_VALUES_SEPARATED", "VARIABLE_NAME_INCORRECT_FORMAT")
+  @Suppress(
+    "ktlint:trailing-comma-on-call-site",
+    "LONG_NUMERICAL_VALUES_SEPARATED",
+    "MAGIC_NUMBER",
+    "MagicNumber",
+    "VARIABLE_NAME_INCORRECT_FORMAT",
+  )
   val CCC: Map<Int, Int> = mapOf(
     0x0300 to CCC_ABOVE,
     0x0301 to CCC_ABOVE,
@@ -56,7 +62,13 @@ object Unicode {
   /** Map from code points to LaTeX in a math context.
    * Based on table 131 in the Comprehensive Latex Symbol List.
    */
-  @Suppress("MagicNumber", "MAGIC_NUMBER", "LONG_NUMERICAL_VALUES_SEPARATED", "VARIABLE_NAME_INCORRECT_FORMAT")
+  @Suppress(
+    "ktlint:trailing-comma-on-call-site",
+    "LONG_NUMERICAL_VALUES_SEPARATED",
+    "MAGIC_NUMBER",
+    "MagicNumber",
+    "VARIABLE_NAME_INCORRECT_FORMAT",
+  )
   val MATH: Map<Int, String> = mapOf(
     0x0391 to """A""",
     0x0392 to """B""",
@@ -111,7 +123,13 @@ object Unicode {
   )
 
   /** Map from code point to LaTeX in a non-math context. */
-  @Suppress("MagicNumber", "MAGIC_NUMBER", "LONG_NUMERICAL_VALUES_SEPARATED", "VARIABLE_NAME_INCORRECT_FORMAT")
+  @Suppress(
+    "ktlint:trailing-comma-on-call-site",
+    "LONG_NUMERICAL_VALUES_SEPARATED",
+    "MAGIC_NUMBER",
+    "MagicNumber",
+    "VARIABLE_NAME_INCORRECT_FORMAT",
+  )
   val CODES: Map<Int, String> = mapOf(
     0x0022 to """\textquotedbl""",
     0x0023 to """\#""",

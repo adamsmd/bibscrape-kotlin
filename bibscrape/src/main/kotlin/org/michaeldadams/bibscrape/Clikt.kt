@@ -1,3 +1,5 @@
+/** Additional option types for command-line parsing with Clikt. */
+
 package org.michaeldadams.bibscrape
 
 import com.github.ajalt.clikt.core.BadParameterValue
@@ -34,6 +36,8 @@ fun RawOption.seconds(): OptionWithValues<Duration?, Duration, Duration> = conve
 
 // // Collection flags (e.g., Map, List and Set)
 
+typealias CollectionOption<C> = OptionWithValues<C, String, String>
+
 /** Implements the parsing for [collection].
  *
  * @see collection
@@ -68,8 +72,8 @@ private fun <C, F, L> parseBlocks(
           val minus = line.startsWith("-")
           val trimmedLine = if (minus) line.substring(1) else line
           if (first == null) { first = parseFirst(trimmedLine) }
-          val l = parseLine(trimmedLine)
-          acc = if (minus) remove(acc, l) else add(acc, l, first!!)
+          val parsedLine = parseLine(trimmedLine)
+          acc = if (minus) remove(acc, parsedLine) else add(acc, parsedLine, first!!)
         }
       }
     }
@@ -126,7 +130,7 @@ fun <C, F, L> NullableOption<String, String>.collection(
   parseLine: (String) -> L,
   add: (C, L, F) -> C,
   remove: (C, L) -> C
-): OptionWithValues<C, String, String> =
+): CollectionOption<C> =
   this.transformAll { strings ->
     val run = parseBlocks(empty, default, parseFirst, parseLine, add, remove)
     strings.map { it.replace(";", "\n") }.fold(run(empty(), default()), run)
@@ -150,7 +154,7 @@ fun <K, V> NullableOption<String, String>.map(
   default: () -> String,
   parseFirst: (String) -> V,
   parseLine: (String) -> K
-): OptionWithValues<Map<K, V>, String, String> =
+): CollectionOption<Map<K, V>> =
   this.collection(
     ::emptyMap,
     default,
@@ -174,7 +178,7 @@ fun <K, V> NullableOption<String, String>.map(
 fun <A> NullableOption<String, String>.list(
   default: () -> String,
   parseLine: (String) -> A
-): OptionWithValues<List<A>, String, String> =
+): CollectionOption<List<A>> =
   this.collection(
     ::emptyList,
     default,
@@ -197,7 +201,7 @@ fun <A> NullableOption<String, String>.list(
 fun <A> NullableOption<String, String>.set(
   default: () -> String,
   parseLine: (String) -> A
-): OptionWithValues<Set<A>, String, String> =
+): CollectionOption<Set<A>> =
   this.collection(
     ::emptySet,
     default,

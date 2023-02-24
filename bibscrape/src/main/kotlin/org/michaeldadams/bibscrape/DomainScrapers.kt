@@ -1,3 +1,5 @@
+/** Scrapers for various domains (e.g., ACM, Springer, etc.). */
+
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry

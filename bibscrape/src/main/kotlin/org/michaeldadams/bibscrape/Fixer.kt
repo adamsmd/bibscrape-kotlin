@@ -38,10 +38,10 @@ enum class IsbnType { ISBN13, ISBN10, PRESERVE }
  * @property nouns a mapping from nouns to how they shold be formatted
  * @property stopWords a set of words to be skipped when generating a key
  * @property escapeAcronyms whether to surround acronyms with curly braces
- * @property issnMedia which media type to prefer for an ISSN
  * @property isbnMedia which media type to prefer for an ISBN
  * @property isbnType which type of ISBN to prefer for an ISBN
  * @property isbnSep what separator to use an ISBN
+ * @property issnMedia which media type to prefer for an ISSN
  * @property issnSep what separator to use an ISSN
  * @property noEncode which BibTeX fields to not convert to using LaTeX escapes
  * @property noCollapse which BibTeX fields to not collapse multiple whitespaces
@@ -60,10 +60,10 @@ class Fixer(
 
   // // GENERAL OPTIONS
   val escapeAcronyms: Boolean,
-  val issnMedia: MediaType,
   val isbnMedia: MediaType,
   val isbnType: IsbnType,
   val isbnSep: String,
+  val issnMedia: MediaType,
   val issnSep: String,
   // # has Bool:D $.verbose is required;
 
@@ -84,10 +84,10 @@ class Fixer(
     entry.ownerFile.addEntry(entry)
     oldEntry.fields.forEach { name, value -> entry[name] = value } // TODO: copy value to new type
     val expander = MacroReferenceExpander(
-      /* expandStandardMacros = */ true,
-      /* expandMonthAbbreviations = */ true,
-      /* removeMacros = */ false,
-      /* throwAllExpansionExceptions = */ true
+      /* expandStandardMacros = */ true, // ktlint-disable experimental:comment-wrapping
+      /* expandMonthAbbreviations = */ true, // ktlint-disable experimental:comment-wrapping
+      /* removeMacros = */ false, // ktlint-disable experimental:comment-wrapping
+      /* throwAllExpansionExceptions = */ true // ktlint-disable experimental:comment-wrapping
     )
     expander.expand(entry.ownerFile)
 
@@ -108,7 +108,7 @@ class Fixer(
     }
 
     // Fix Springer's use of 'note' to store 'doi'
-    entry.update(F.NOTE) { ifOrNull(it != entry[F.DOI]?.string) { it } }
+    entry.update(F.NOTE) { note -> ifOrNull(note != entry[F.DOI]?.string) { note } }
 
     // ///////////////////////////////
     // Post-omit fixes              //
@@ -136,37 +136,35 @@ class Fixer(
       entry.update(field) { it.replace("\\s+ , \\s+".ri, ", ") }
     }
 
-    entry.check(F.PAGES, "Possibly incorrect page number") {
-      val page = """
-        # Arabic-digits
-        \d+ |
-        \d+ -- \d+ |
+    val page = """
+      # Arabic-digits
+      \d+ |
+      \d+ -- \d+ |
 
-        # Roman-digits
-        [XVIxvi]+ |
-        [XVIxvi]+ -- [XVIxvi]+ |
+      # Roman-digits
+      [XVIxvi]+ |
+      [XVIxvi]+ -- [XVIxvi]+ |
 
-        # Roman-digits dash Arabic-digits
-        [XVIxvi]+ - \d+ |
-        [XVIxvi]+ - \d+ -- [XVIxvi]+ - \d+ |
+      # Roman-digits dash Arabic-digits
+      [XVIxvi]+ - \d+ |
+      [XVIxvi]+ - \d+ -- [XVIxvi]+ - \d+ |
 
-        # Arabic-Digits letter
-        \d+ [a-z] |
-        \d+ [a-z] -- \d+ [a-z] |
+      # Arabic-Digits letter
+      \d+ [a-z] |
+      \d+ [a-z] -- \d+ [a-z] |
 
-        # Arabic-digits separator Arabic-digits
-        \d+ [.:/] \d+ |
-        \d+ ([.:/]) \d+ -- \d+ \1 \d+ |
+      # Arabic-digits separator Arabic-digits
+      \d+ [.:/] \d+ |
+      \d+ ([.:/]) \d+ -- \d+ \1 \d+ |
 
-        # "Front" page
-        f \d+ |
-        f \d+ -- f \d+ |
+      # "Front" page
+      f \d+ |
+      f \d+ -- f \d+ |
 
-        # "es" as ending number
-        \d+ -- es
-      """.trimIndent()
-      it.contains("^ ${page} (, ${page})* $".r)
-    }
+      # "es" as ending number
+      \d+ -- es
+    """.trimIndent()
+    entry.check(F.PAGES, "Possibly incorrect page number") { it.contains("^ ${page} (, ${page})* $".r) }
 
     entry.check(F.VOLUME, "Possibly incorrect volume") {
       it.contains("^   \\d+          $".r) ||
@@ -185,8 +183,8 @@ class Fixer(
         it.contains("^ Special\\ Issue\\ \\d+ (--\\d+)? $".r)
     }
 
-    isn(entry, F.ISSN, issnMedia, ::canonicalizeIssn)
     isn(entry, F.ISBN, isbnMedia, ::canonicalizeIsbn)
+    isn(entry, F.ISSN, issnMedia, ::canonicalizeIssn)
 
     // Change language codes (e.g., "en") to proper terms (e.g., "English")
     entry.update(F.LANGUAGE) { Locale.forLanguageTag(it)?.displayLanguage ?: it }
@@ -265,14 +263,17 @@ class Fixer(
         .replace("\\. ($ | -)".r, "$1") // Remove dots due to abbriviations
         .split("\\b".r)
         .filter(String::isNotEmpty)
-        .map {
-          (if (it in setOf("/", "-", "--")) entry.ownerFile.makeString(it) else null)
-            ?: M.stringToMonth(entry.ownerFile, it)
-            ?: M.intToMonth(entry.ownerFile, it)
-            ?: run {
-              println("WARNING: Unable to parse '${it}' in month '${month}'")
-              entry.ownerFile.makeString(it)
-            }
+        .map { part ->
+          if (part in setOf("/", "-", "--")) {
+            entry.ownerFile.makeString(part)
+          } else {
+            M.stringToMonth(entry.ownerFile, part)
+              ?: M.intToMonth(entry.ownerFile, part)
+              ?: run {
+                println("WARNING: Unable to parse '${part}' in month '${month}'")
+                entry.ownerFile.makeString(part)
+              }
+          }
         }
         .filterNotNull()
       when (parts.size) {
@@ -330,6 +331,26 @@ class Fixer(
     return entry
   }
 
+  /** Validates the checksum of and formats an ISBN.
+   *
+   * @param isbn the ISBN to validate and format
+   * @return the formatted ISBN
+   */
+  fun canonicalizeIsbn(isbn: String): String {
+    val checkDigit: Char = ISBN.calculateCheckDigit(isbn).last()
+    if (checkDigit.toString() != isbn.last().uppercase()) {
+      println("WARNING: Invalid Check Digit. Expected: ${checkDigit}. Got: ${isbn.last()}.")
+    }
+    val parsed = ISBN.parseIsbn(isbn.replace(".$".r, "${checkDigit}"))
+    val dehyphenated = when (isbnType) {
+      IsbnType.ISBN13 -> parsed.isbn13
+      IsbnType.ISBN10 -> parsed.isbn10 ?: parsed.isbn13
+      IsbnType.PRESERVE -> if (ISBN.isIsbn13(isbn)) parsed.isbn13 else parsed.isbn10
+    }
+    return ISBNFormat(isbnSep).format(dehyphenated)
+  }
+
+  @Suppress("WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES")
   private object Issn {
     const val DIGIT_X_VALUE = 10
     const val NUM_DIGITS = 8
@@ -338,9 +359,16 @@ class Fixer(
     const val POST_SEP_LENGTH = 4
   }
 
+  /** Validates the checksum of and formats an ISSN.
+   *
+   * @param issn the ISSN to validate and format
+   * @return the formatted ISSN
+   */
   fun canonicalizeIssn(issn: String): String {
-    val digits = issn.mapNotNull { it.digitToIntOrNull() ?: ifOrNull(it.uppercase() == "X") { Issn.DIGIT_X_VALUE } }
-    if (digits.size != Issn.NUM_DIGITS) { TODO() }
+    val digits = issn.mapNotNull { digit ->
+      digit.digitToIntOrNull() ?: ifOrNull(digit.uppercase() == "X") { Issn.DIGIT_X_VALUE }
+    }
+    if (digits.size != Issn.NUM_DIGITS) { TODO("invalid number of digits in ISSN: ${issn}") }
 
     val checkValue =
       (-digits.take(Issn.NUM_DIGITS - 1).mapIndexed { i, c -> c * (Issn.NUM_DIGITS - i) }.sum()).mod(Issn.MOD)
@@ -353,21 +381,13 @@ class Fixer(
       checkChar
   }
 
-  // self.isbn($entry, 'isbn', $.isbn-media, &canonical-isbn);
-  fun canonicalizeIsbn(oldIsbn: String): String {
-    val checkDigit: Char = ISBN.calculateCheckDigit(oldIsbn).last()
-    if (checkDigit.toString() != oldIsbn.last().uppercase()) {
-      println("WARNING: Invalid Check Digit. Expected: ${checkDigit}. Got: ${oldIsbn.last()}.")
-    }
-    val isbn = ISBN.parseIsbn(oldIsbn.replace(".$".r, "${checkDigit}"))
-    val dehyphenated = when (isbnType) {
-      IsbnType.ISBN13 -> isbn.isbn13
-      IsbnType.ISBN10 -> isbn.isbn10 ?: isbn.isbn13
-      IsbnType.PRESERVE -> if (ISBN.isIsbn13(oldIsbn)) isbn.isbn13 else isbn.isbn10
-    }
-    return ISBNFormat(isbnSep).format(dehyphenated)
-  }
-
+  /** Fixes an ISBN or ISSN.
+   *
+   * @param entry the BibTeX entry to update with the fixes
+   * @param field which field of [entry] to update
+   * @param mediaType whether to use print, online, or both
+   * @param canonicalize how to canonicalize either the ISBN or ISSN
+   */
   fun isn(
     entry: BibtexEntry,
     field: String,
@@ -391,6 +411,11 @@ class Fixer(
     }
   }
 
+  /** Applies the name fixing and checking rules.
+   *
+   * @param person the person name to be fixed and checked
+   * @return the person name with fixes applied
+   */
   fun fixPerson(person: BibtexPerson): BibtexPerson =
     N.simpleName(person).let { name ->
       names[name.lowercase()] ?: run {
@@ -428,6 +453,12 @@ class Fixer(
       }
     }
 
+  /** Applies the name fixing and checking rules.
+   *
+   * @param names the names to be fixed and checked
+   * @param entryKey the entry key to be used when parsing the names
+   * @return the names with fixes applied
+   */
   fun fixNames(names: String, entryKey: String): String {
     val persons = N.bibtexPersons(names, entryKey).map(::fixPerson)
 
@@ -442,7 +473,7 @@ class Fixer(
   /** Converts HTML to LaTeX.
    *
    * @param isTitle whether in a BibTeX title field
-   * @param node the HTML nodes to convert
+   * @param nodes the HTML nodes to convert
    * @return the LaTeX version of [nodes]
    */
   fun html(isTitle: Boolean, nodes: List<Node>): String = nodes.map { html(isTitle, it) }.joinToString("")
@@ -458,8 +489,13 @@ class Fixer(
       is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
       is TextNode -> text(isTitle, false, node.text()) // TODO: wrap node.text in decodeEntities
       is Element -> {
-        fun tex(tag: String): String =
-          html(isTitle, node.childNodes()).let { if (it.isEmpty()) "" else "\\${tag}{${it}}" }
+        /** Wrap the children of the current node ([node]) in a LaTeX command.
+         *
+         * @param command the command to wrap the children with
+         * @return the command wrapped around the children of [node], or the empty string if [node] has no children
+         */
+        fun tex(command: String): String =
+          html(isTitle, node.childNodes()).let { if (it.isEmpty()) "" else "\\${command}{${it}}" }
         if (node.attributes()["aria-hidden"] == "true") {
           ""
         } else {

@@ -28,6 +28,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
 /** The `innerHTML` property of a [WebElement]. */
+@Suppress("CUSTOM_GETTERS_SETTERS")
 val WebElement.innerHtml: String
   get() = this.getDomProperty("innerHTML")
 
@@ -40,7 +41,7 @@ class Driver private constructor(
   val driver: RemoteWebDriver,
   val proxy: BrowserMobProxyServer
 ) :
-  Object(),
+  Object(), // Inherit from Object, not Any, so we get the benefits of override checking finalize()
   WebDriver by driver,
   JavascriptExecutor by driver,
   Closeable {
@@ -70,8 +71,8 @@ class Driver private constructor(
 
   /** Calls [findElement] with a timeout.
    *
-   * @param timeout the time to wait in seconds
    * @param by the locating mechanism to use
+   * @param timeout the time to wait in seconds
    * @return the first matching element on the current page
    */
   fun awaitFindElement(by: By, timeout: Duration = 30.0.seconds): WebElement =
@@ -79,8 +80,8 @@ class Driver private constructor(
 
   /** Calls [findElements] with a timeout.
    *
-   * @param timeout the time to wait in seconds
    * @param by the locating mechanism to use
+   * @param timeout the time to wait in seconds
    * @return the matching elements on the current page
    */
   fun awaitFindElements(by: By, timeout: Duration = 30.0.seconds): List<WebElement> =
@@ -107,6 +108,10 @@ class Driver private constructor(
     }
   }
 
+  /** Get the text contents when the browser shows something with MIME type "text/plain".
+   *
+   * @return the text corresponding to "text/plain"
+   */
   fun textPlain(): String = Entities.unescape(this.findElement(By.tagName("pre")).innerHtml)
 
   companion object {
@@ -239,12 +244,12 @@ class Driver private constructor(
       val service = serviceBuilder.build()
 
       // // Firefox Driver
-      val driver = FirefoxDriver(service, options)
+      val firefoxDriver = FirefoxDriver(service, options)
       // TODO: fix timeouts
       // driver.manage().timeouts().implicitlyWait(timeout.toJavaDuration())
 
       // // Result
-      return Driver(driver, proxy)
+      return Driver(firefoxDriver, proxy)
     }
   }
 }

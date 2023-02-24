@@ -1,3 +1,5 @@
+/** Main entry point for bibscrape. */
+
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
@@ -99,6 +101,11 @@ class Inputs : OptionGroup(name = "INPUTS") {
     const val NOUNS_FILENAME = "nouns.cfg"
     const val STOP_WORDS_FILENAME = "stop-words.cfg"
 
+    /** Read the contents of [filename] in [bibscrapeConfigDir] if it exists or from the Java resources in the app.
+     *
+     * @param filename the name of the file to read
+     * @return the contents of the file
+     */
     fun userConfig(filename: String): () -> String = {
       val file = bibscrapeConfigDir.resolve(filename)
       if (file.exists()) file.readText() else Inputs::class.java.getResource("/${filename}").readText()
@@ -183,10 +190,6 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).flag("--no-escape-acronyms", default = true)
 
-  val issnMedia: MediaType by option(
-    help = mediaHelpString("ISSN")
-  ).lowercaseEnum<MediaType>().default(MediaType.BOTH)
-
   val isbnMedia: MediaType by option(
     help = mediaHelpString("ISBN")
   ).lowercaseEnum<MediaType>().default(MediaType.BOTH)
@@ -210,6 +213,10 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       Use an empty string to specify no separator.
       """
   ).default("-")
+
+  val issnMedia: MediaType by option(
+    help = mediaHelpString("ISSN")
+  ).lowercaseEnum<MediaType>().default(MediaType.BOTH)
 
   val issnSep: String by option(
     help = """
@@ -241,6 +248,7 @@ class BibtexFieldOptions : OptionGroup(name = "BIBTEX FIELD OPTIONS") {
     help = """The order that fields should placed in the output."""
   ).list(
     {
+      @Suppress("ktlint:trailing-comma-on-call-site")
       listOf(
         F.KEY, F.AUTHOR, F.EDITOR, F.AFFILIATION, F.TITLE,
         F.HOWPUBLISHED, F.BOOKTITLE, F.JOURNAL, F.VOLUME, F.NUMBER, F.SERIES,
@@ -574,10 +582,10 @@ class Main : CliktCommand(
       nouns = inputs.noun,
       stopWords = inputs.stopWord,
       escapeAcronyms = generalOptions.escapeAcronyms,
-      issnMedia = generalOptions.issnMedia,
       isbnMedia = generalOptions.isbnMedia,
       isbnType = generalOptions.isbnType,
       isbnSep = generalOptions.isbnSep,
+      issnMedia = generalOptions.issnMedia,
       issnSep = generalOptions.issnSep,
       noEncode = bibtexFieldOptions.noEncode,
       noCollapse = bibtexFieldOptions.noCollapse,
@@ -597,7 +605,6 @@ class Main : CliktCommand(
         val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
         // TODO: setEntryKey lower cases but BibtexEntry() does not
         // TODO: don't keepKey when scraping
-
         newEntry.entryKey = key.firstOrNull() ?: if (keepKey) readKey ?: entry.entryKey else newEntry.entryKey
         key = key.drop(1) // TODO: dropFirst?
         printer.print(System.out, newEntry)
@@ -714,7 +721,7 @@ class Main : CliktCommand(
       val lines = File(a).readLines()
 
       val url = lines[0]
-      val comment = lines[1]
+      // val comment = lines[1]
       val endOfFlags = 2 + lines.drop(2).indexOfFirst { it.contains("^ \\s* $".r) }
       val flags = lines.subList(2, endOfFlags)
       val expected = lines.subList(endOfFlags + 1, lines.size).joinToString("\n", postfix = "\n")
@@ -750,7 +757,8 @@ class Main : CliktCommand(
         .build()
       val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result.first.lines().orEmpty())
       for (row in diffRows) {
-        if (row.tag != DiffRow.Tag.EQUAL) { // TODO: || show-all-lines
+        // TODO: || show-all-lines
+        if (row.tag != DiffRow.Tag.EQUAL) {
           println(row.oldLine) // TODO: show line number?
         }
       }

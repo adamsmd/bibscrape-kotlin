@@ -1,5 +1,5 @@
-/** Functions for which there is not another good place to put them.
- */
+/** Functions for which there is not another good place to put them. */
+
 package org.michaeldadams.bibscrape
 
 /** When [test] is true, returns the result of calling [block], otherwise returns [null].
