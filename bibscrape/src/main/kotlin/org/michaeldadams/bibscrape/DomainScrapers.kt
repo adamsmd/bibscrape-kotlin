@@ -536,8 +536,13 @@ object ScrapeOxford : DomainScraper {
     driver.awaitNonNull {
       selectElement.selectByVisibleText(".bibtex (BibTex)")
       val button = driver.findElement(By.className("citation-download-link"))
-      ifOrNull(!button.getAttribute("class").contains("\\b disabled \\b".r)) { button }
-    }.click()
+      if (!button.getAttribute("class").contains("\\b disabled \\b".r)) {
+        button.click()
+      } else {
+        selectElement.selectByVisibleText(".enw (EndNote)")
+        null
+      }
+    }
     // driver.findElement(By.className("citation-download-link")).click()
     // my #`(Inline::Python::PythonObject:D) $select = $web-driver.select($select-element);
     // await({
@@ -553,13 +558,13 @@ object ScrapeOxford : DomainScraper {
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
-    HtmlMeta.bibtex(entry, meta, F.MONTH to true, F.YEAR to true)
+    HtmlMeta.bibtex(entry, meta, F.AUTHOR to true, F.MONTH to true, F.YEAR to true)
 
     // // Title
-    val title = driver.findElement(By.className("article-title-main")).innerHtml
+    entry[F.TITLE] = driver.findElement(By.className("article-title-main")).innerHtml
 
     // // Abstract
-    val abstract = driver.findElement(By.className("abstract")).innerHtml
+    entry[F.ABSTRACT] = driver.findElement(By.className("abstract")).innerHtml
 
     // // ISSN
     val issn = driver.findElement(By.tagName("body")).innerHtml
