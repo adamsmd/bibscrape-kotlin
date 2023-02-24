@@ -1,7 +1,7 @@
 https://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=8368547
 Chinese name
 
-@article{fischer:2011:purely:10.1017/S0956796811000189,
+@article{fischer:2011:purely:10.1017/s0956796811000189,
   author = {Fischer, Sebastian and Kiselyov, Oleg and Shan, Chung-chieh},
   title = {Purely functional lazy nondeterministic programming},
   journal = {Journal of Functional Programming},

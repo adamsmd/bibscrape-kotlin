@@ -1,7 +1,7 @@
 doi:10.1007/BFb0013061
 Unicode in title
 
-@inproceedings{parigot:1992:lambdamu-calculus:10.1007/BFb0013061,
+@inproceedings{parigot:1992:lambdamu-calculus:10.1007/bfb0013061,
   author = {Parigot, Michel},
   editor = {Voronkov, Andrei},
   affiliation = {Universit{\'e} Paris 7},

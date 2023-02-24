@@ -1,7 +1,7 @@
 https://www.sciencedirect.com/science/article/pii/S0019995879903620
 Undefined abstract
 
-@article{mehlhorn:1979:parsing:10.1016/S0019-9958(79)90362-0,
+@article{mehlhorn:1979:parsing:10.1016/s0019-9958(79)90362-0,
   author = {Mehlhorn, Kurt},
   title = {Parsing macro grammars top down},
   journal = {Information and Control},
