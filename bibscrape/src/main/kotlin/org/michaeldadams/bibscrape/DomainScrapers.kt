@@ -247,9 +247,7 @@ object ScrapeCambridge : DomainScraper {
   override val domains = listOf("cambridge.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    val match = "^https?://www.cambridge.org/core/services/aop-cambridge-core/content/view/('S'\\d+)\$"
-      .toRegex()
-      .matchEntire(driver.currentUrl)
+    val match = driver.currentUrl.find("^ http s? ://www.cambridge.org/core/services/aop-cambridge-core/content/view/ (S \\d+) $".r)
     if (match != null) {
       driver.get("https://doi.org/10.1017/${match.groupValues[1]}")
     }
@@ -258,8 +256,10 @@ object ScrapeCambridge : DomainScraper {
     val meta = HtmlMeta.parse(driver)
 
     // // BibTeX
-    driver.awaitFindElement(By.className("export-citation-product")).click()
-    driver.awaitFindElement(By.cssSelector("[data-export-type=\"bibtex\"]")).click()
+    driver.awaitNonNull {
+      driver.findElements(By.cssSelector("[data-export-type=\"bibtex\"]")).firstOrNull()?.click()
+      ?: driver.findElements(By.className("export-citation-product")).firstOrNull()?.click()?.let{ null }
+    }
     val entry = Bibtex.parseEntries(driver.textPlain()).first()
     driver.navigate().back()
 
@@ -267,7 +267,8 @@ object ScrapeCambridge : DomainScraper {
     HtmlMeta.bibtex(entry, meta, F.ABSTRACT to false)
 
     // // Title
-    // entry[F.TITLE] = driver.awaitFindElement(E.className("article-title")).innerHtml
+    // There are multiple "h1"s, but the first one should be the title
+    entry[F.TITLE] = driver.awaitFindElement(By.tagName("h1")).innerHtml
 
     // // Abstract
     // my #`(Inline::Python::PythonObject:D) @abstract = $web-driver.find_elements_by_class_name( 'abstract' );
@@ -280,11 +281,23 @@ object ScrapeCambridge : DomainScraper {
     //   $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract)
     //     unless $abstract ~~ /^ '//static.cambridge.org/content/id/urn' /;
     // }
+    entry[F.ABSTRACT] =
+      driver.findElements(By.className("abstract"))
+      .firstOrNull()
+      ?.innerHtml
+      ?.remove("""\\R\ \ \ \ \ \ \\R\ \ \ \ \ \ """.r)
+      ?.remove("^ <div\\ [^>]* >".r)
+      ?.remove(" </div> $".r)
+      ?.remove("""^ //static.cambridge.org/content/id/urn .*""".r)
+      ?.ifEmpty { null } // TODO: ifEmpty
 
     // // ISSN
     // val pissn = driver.findElement(E.name("productIssn")).getAttribute("value")
     // val eissn = driver.findElement(E.name("productEissn")).getAttribute("value")
     // entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
+    // println("<${meta["citation_issn"]}>")
+    val (eissn, pissn) = meta["citation_issn"]!! + listOf(null, null)
+    entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
 
     return entry
   }
@@ -421,7 +434,7 @@ object ScrapeIosPress : DomainScraper {
     entry[F.TITLE] = driver
       .findElement(By.cssSelector("[data-p13n-title]"))
       .getDomAttribute("data-p13n-title")
-      .remove("\\\\n".r)
+      .remove("\\R".r)
 
     // // Abstract
     entry[F.ABSTRACT] = driver
@@ -621,7 +634,7 @@ object ScrapeSpringer : DomainScraper {
     val meta = HtmlMeta.parse(driver)
     HtmlMeta.bibtex(entry, meta, "publisher" to true)
 
-    entry.update(F.EDITOR) { it.replace("\\ *\\\n".r, " ") }
+    entry.update(F.EDITOR) { it.replace("\\ * \\R".r, " ") }
 
     // // Author
     // my Any:D @authors =
