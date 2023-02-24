@@ -92,7 +92,7 @@ object Ris {
     // }
     // TODO: is the RIS C1 code still needed
     ris.custom1?.find("Full\\ publication\\ date:\\ (\\w+) \\.? (\\ \\d+)? ,\\ (\\d+)".r)?.let { match ->
-      val (c1Month, c1Day, c1Year) = match.groupValues
+      val (c1Month, c1Day, c1Year) = match.groupValues + listOf(null, null, null)
       entry[F.MONTH] = c1Month ?: entry[F.MONTH]?.string
       entry[F.DAY] = c1Day ?: entry[F.DAY]?.string
     }

@@ -439,8 +439,20 @@ class Fixer(
     return persons.map { it.toString() }.joinByAnd()
   }
 
+  /** Converts HTML to LaTeX.
+   *
+   * @param isTitle whether in a BibTeX title field
+   * @param node the HTML nodes to convert
+   * @return the LaTeX version of [nodes]
+   */
   fun html(isTitle: Boolean, nodes: List<Node>): String = nodes.map { html(isTitle, it) }.joinToString("")
 
+  /** Converts HTML to LaTeX.
+   *
+   * @param isTitle whether in a BibTeX title field
+   * @param node the HTML node to convert
+   * @return the LaTeX version of [node]
+   */
   fun html(isTitle: Boolean, node: Node): String =
     when (node) {
       is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
@@ -503,8 +515,20 @@ class Fixer(
       else -> error("Unknown HTML node type '${node.javaClass.name}': ${node}")
     }
 
+  /** Converts MathML to LaTeX.
+   *
+   * @param isTitle whether in a BibTeX title field
+   * @param nodes the MathML nodes to convert
+   * @return the LaTeX version of [nodes]
+   */
   fun math(isTitle: Boolean, nodes: List<Node>): String = nodes.map { math(isTitle, it) }.joinToString("")
 
+  /** Converts MathML to LaTeX.
+   *
+   * @param isTitle whether in a BibTeX title field
+   * @param node the MathML node to convert
+   * @return the LaTeX version of [node]
+   */
   fun math(isTitle: Boolean, node: Node): String =
     when (node) {
       is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
@@ -521,16 +545,10 @@ class Fixer(
           "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes())}}"
           "mrow" -> "{${math(isTitle, node.childNodes())}}"
           "mspace" -> "\\hspace{${node.attributes()["width"]}}"
-          "msubsup" ->
+          "msubsup", "msub", "msup" ->
             "{${math(isTitle, node.childNodes()[0])}}" +
-              "_{${math(isTitle, node.childNodes()[1])}}" +
-              "^{${math(isTitle, node.childNodes()[2])}}"
-          "msub" ->
-            "{${math(isTitle, node.childNodes()[0])}}" +
-              "_{${math(isTitle, node.childNodes()[1])}}"
-          "msup" ->
-            "{${math(isTitle, node.childNodes()[0])}}" +
-              "^{${math(isTitle, node.childNodes()[1])}}"
+              (if (node.tag().name != "msup") "_{${math(isTitle, node.childNodes()[1])}}" else "") +
+              (if (node.tag().name != "msub") "^{${math(isTitle, node.childNodes()[2])}}" else "")
           else -> {
             println("WARNING: Unknown MathML tag: ${node.tag().name}")
             "[${node.tag().name}]${math(isTitle, node.childNodes())}[/${node.tag().name}]"
@@ -539,10 +557,15 @@ class Fixer(
       else -> error("Unknown MathML node type '${node.javaClass.name}': ${node}")
     }
 
-  // method text(Bool:D $is-title, Str:D $str is copy, Bool:D :$math --> Str:D) {
+  /** Convert text containing Unicode to LaTeX.
+   *
+   * @param isTitle whether in a BibTeX title field, which requires extra work so BibTeX preserves capitalization
+   * @param math whether already in a MathML
+   * @param string the string to convert
+   * @return the LaTeX version of [string]
+   */
   fun text(isTitle: Boolean, math: Boolean, string: String): String {
     var s = string
-    // if $is-title {
     if (isTitle) {
       // TODO: combine these loops
       // Keep proper nouns capitalized
