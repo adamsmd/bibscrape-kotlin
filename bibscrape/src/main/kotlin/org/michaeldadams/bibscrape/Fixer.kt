@@ -252,10 +252,10 @@ class Fixer(
         entry.update(field) {
           it
             .trim()
-            .replace("(\\n\\ *){2,}", "{\\par}") // BibTeX eats whitespace so convert "\n\n" to paragraph break
-            .replace("^ \\s* \\n \\s*".r, " ") // Remove extra line breaks
+            .replace(" (\\R \\ *){2,} ".r, "{\\\\par}") // BibTeX eats whitespace so convert "\n\n" to paragraph break
+            .replace(" \\s* \\R \\s* ".r, " ") // Remove extra line breaks
             .replace(" ( \\s | \\{~\\} )* \\s ( \\s | \\{~\\} )* ".r, " ") // Remove duplicate whitespace
-            .replace(" \\s* \\{\\\\par\\} \\s* ".r, "\n{\\par}\n") // Nicely format paragraph breaks
+            .replace(" \\s* \\{\\\\par\\} \\s* ".r, "\n{\\\\par}\n") // Nicely format paragraph breaks
         }
       }
     }
