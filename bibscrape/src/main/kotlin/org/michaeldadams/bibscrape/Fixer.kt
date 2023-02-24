@@ -450,51 +450,6 @@ class Fixer(
     return persons.map { it.toString() }.joinByAnd()
   }
 
-  // method text(Bool:D $is-title, Str:D $str is copy, Bool:D :$math --> Str:D) {
-  fun text(isTitle: Boolean, math: Boolean, string: String): String {
-    var s = string
-    // if $is-title {
-    if (isTitle) {
-      // TODO: combine these loops
-      // Keep proper nouns capitalized
-      // Inside html()/math() in case a tag or attribute looks like a proper noun
-      for ((key, value) in nouns) {
-        val keyNoBrace = key.remove("[{}]".r)
-        s = s.replace(
-          "\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".r,
-          "${Regex.escapeReplacement(value)}"
-        )
-      }
-      // Re-run things case insentitively in case the "nouns" setting didn't catch something
-      // (We don't want to automatically convert case insensitively, since that might be too broad.)
-      for ((key, value) in nouns) {
-        val keyNoBrace = key.remove("[{}]".r)
-        s.find("\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".ri)?.let {
-          if (it.value != value) {
-            println("WARNING: Possibly incorrectly capitalized noun '${it.value}' in title")
-          }
-        }
-      }
-
-      // Keep acronyms capitalized
-      // Note that non-initial "A" are warned after collapsing spaces and newlines.
-      // Anything other than "Aaaa" or "aaaa" triggers an acronym.
-      // After eliminating Unicode in case a tag or attribute looks like an acronym
-      if (escapeAcronyms) {
-        val alnum = """(?: \p{IsAlphabetic} | \p{IsDigit} )"""
-        val notAfterBrace = """(?<! \{ )"""
-        // TODO: revise these regexes and position of ?!
-        s = s
-          .replace("""${notAfterBrace} \b ( ${alnum}+ \p{IsUppercase} ${alnum}* )""".r, "{$1}")
-          .replace("""${notAfterBrace} \b ( (?<! \\ ) A (?! \\ ) ) (?! ') \b""".r, "{$1}")
-          .replace("""${notAfterBrace} \b ( (?! A) \p{IsUppercase} ) (?! ') \b""".r, "{$1}")
-      }
-    }
-
-    // NOTE: Ignores LaTeX introduced by translation from XML
-    return Unicode.unicodeToTex(s, math) { it in "_^{}\\$".toSet() }
-  }
-
   fun html(isTitle: Boolean, nodes: List<Node>): String = nodes.map { html(isTitle, it) }.joinToString("")
 
   fun html(isTitle: Boolean, node: Node): String =
@@ -594,4 +549,49 @@ class Fixer(
         }
       else -> error("Unknown MathML node type '${node.javaClass.name}': ${node}")
     }
+
+  // method text(Bool:D $is-title, Str:D $str is copy, Bool:D :$math --> Str:D) {
+  fun text(isTitle: Boolean, math: Boolean, string: String): String {
+    var s = string
+    // if $is-title {
+    if (isTitle) {
+      // TODO: combine these loops
+      // Keep proper nouns capitalized
+      // Inside html()/math() in case a tag or attribute looks like a proper noun
+      for ((key, value) in nouns) {
+        val keyNoBrace = key.remove("[{}]".r)
+        s = s.replace(
+          "\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".r,
+          "${Regex.escapeReplacement(value)}"
+        )
+      }
+      // Re-run things case insentitively in case the "nouns" setting didn't catch something
+      // (We don't want to automatically convert case insensitively, since that might be too broad.)
+      for ((key, value) in nouns) {
+        val keyNoBrace = key.remove("[{}]".r)
+        s.find("\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".ri)?.let {
+          if (it.value != value) {
+            println("WARNING: Possibly incorrectly capitalized noun '${it.value}' in title")
+          }
+        }
+      }
+
+      // Keep acronyms capitalized
+      // Note that non-initial "A" are warned after collapsing spaces and newlines.
+      // Anything other than "Aaaa" or "aaaa" triggers an acronym.
+      // After eliminating Unicode in case a tag or attribute looks like an acronym
+      if (escapeAcronyms) {
+        val alnum = """(?: \p{IsAlphabetic} | \p{IsDigit} )"""
+        val notAfterBrace = """(?<! \{ )"""
+        // TODO: revise these regexes and position of ?!
+        s = s
+          .replace("""${notAfterBrace} \b ( ${alnum}+ \p{IsUppercase} ${alnum}* )""".r, "{$1}")
+          .replace("""${notAfterBrace} \b ( (?<! \\ ) A (?! \\ ) ) (?! ') \b""".r, "{$1}")
+          .replace("""${notAfterBrace} \b ( (?! A) \p{IsUppercase} ) (?! ') \b""".r, "{$1}")
+      }
+    }
+
+    // NOTE: Ignores LaTeX introduced by translation from XML
+    return Unicode.unicodeToTex(s, math) { it in "_^{}\\$".toSet() }
+  }
 }
