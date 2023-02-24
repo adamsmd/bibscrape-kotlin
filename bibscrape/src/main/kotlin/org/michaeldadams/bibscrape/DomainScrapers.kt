@@ -308,11 +308,16 @@ object ScrapeIeeeComputer : DomainScraper {
   override val domains = listOf("computer.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
+    // // Cookie prompt since it sometimes obscures the button we want to click
+    driver
+      .findElements(By.cssSelector("[aria-label=\"cookieconsent\"]"))
+      .forEach { driver.executeScript("arguments[0].remove()", it) }
+
     // // BibTeX
-    driver.awaitFindElement(By.cssSelector(".article-action-toolbar button")).click()
+    driver.findElement(By.cssSelector(".article-action-toolbar button")).click()
     driver.findElement(By.partialLinkText("BIB TEX")).click()
     var bibtexText = driver.awaitFindElement(By.id("bibTextContent")).innerHtml.replace("<br>".r, "\n")
-    // $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
+    // TODO: $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
     val entry = Bibtex.parseEntries(bibtexText).first()
     driver.navigate().back()
 
