@@ -41,9 +41,9 @@ object Ris {
     val doi = "^ \\s* ( doi: \\s* \\S+ ) \\s+".r
 
     // # A1|AU: author primary
-    entry[F.AUTHOR] = risAuthor(ris.firstAuthors.nonEmpty() ?: ris.authors)
+    entry[F.AUTHOR] = risAuthor(ris.firstAuthors.ifEmpty { ris.authors })
     // # A2|ED: author secondary
-    entry[F.EDITOR] = risAuthor(ris.secondaryAuthors.nonEmpty() ?: ris.editor?.let { listOf(it) })
+    entry[F.EDITOR] = risAuthor(ris.secondaryAuthors.ifEmpty { ris.editor?.let { listOf(it) } })
     // TODO: ris editor should be list like ris.authors is?
 
     // my Str:D %self;

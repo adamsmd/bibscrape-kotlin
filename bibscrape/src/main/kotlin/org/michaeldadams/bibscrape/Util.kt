@@ -2,10 +2,6 @@
  */
 package org.michaeldadams.bibscrape
 
-fun <A> List<A>.nonEmpty(): List<A>? = this.ifEmpty { null } // TODO: place for nonEmpty()
-
-// TODO: put [where] somewhere appropriate
-// TODO: rename to ifOrNull
 /** When [test] is true, returns the result of calling [block], otherwise returns [null].
  *
  * @param A the type to be returned
