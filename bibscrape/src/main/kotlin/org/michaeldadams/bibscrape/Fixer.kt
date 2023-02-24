@@ -502,7 +502,7 @@ class Fixer(
       is TextNode -> text(isTitle, false, node.text()) // TODO: wrap node.text in decodeEntities
       is Element -> {
         fun tex(tag: String): String =
-          html(isTitle, node.children()).let { if (it.isEmpty()) "" else "\\${tag}{${it}}" }
+          html(isTitle, node.childNodes()).let { if (it.isEmpty()) "" else "\\${tag}{${it}}" }
         if (node.attributes()["aria-hidden"] == "true") {
           ""
         } else {
@@ -510,13 +510,13 @@ class Fixer(
             "script", "svg" -> ""
 
             "body" -> html(isTitle, node.childNodes())
-            "p", "par" -> html(isTitle, node.children()) + "\n\n" // Replace <p> with \n\n
+            "p", "par" -> html(isTitle, node.childNodes()) + "\n\n" // Replace <p> with \n\n
 
             "a" ->
               if (node.attributes()["class"].contains("\\b xref-fn \\b".r)) {
                 "" // Omit footnotes added by Oxford when on-campus
               } else {
-                html(isTitle, node.children()) // Remove <a> links
+                html(isTitle, node.childNodes()) // Remove <a> links
               }
 
             "i", "italic" -> tex("textit")
