@@ -461,7 +461,7 @@ class Fixer(
         val keyNoBrace = key.remove("[{}]".r)
         s = s.replace(
           "\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".r,
-          "{${Regex.escapeReplacement(value)}}"
+          "${Regex.escapeReplacement(value)}"
         )
       }
       // Re-run things case insentitively in case the "nouns" setting didn't catch something
