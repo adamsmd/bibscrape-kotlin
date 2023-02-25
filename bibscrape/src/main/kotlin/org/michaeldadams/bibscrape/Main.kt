@@ -718,6 +718,9 @@ class Main : CliktCommand(
     // fi
 
     for (a in arg) {
+      println("****************************************************************")
+      println("** Testing ${a}")
+      println("****************************************************************")
       val lines = File(a).readLines()
 
       val url = lines[0]
