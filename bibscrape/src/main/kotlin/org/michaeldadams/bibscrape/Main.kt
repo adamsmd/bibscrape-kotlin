@@ -88,7 +88,7 @@ class Inputs : OptionGroup(name = "INPUTS") {
   ).set(userConfig(STOP_WORDS_FILENAME), { it.lowercase() })
 
   companion object {
-    private val windows = File.separator == "\\"
+    private val windows = File.separator == "\\" // TODO: apache for isWindows and/or userconfigdir
     private val userConfigDir =
       if (windows) {
         System.getenv("APPDATA") ?: System.getenv("APPDATA") + "/AppData/Roaming"
@@ -136,7 +136,7 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
       """
   ).flag("-/S", "--no-scrape", default = true)
 
-  // val examplez by this.option(
+  // val examplez by this.option( // TODO: remove
   //   "-x",
   //   "--xx",
   //   )
@@ -151,7 +151,7 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
     help = """
       Fix mistakes found in BibTeX entries.
       """
-  ).flag("+F", "--no-fix", default = true)
+  ).flag("--no-fix", default = true)
 }
 
 /** Option group controlling miscellaneous general settings. */
@@ -207,11 +207,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
   ).lowercaseEnum<IsbnType>().default(IsbnType.PRESERVE)
 
   val isbnSep: String by option(
-    help = """
-      The string to separate parts of an ISBN.
-      Hyphen and space are the most common.
-      Use an empty string to specify no separator.
-      """
+    help = sepHelpString("ISBN")
   ).default("-")
 
   val issnMedia: MediaType by option(
@@ -219,11 +215,7 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
   ).lowercaseEnum<MediaType>().default(MediaType.BOTH)
 
   val issnSep: String by option(
-    help = """
-      The string to separate parts of an ISSN.
-      Hyphen and space are the most common.
-      Use an empty string to specify no separator.
-      """
+    help = sepHelpString("ISSN")
   ).default("-")
 
   // TODO: flag to force fresh key generation
@@ -238,6 +230,12 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
     ```
 
     If only one type of ${name} is available, this option is ignored.
+    """
+
+  private fun sepHelpString(name: String): String = """
+    The string to separate parts of an ${name}.
+    Hyphen and space are the most common.
+    Use an empty string to specify no separator.
     """
 }
 
@@ -546,8 +544,6 @@ class Main : CliktCommand(
   val testingOptions by TestingOptions().cooccurring()
 
   override fun run(): Unit {
-    // println("example2: ${operatingModes.exampley}")
-    // println("examplez: ${operatingModes.examplez}")
     // TODO: warn if no args
     val options = testingOptions
     when {
@@ -557,10 +553,12 @@ class Main : CliktCommand(
     }
   }
 
+  /** Runs the main (i.e., non-test) code for scraping.
+   *
+   * @param args the files or URLs to operate on
+   */
   fun runBibscrape(args: List<String>): Unit {
-    if (operatingModes.printConfigDir) {
-      println("User-configuration directory: ${Inputs.bibscrapeConfigDir}")
-    }
+    if (operatingModes.printConfigDir) { println("User-configuration directory: ${Inputs.bibscrapeConfigDir}") }
 
     if (operatingModes.init) {
       Inputs.bibscrapeConfigDir.mkdirs()
@@ -602,7 +600,7 @@ class Main : CliktCommand(
         Scraper.scrape(url, generalOptions.window, generalOptions.verbose, generalOptions.timeout)
 
       fun fix(keepKey: Boolean, readKey: String?, entry: BibtexEntry): Unit {
-        val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry // TODO: clone?
+        val newEntry = if (operatingModes.fix) fixer.fix(entry) else entry.clone()
         // TODO: setEntryKey lower cases but BibtexEntry() does not
         // TODO: don't keepKey when scraping
         newEntry.entryKey = key.firstOrNull() ?: if (keepKey) readKey ?: entry.entryKey else newEntry.entryKey
@@ -611,15 +609,13 @@ class Main : CliktCommand(
       }
 
       if (a.contains("^ http: | https: | doi: ".ri)) {
-        // It's a URL
+        // Perform scraping if it is a URL
         if (!operatingModes.scrape) { error("Scraping disabled but given URL: ${a}") }
         fix(keepScrapedKey, null, scrape(a))
       } else {
         // Not a URL so try reading it as a file
-        val entries =
-          (if (a == "-") InputStreamReader(System.`in`) else FileReader(a))
-            .use(Bibtex::parse)
-            .entries
+        val reader = if (a == "-") InputStreamReader(System.`in`) else FileReader(a)
+        val entries = reader.use(Bibtex::parse).entries
 
         entries.forEach entry@{ entry ->
           if (entry !is BibtexEntry) {
@@ -680,10 +676,8 @@ class Main : CliktCommand(
     process.waitFor()
     reader.join()
 
-    if (process.exitValue() != 0) {
-      // println("EXITED ABNORMALLY: $i using a $type")
-      println("EXITED ABNORMALLY ${process.exitValue()}")
-    }
+    // println("EXITED ABNORMALLY: $i using a $type")
+    if (process.exitValue() != 0) { println("EXITED ABNORMALLY ${process.exitValue()}") }
     // TODO: destroy process children
 
     // var endMillis = System.currentTimeMillis() + 60_000
@@ -705,6 +699,10 @@ class Main : CliktCommand(
   fun <A> retry(times: Int, test: (A) -> Boolean, block: () -> A): A =
     block().let { if (times <= 1 || test(it)) it else retry(times - 1, test, block) }
 
+  /** Run bibscrape in testing mode.
+   *
+   * @param options the testing options
+   */
   fun runTests(options: TestingOptions): Unit {
     val javaExe = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java"
     val jvmArgs = ManagementFactory.getRuntimeMXBean().inputArguments
@@ -741,28 +739,35 @@ class Main : CliktCommand(
         runCommand(options.testTimeout, options.testHardTimeout, command)
       }
 
-      val diffRowGenerator = DiffRowGenerator
-        .create()
-        .showInlineDiffs(true) // Use word diffs
-        .ignoreWhiteSpaces(false) // Default
-        .reportLinesUnchanged(false) // Default
-        .oldTag { f -> if (f) "[~~" else "~~]" }
-        .newTag { f -> if (f) "[++" else "++]" }
-        .processDiffs(null) // No extra diff processing. Default
-        .columnWidth(0) // No line wrapping. Default
-        .mergeOriginalRevised(true) // Show diffs inline instead of two column
-        .decompressDeltas(true) // Default
-        .inlineDiffByWord(true) // Use char-gradularity "word" diffs.
-        // .inlineDiffBySplitter() // Handled by inlineDiffByWord()
-        .lineNormalizer { it } // Don't muck with the inputs
-        // .equalizer() // Handled by ignoreWhiteSpaces()
-        .replaceOriginalLinefeedInChangesWithSpaces(false) // Default
-        .build()
-      val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result.first.lines().orEmpty())
-      for (row in diffRows) {
-        // TODO: || show-all-lines
-        if (row.tag != DiffRow.Tag.EQUAL) {
-          println(row.oldLine) // TODO: show line number?
+      if (result.second.exitValue() != 0) {
+        for (line in expected.lines()) {
+          println("[~~${line}~~]")
+        }
+        for (line in result.first.lines().orEmpty()) {
+          println("[++${line}++]")
+        }
+      } else {
+        val diffRowGenerator = DiffRowGenerator
+          .create()
+          .showInlineDiffs(true) // Use word diffs
+          .ignoreWhiteSpaces(false) // Default
+          .reportLinesUnchanged(false) // Default
+          .oldTag { f -> if (f) "[~~" else "~~]" }
+          .newTag { f -> if (f) "[++" else "++]" }
+          .processDiffs(null) // No extra diff processing. Default
+          .columnWidth(0) // No line wrapping. Default
+          .mergeOriginalRevised(true) // Show diffs inline instead of two column
+          .decompressDeltas(true) // Default
+          .inlineDiffByWord(true) // Use char-gradularity "word" diffs.
+          // .inlineDiffBySplitter() // Handled by inlineDiffByWord()
+          .lineNormalizer { it } // Don't muck with the inputs
+          // .equalizer() // Handled by ignoreWhiteSpaces()
+          .replaceOriginalLinefeedInChangesWithSpaces(false) // Default
+          .build()
+        val diffRows = diffRowGenerator.generateDiffRows(expected.lines(), result.first.lines().orEmpty())
+        for (row in diffRows) {
+          // TODO: || show-all-lines
+          if (row.tag != DiffRow.Tag.EQUAL) { println(row.oldLine) }
         }
       }
     }

@@ -1,7 +1,6 @@
 package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
-import bibtex.dom.BibtexFile
 import bibtex.dom.BibtexPerson
 import bibtex.expansions.MacroReferenceExpander
 import com.github.ladutsko.isbn.ISBN
@@ -80,31 +79,29 @@ class Fixer(
    * @return a copy of [oldEntry] but with various fixes applied
    */
   fun fix(oldEntry: BibtexEntry): BibtexEntry {
-    val entry = BibtexFile().makeEntry(oldEntry.entryType, oldEntry.entryKey)
-    entry.ownerFile.addEntry(entry)
-    oldEntry.fields.forEach { name, value -> entry[name] = value } // TODO: copy value to new type
-    val expander = MacroReferenceExpander(
-      /* expandStandardMacros = */ true, // ktlint-disable experimental:comment-wrapping
-      /* expandMonthAbbreviations = */ true, // ktlint-disable experimental:comment-wrapping
-      /* removeMacros = */ false, // ktlint-disable experimental:comment-wrapping
-      /* throwAllExpansionExceptions = */ true // ktlint-disable experimental:comment-wrapping
-    )
-    expander.expand(entry.ownerFile)
+    val entry = oldEntry.clone()
+
+    // Expand all macros
+    @Suppress("ktlint:experimental:comment-wrapping")
+    MacroReferenceExpander(
+      /* expandStandardMacros = */ true,
+      /* expandMonthAbbreviations = */ true,
+      /* removeMacros = */ false,
+      /* throwAllExpansionExceptions = */ true
+    ).expand(entry.ownerFile)
 
     // ///////////////////////////////
     //  Pre-omit fixes              //
     // ///////////////////////////////
 
-    // Doi: move from URL to DOI
+    // DOI: move from URL to DOI
     entry.moveFieldIf(F.URL, F.DOI) {
       !entry.contains(F.DOI) && it.string.contains("http s? :// (dx\\.)? doi\\.org/".ri)
     }
 
     // Fix wrong field names (SpringerLink and ACM violate this)
     for ((wrongName, rightName) in listOf("issue" to F.NUMBER, "keyword" to F.KEYWORDS)) {
-      entry.moveFieldIf(wrongName, rightName) {
-        !entry.contains(rightName) || it == entry[rightName]
-      }
+      entry.moveFieldIf(wrongName, rightName) { !entry.contains(rightName) || it == entry[rightName] }
     }
 
     // Fix Springer's use of 'note' to store 'doi'
@@ -192,7 +189,7 @@ class Fixer(
     entry.update(F.AUTHOR) { fixNames(it, entry.entryKey) }
     entry.update(F.EDITOR) { fixNames(it, entry.entryKey) }
 
-    // Don't include pointless URLs to publisher's page
+    // Don't include redundant URLs to publisher's page
     val publisherUrl = """
       ^ (
         http s? ://doi\.acm\.org/ |
@@ -213,14 +210,12 @@ class Fixer(
     // Eliminate Unicode but not for no-encode fields (e.g. doi, url, etc.)
     for ((field, value) in entry.fields) {
       if (field !in noEncode) {
-        var newValue = html(field == F.TITLE, Parser.parseBodyFragment(value.string, "").body())
+        val encodedValue = html(field == F.TITLE, Parser.parseBodyFragment(value.string, "").body())
 
-        // Repeated to handle nested results
-        var oldValue: String? = null
-        while (oldValue != newValue) {
-          oldValue = newValue
-          newValue = newValue.replace("\\{\\{ ([^{}]*) \\}\\}".r, "{$1}")
-        }
+        // Remove doubly-nested braces.
+        // We used fixedpoint in case there are multiple levels of nested braces.
+        val newValue = fixedpoint(encodedValue) { it.replace("\\{\\{ ([^{}]*) \\}\\}".r, "{$1}") }
+
         entry[field] = newValue
       }
     }
@@ -275,13 +270,7 @@ class Fixer(
               }
           }
         }
-        .filterNotNull()
-      when (parts.size) {
-        0 -> entry.ownerFile.makeString("")
-        1 -> parts.first()
-        // TODO: dropFirst()
-        else -> parts.drop(1).fold(parts.first(), entry.ownerFile::makeConcatenatedValue)
-      }
+      parts.reduce(entry.ownerFile::makeConcatenatedValue)
     }
 
     // ///////////////////////////////
@@ -289,19 +278,16 @@ class Fixer(
     // ///////////////////////////////
 
     // Omit empty fields we don't want
-    for (field in omitEmpty) {
-      entry.removeIf(field) { it.contains("^( \\{\\} | \"\" | )$".r) }
-    }
+    for (field in omitEmpty) { entry.removeIf(field) { it.contains("^( \\{\\} | \"\" | )$".r) } }
 
     // Generate an entry key
-    val name =
-      N.bibtexPersons(
-        entry[F.AUTHOR]?.string ?: entry[F.EDITOR]?.string ?: "anon",
-        entry.entryKey
-      ).first()
-        .let { it.preLast.orEmpty() + it.last }
-        .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
-        .remove("[^A-Za-z0-9]".r) // Remove non-alphanum
+    val name = N.bibtexPersons(
+      entry[F.AUTHOR]?.string ?: entry[F.EDITOR]?.string ?: "anon",
+      entry.entryKey
+    ).first()
+      .let { it.preLast.orEmpty() + it.last }
+      .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
+      .remove("[^A-Za-z0-9]".r) // Remove non-alphanum
 
     val title = entry[F.TITLE]
       ?.string
@@ -313,6 +299,7 @@ class Fixer(
       .filter { it.isNotEmpty() }
       .firstOrNull()
       ?.let { ":${it}" }
+      .orEmpty()
 
     val year = entry[F.YEAR]?.let { ":${it.string}" }.orEmpty()
 
@@ -371,7 +358,8 @@ class Fixer(
     if (digits.size != Issn.NUM_DIGITS) { TODO("invalid number of digits in ISSN: ${issn}") }
 
     val checkValue =
-      (-digits.take(Issn.NUM_DIGITS - 1).mapIndexed { i, c -> c * (Issn.NUM_DIGITS - i) }.sum()).mod(Issn.MOD)
+      (-digits.take(Issn.NUM_DIGITS - 1).mapIndexed { i, c -> c * (Issn.NUM_DIGITS - i) }.sum())
+        .mod(Issn.MOD)
     val checkChar = if (checkValue == Issn.DIGIT_X_VALUE) "X" else checkValue.toString()
     if (checkValue != digits.last()) { println("Warning: Invalid Check Digit in ${issn} TODO") }
 
@@ -388,16 +376,10 @@ class Fixer(
    * @param mediaType whether to use print, online, or both
    * @param canonicalize how to canonicalize either the ISBN or ISSN
    */
-  fun isn(
-    entry: BibtexEntry,
-    field: String,
-    mediaType: MediaType,
-    canonicalize: (String) -> String
-  ): Unit {
+  fun isn(entry: BibtexEntry, field: String, mediaType: MediaType, canonicalize: (String) -> String): Unit {
     entry.update(field) { value ->
-      if (value.isEmpty()) {
-        null // TODO: not needed?
-      } else {
+      // TODO: null case not needed?
+      ifOrNull(value.isNotEmpty()) {
         value.find("^ ([0-9X\\ -]+) \\ \\(Print\\)\\ ([0-9X\\ -]+) \\ \\(Online\\) $".ri)?.let {
           when (mediaType) {
             MediaType.PRINT -> canonicalize(it.groupValues[1])
@@ -464,7 +446,7 @@ class Fixer(
 
     // Warn about duplicate names
     persons.groupingBy(N::simpleName).eachCount().forEach {
-      if (it.value > 1) { println("WARNING: Duplicate name: ${it.key}") }
+      if (it.value != 1) { println("WARNING: Duplicate name: ${it.key}") }
     }
 
     return persons.map { it.toString() }.joinByAnd()
@@ -503,10 +485,11 @@ class Fixer(
             "script", "svg" -> ""
 
             "body" -> html(isTitle, node.childNodes())
-            "p", "par" -> html(isTitle, node.childNodes()) + "\n\n" // Replace <p> with \n\n
+            "p", "par" -> html(isTitle, node.childNodes()) + "\n\n"
 
             "a" ->
               if (node.attributes()["class"].contains("\\b xref-fn \\b".r)) {
+                // TODO: check if this happens
                 "" // Omit footnotes added by Oxford when on-campus
               } else {
                 html(isTitle, node.childNodes()) // Remove <a> links
@@ -529,9 +512,9 @@ class Fixer(
             "span" -> {
               val classAttr = node.attributes()["class"]
               when {
-                node.attributes()["style"].contains("\\b font-family:monospace \b") -> tex("texttt")
-                // TODO: remove: node.attributes()["aria-hidden"] == "true" -> ""
-                classAttr.contains("\\b monospace \\b".r) -> tex("texttt")
+                // TODO: node.attributes()["aria-hidden"] == "true" -> ""
+                classAttr.contains("\\b monospace \\b".r) ||
+                  node.attributes()["style"].contains("\\b font-family:monospace \b") -> tex("texttt")
                 classAttr.contains("\\b italic \\b".r) -> tex("textit")
                 classAttr.contains("\\b bold \\b".r) -> tex("textbf")
                 classAttr.contains("\\b sup \\b".r) -> tex("textsuperscript")
@@ -583,8 +566,8 @@ class Fixer(
           "mspace" -> "\\hspace{${node.attributes()["width"]}}"
           "msubsup", "msub", "msup" ->
             "{${math(isTitle, node.childNodes()[0])}}" +
-              (if (node.tag().name != "msup") "_{${math(isTitle, node.childNodes()[1])}}" else "") +
-              (if (node.tag().name != "msub") "^{${math(isTitle, node.childNodes()[2])}}" else "")
+              (if (node.tag().name == "msup") "" else "_{${math(isTitle, node.childNodes()[1])}}") +
+              (if (node.tag().name == "msub") "" else "^{${math(isTitle, node.childNodes()[2])}}")
           else -> {
             println("WARNING: Unknown MathML tag: ${node.tag().name}")
             "[${node.tag().name}]${math(isTitle, node.childNodes())}[/${node.tag().name}]"
@@ -618,9 +601,7 @@ class Fixer(
       for ((key, value) in nouns) {
         val keyNoBrace = key.remove("[{}]".r)
         s.find("\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".ri)?.let {
-          if (it.value != value) {
-            println("WARNING: Possibly incorrectly capitalized noun '${it.value}' in title")
-          }
+          if (it.value != value) { println("WARNING: Possibly incorrectly capitalized noun '${it.value}' in title") }
         }
       }
 

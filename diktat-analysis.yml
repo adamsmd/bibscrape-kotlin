@@ -33,6 +33,9 @@
 # Checks that function doesn't contains too many parameters
 - name: TOO_MANY_PARAMETERS
   enabled: false
+# Checks that function doesn't have too many nested blocks
+- name: NESTED_BLOCK
+  enabled: false
 # Identifier length should be in range [2,64] except names that used in industry like {i, j} and 'e' for catching exceptions
 - name: IDENTIFIER_LENGTH
   enabled: false
@@ -57,7 +60,9 @@
   enabled: false
 # # Checks that non-empty code blocks with braces follow the K&R style (1TBS or OTBS style)
 # - name: BRACES_BLOCK_STRUTURE_ERROR
-#   enabled: false
+# Orders imports alphabetically
+- name: FILE_UNORDERED_IMPORTS
+  enabled: false # Disabled because ktlint wants a different order
 
 ## Rules with custom configurations
 
@@ -76,24 +81,23 @@
 
 ## Rules that I am not sure about yet
 
-# # Checks trailing comma
-# - name: TRAILING_COMMA
-#   enabled: true
-#   configuration:
-#     # VALUE_ARGUMENT
-#     valueArgument: false
-#     # VALUE_PARAMETER
-#     valueParameter: false
-#     # REFERENCE_EXPRESSION
-#     indices: false
-#     # WHEN_CONDITION_WITH_EXPRESSION
-#     whenConditions: false
-#     # STRING_TEMPLATE
-#     collectionLiteral: false
-#     # TYPE_PROJECTION
-#     typeArgument: false
-#     # TYPE_PARAMETER
-#     typeParameter: false
-#     # DESTRUCTURING_DECLARATION_ENTRY
-#     destructuringDeclaration: false
-
+# Checks trailing comma
+- name: TRAILING_COMMA
+  enabled: true
+  configuration:
+    # VALUE_ARGUMENT
+    valueArgument: false
+    # VALUE_PARAMETER
+    valueParameter: false
+    # REFERENCE_EXPRESSION
+    indices: false
+    # WHEN_CONDITION_WITH_EXPRESSION
+    whenConditions: false
+    # STRING_TEMPLATE
+    collectionLiteral: false
+    # TYPE_PROJECTION
+    typeArgument: false
+    # TYPE_PARAMETER
+    typeParameter: false
+    # DESTRUCTURING_DECLARATION_ENTRY
+    destructuringDeclaration: false

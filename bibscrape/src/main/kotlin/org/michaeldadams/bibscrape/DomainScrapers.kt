@@ -11,23 +11,17 @@ import org.openqa.selenium.By
 import org.openqa.selenium.support.ui.Select
 import org.jsoup.select.Evaluator as E
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
+import org.michaeldadams.bibscrape.Bibtex.Types as T
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : DomainScraper {
   override val domains = listOf("acm.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    // driver.manage().timeouts().implicitlyWait(Duration.ofMillis((1000 * 30.0).roundToLong()))
-    // TODO: prevent loops on ACM
-    if ("Association for Computing Machinery" !=
-      driver.findElement(By.className("publisher__name")).innerHtml
-    ) {
-      val urls = driver
-        .findElements(By.className("issue-item__doi"))
-        .mapNotNull { it.getAttribute("href") }
-      // TODO: filter to non-acm links
-      if (urls.size > 0) {
-        return Scraper.dispatch(driver, urls.first())
+    if ("Association for Computing Machinery" != driver.findElement(By.className("publisher__name")).innerHtml) {
+      val urls = driver.findElements(By.className("issue-item__doi")).mapNotNull { it.getAttribute("href") }
+      if (urls.isNotEmpty()) {
+        return Scraper.dispatch(driver, urls.single())
       } else {
         println("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher") // TODO
       }
@@ -35,29 +29,28 @@ object ScrapeAcm : DomainScraper {
 
     // // BibTeX
     driver.findElement(By.cssSelector("""a[data-title="Export Citation"]""")).click()
-    val entries: List<BibtexEntry> =
-      driver.awaitFindElements(By.cssSelector("#exportCitation .csl-right-inline"))
-        .flatMap { Bibtex.parseEntries(it.text) }
-        // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering non-journal over journal
-        .sortedBy { it.contains(F.JOURNAL) }
-    val entry = entries.first()
+    val entry = driver.awaitFindElements(By.cssSelector("#exportCitation .csl-right-inline"))
+      .flatMap { Bibtex.parseEntries(it.text) }
+      // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering non-journal over journal
+      .sortedBy { it.contains(F.JOURNAL) }
+      .first()
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
     HtmlMeta.bibtex(entry, meta, F.JOURNAL to false)
 
     // // Abstract
-    val abstract = driver
-      .findElements(By.cssSelector(".abstractSection.abstractInFull"))
-      .lastOrNull()
-      ?.innerHtml
-    if (abstract != null && abstract != "<p>No abstract available.</p>") {
-      entry[F.ABSTRACT] = abstract
-    }
+    entry[F.ABSTRACT] = (
+      // Sometimes ACM puts two .abstractInFull div tags around the abstract, and sometimes it doesn't.
+      // Also, sometimes, it doesn't even have an abstract.
+      driver.findElements(By.cssSelector(".article__abstract > .abstractInFull > .abstractInFull")).emptyOrSingle()
+        ?: driver.findElements(By.cssSelector(".article__abstract > .abstractInFull")).emptyOrSingle()
+      )?.innerHtml
+      ?.remove("^ <p>No\\ abstract\\ available.</p> $".r)
+      ?.ifEmpty { null }
 
     // // Author
-    entry[F.AUTHOR] = driver
-      .findElements(By.cssSelector(".citation .author-name"))
+    entry[F.AUTHOR] = driver.findElements(By.cssSelector(".citation .author-name"))
       .map { it.getAttribute("title") }
       .joinByAnd()
 
@@ -68,68 +61,49 @@ object ScrapeAcm : DomainScraper {
     //
     // ACM publication months are often inconsistent within the same page.
     // This is a best effort at picking the right month among these inconsistent results.
-    if (entry[F.MONTH] == null) {
-      entry[F.MONTH] = driver
-        .findElement(By.cssSelector(".book-meta + .cover-date"))
-        .innerHtml
-        .split("\\s+".r)
-        .first()
-    }
+    // TODO: simplify month calculation in ACM
+    entry[F.MONTH] =
+      entry[F.MONTH]?.string
+        ?: driver.findElements(By.cssSelector(".book-meta + .cover-date")).first().innerHtml.split("\\s+".r).first()
     entry[F.ISSUE_DATE]?.let {
       val month = it.string.split("\\s+".r).first()
-      if (Bibtex.Months.stringToMonth(entry.ownerFile, month) != null) {
-        entry[F.MONTH] = month
-      }
+      if (Bibtex.Months.stringToMonth(entry.ownerFile, month) != null) { entry[F.MONTH] = month }
     }
 
     // // Keywords
-    val keywords = driver
-      .findElements(By.cssSelector(".tags-widget__content a"))
+    entry[F.KEYWORDS] = driver.findElements(By.cssSelector(".tags-widget__content a"))
       .map { it.innerHtml }
       // ACM is inconsistent about the order in which these are returned.
       // We sort them so that we are deterministic.
+      // TODO: do we still need to sort keywords?
       .sorted()
-    if (keywords.size > 0) {
-      entry[F.KEYWORDS] = keywords.joinToString("; ")
-    }
+      .joinToString(";")
 
     // // Journal
-    if (entry.entryType == "article") {
-      val journal = driver
-        .findElements(By.cssSelector("meta[name=\"citation_journal_title\"]"))
-        .map { it.getAttribute("content") }
-      if (journal.size > 0) {
-        entry[F.JOURNAL] = journal.first()
-      }
+    if (entry.entryType == T.ARTICLE) {
+      entry[F.JOURNAL] = driver.findElement(By.cssSelector("meta[name=\"citation_journal_title\"]"))
+        .getAttribute("content")
     }
 
-    val issns =
-      driver
-        .findElements(By.className("cover-image__details"))
-        .sortedBy { it.findElements(By.className("journal-meta")).size > 0 }
-    if (issns.size > 0) {
-      val issn = issns.first().innerHtml
-      val pissn =
-        """<span class="bold">ISSN:</span><span class="space">(.*?)</span>"""
-          .r
-          .find(issn)
-      val eissn =
-        """<span class="bold">EISSN:</span><span class="space">(.*?)</span>"""
-          .r
-          .find(issn)
-      if (pissn != null && eissn != null) {
-        entry[F.ISSN] = "${pissn.groupValues[1]} (Print) ${eissn.groupValues[1]} (Online)"
+    driver.findElements(By.className("cover-image__details"))
+      .sortedBy { it.findElements(By.className("journal-meta")).isNotEmpty() }
+      .first()
+      .innerHtml
+      .let { issn ->
+        val pissn = issn.find("""<span\ class="bold">ISSN:</span><span\ class="space">(.*?)</span>""".r)
+        val eissn = issn.find("""<span\ class="bold">EISSN:</span><span\ class="space">(.*?)</span>""".r)
+        if (pissn != null && eissn != null) {
+          entry[F.ISSN] = "${pissn.groupValues[1]} (Print) ${eissn.groupValues[1]} (Online)"
+        }
       }
-    }
 
     // // Pages
-    if (entry.getFieldValue("articleno") != null &&
-      entry.getFieldValue("numpages") != null &&
-      entry.getFieldValue("pages") == null
-    ) {
-      val articleno = entry.getFieldValue("articleno").toString()
-      val numpages = entry.getFieldValue("numpages").toString()
-      entry[F.PAGES] = "${articleno}:1--${articleno}:${numpages}"
+    if (entry[F.PAGES] == null) {
+      entry[F.ARTICLENO]?.let { articleno ->
+        entry[F.NUMPAGES]?.let { numpages ->
+          entry[F.PAGES] = "${articleno.string}:1--${articleno.string}:${numpages.string}"
+        }
+      }
     }
 
     return entry
@@ -141,15 +115,11 @@ object ScrapeArxiv : DomainScraper {
   override val domains = listOf("arxiv.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    // format_bibtex_arxiv in
-    // https://github.com/mattbierbaum/arxiv-bib-overlay/blob/master/src/ui/CiteModal.tsx
     // Ensure we are at the "abstract" page
     val urlRegex = "://arxiv.org/ ([^/]+) / (.*) $".r
 
     val urlMatch = urlRegex.find(driver.currentUrl)!!
-    if (urlMatch.groupValues[1] != "abs") {
-      driver.get("https://arxiv.org/abs/${urlMatch.groupValues[2]}")
-    }
+    if (urlMatch.groupValues[1] != "abs") { driver.get("https://arxiv.org/abs/${urlMatch.groupValues[2]}") }
 
     // Id
     val id = urlRegex.find(driver.currentUrl)!!.groupValues[2]
@@ -157,18 +127,32 @@ object ScrapeArxiv : DomainScraper {
     // Use the arXiv API to download meta-data
     driver.get("https://export.arxiv.org/api/query?id_list=${id}")
     val xml = Parser.parseBodyFragment(driver.textPlain(), "").body()
+    println("<${xml}>")
     driver.navigate().back()
 
-    val doi = xml.select(E.Tag("arxiv:doi"))
-
+    // val doi = xml.select(E.Tag("arxiv:doi"))
     // if @doi and Backtrace.new.map({$_.subname}).grep({$_ eq 'scrape-arxiv'}) <= 1 {
     //   # Use publisher page if it exists
     //   dispatch('doi:' ~ @doi.head.contents».text.join(''));
     // } else {
 
-    val xmlEntry = xml.selectFirst(E.Tag("entry"))!!
+    val xmlEntry = xml.select(E.Tag("entry")).single()
 
-    fun Element.tagText(tag: String): String = this.selectFirst(E.Tag(tag))?.wholeText().orEmpty()
+    /** Searches for a given tag and returns the text in it.
+     *
+     * @receiver the element in which to search for the tag
+     * @param tag the name of the tag to search for
+     * @return the text in the searched tag or null if the tag does not exist
+     */
+    fun Element.tagTextOrNull(tag: String): String? = this.select(E.Tag(tag)).emptyOrSingle()?.wholeText()
+
+    /** Searches for a given tag and returns the text in it.
+     *
+     * @receiver the element in which to search for the tag
+     * @param tag the name of the tag to search for
+     * @return the text in the searched tag
+     */
+    fun Element.tagText(tag: String): String = this.tagTextOrNull(tag)!!
 
     // // BibTeX object
     val entry = BibtexFile().makeEntry("misc", "arxiv.${id}")
@@ -176,46 +160,36 @@ object ScrapeArxiv : DomainScraper {
     // // Title
     entry[F.TITLE] = xmlEntry.tagText("title")
 
+    // // Authors and Affiliation
     val authors = xmlEntry.select(E.Tag("author"))
 
-    // // Author
     // author=<author><name>: One for each author. Has child element <name> containing the author name.
     entry[F.AUTHOR] = authors.map { it.tagText("name") }.joinByAnd()
 
-    // // Affiliation
-    // affiliation=<author><arxiv:affiliation>:
-    //   The author's affiliation included as a subelement of <author> if present.
-    authors.map { it.tagText("arxiv:affiliation") }.filter { it.isNotEmpty() }.joinByAnd().let {
-      if (it.isNotEmpty()) { entry[F.AFFILIATION] = it }
-    }
+    // affiliation=<author><arxiv:affiliation>: The author's affiliation included as a subelement of <author> if present
+    entry[F.AFFILIATION] = authors
+      .mapNotNull { it.tagTextOrNull("arxiv:affiliation") }
+      .joinByAnd()
+      .ifEmpty { null }
 
     // // How published
     entry[F.HOWPUBLISHED] = "arXiv.org"
 
     // // Year, month and day
-    val (_, year, month, day) =
-      xmlEntry.tagText("published").find("^ (\\d{4}) - (\\d{2}) - (\\d{2}) T".r)!!.groupValues
-    // $published ~~ /^ (\d ** 4) '-' (\d ** 2) '-' (\d ** 2) 'T'/;
-    // my (Str:D $year, Str:D $month, Str:D $day) = ($0.Str, $1.Str, $2.Str);
-    // year, month, day = <published> 	The date that version 1 of the article was submitted.
-    // <updated> 	The date that the retrieved version of the article was
-    //            submitted. Same as <published> if the retrieved version is version 1.
+    val (_, year, month, day) = xmlEntry.tagText("published").find("^ (\\d{4}) - (\\d{2}) - (\\d{2}) T".r)!!.groupValues
+    // year, month, day = <published> The date that version 1 of the article was submitted.
+    // <updated> The date that the retrieved version of the article was
+    //           submitted. Same as <published> if the retrieved version is version 1.
     entry[F.YEAR] = year
     entry[F.MONTH] = month
     entry[F.DAY] = day
-    // $entry.fields<year> = BibScrape::BibTeX::Value.new($year);
-    // $entry.fields<month> = BibScrape::BibTeX::Value.new($month);
-    // $entry.fields<day> = BibScrape::BibTeX::Value.new($day);
 
-    // my Str:D $doi = $xml-entry.elements(:TAG<link>, :title<doi>).map({$_.attribs<href>}).join(';');
-    // $entry.fields<doi> = BibScrape::BibTeX::Value.new($doi)
-    //   if $doi ne '';
-    // println(xmlEntry)
-    entry[F.DOI] = xmlEntry
-      .select(E.Tag("link"))
+    // // DOI
+    entry[F.DOI] = xmlEntry.select(E.Tag("link"))
       .flatMap { it.select(E.AttributeWithValue("title", "doi")) }
-      .mapNotNull { it.attributes().get("href") }
-      .firstOrNull()
+      .singleOrNull()
+      ?.attributes()
+      ?.get("href")
 
     // // Eprint
     entry[F.EPRINT] = id
@@ -224,9 +198,7 @@ object ScrapeArxiv : DomainScraper {
     entry[F.ARCHIVEPREFIX] = "arXiv"
 
     // // Primary class
-    entry[F.PRIMARYCLASS] = xmlEntry.selectFirst(E.Tag("arxiv:primary_category"))?.attributes()?.get("term")
-    // my Str:D $primaryClass = $xml-entry.getElementsByTagName('arxiv:primary_category').head.attribs<term>;
-    // $entry.fields<primaryclass> = BibScrape::BibTeX::Value.new($primaryClass);
+    entry[F.PRIMARYCLASS] = xmlEntry.select(E.Tag("arxiv:primary_category")).single().attributes()["term"]
 
     // // Abstract
     entry[F.ABSTRACT] = xmlEntry.tagText("summary")
@@ -247,9 +219,8 @@ object ScrapeCambridge : DomainScraper {
   override val domains = listOf("cambridge.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    driver.currentUrl.find(
-      "^ http s? ://www.cambridge.org/core/services/aop-cambridge-core/content/view/ (S \\d+) $".r
-    )?.let { driver.get("https://doi.org/10.1017/${it.groupValues[1]}") }
+    driver.currentUrl.find("^ http s? ://www.cambridge.org/core/services/aop-cambridge-core/content/view/ (S \\d+) $".r)
+      ?.let { driver.get("https://doi.org/10.1017/${it.groupValues[1]}") }
 
     // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box
     val meta = HtmlMeta.parse(driver)
@@ -259,7 +230,7 @@ object ScrapeCambridge : DomainScraper {
       driver.findElements(By.cssSelector("[data-export-type=\"bibtex\"]")).firstOrNull()?.click()
         ?: driver.findElements(By.className("export-citation-product")).firstOrNull()?.click()?.let { null }
     }
-    val entry = Bibtex.parseEntries(driver.textPlain()).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).single()
     driver.navigate().back()
 
     // // HTML Meta
@@ -267,7 +238,7 @@ object ScrapeCambridge : DomainScraper {
 
     // // Title
     // There are multiple "h1"s, but the first one should be the title
-    entry[F.TITLE] = driver.awaitFindElement(By.tagName("h1")).innerHtml
+    entry[F.TITLE] = driver.awaitFindElement(By.cssSelector("#maincontent > h1")).innerHtml
 
     // // Abstract
     // my #`(Inline::Python::PythonObject:D) @abstract = $web-driver.find_elements_by_class_name( 'abstract' );
@@ -280,16 +251,13 @@ object ScrapeCambridge : DomainScraper {
     //   $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract)
     //     unless $abstract ~~ /^ '//static.cambridge.org/content/id/urn' /;
     // }
-    entry[F.ABSTRACT] = driver
-      .findElements(By.className("abstract"))
-      .firstOrNull()
+    entry[F.ABSTRACT] = driver.findElements(By.className("abstract"))
+      .emptyOrSingle()
       ?.innerHtml
-      .orEmpty()
-      .remove("""\\R\ \ \ \ \ \ \\R\ \ \ \ \ \ """.r)
-      .remove("^ <div\\ [^>]* >".r)
-      .remove(" </div> $".r)
-      .remove("""^ //static.cambridge.org/content/id/urn .*""".r)
-      .ifEmpty { null }
+      ?.remove("""\\R\ \ \ \ \ \ \\R\ \ \ \ \ \ """.r)
+      ?.remove("^ <div\\ [^>]* >".r)
+      ?.remove(" </div> $".r)
+      ?.remove("""^ //static.cambridge.org/content/id/urn .*""".r)
 
     // // ISSN
     // val pissn = driver.findElement(E.name("productIssn")).getAttribute("value")
@@ -309,16 +277,15 @@ object ScrapeIeeeComputer : DomainScraper {
 
   override fun scrape(driver: Driver): BibtexEntry {
     // // Cookie prompt since it sometimes obscures the button we want to click
-    driver
-      .findElements(By.cssSelector("[aria-label=\"cookieconsent\"]"))
+    driver.findElements(By.cssSelector("[aria-label=\"cookieconsent\"]"))
       .forEach { driver.executeScript("arguments[0].remove()", it) }
 
     // // BibTeX
     driver.findElement(By.cssSelector(".article-action-toolbar button")).click()
     driver.findElement(By.partialLinkText("BIB TEX")).click()
-    var bibtexText = driver.awaitFindElement(By.id("bibTextContent")).innerHtml.replace("<br>".r, "\n")
+    var bibtexText = driver.awaitFindElement(By.id("bibTextContent")).innerHtml.replace("<br>".r, "\n").replace("&amp;", "&")
     // TODO: $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
-    val entry = Bibtex.parseEntries(bibtexText).first()
+    val entry = Bibtex.parseEntries(bibtexText).single()
     driver.navigate().back()
 
     // // HTML Meta
@@ -326,18 +293,15 @@ object ScrapeIeeeComputer : DomainScraper {
     HtmlMeta.bibtex(entry, meta)
 
     // // Authors
-    entry[F.AUTHOR] = driver
-      .findElements(By.cssSelector("a[href^=\"/csdl/search/default?type=author&\"]"))
+    entry[F.AUTHOR] = driver.findElements(By.cssSelector("a[href^=\"/csdl/search/default?type=author&\"]"))
       .map { it.innerHtml }
       .joinByAnd()
 
     // // Affiliation
-    val affiliations = driver
-      .findElements(By.className("article-author-affiliations"))
+    entry[F.AFFILIATION] = driver.findElements(By.className("article-author-affiliations"))
       .map { it.innerHtml }
-    if (affiliations.isNotEmpty()) {
-      entry[F.AFFILIATION] = affiliations.joinByAnd()
-    }
+      .joinByAnd()
+      .ifEmpty { null }
 
     return entry
   }
@@ -353,7 +317,7 @@ object ScrapeIeeeExplore : DomainScraper {
     driver.awaitFindElement(By.linkText("BibTeX")).click()
     driver.awaitFindElement(By.cssSelector(".enable-abstract input")).click()
     val text = driver.awaitFindElement(By.className("ris-text")).innerHtml
-    val entry = Bibtex.parseEntries(text).first()
+    val entry = Bibtex.parseEntries(text).single()
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
@@ -371,9 +335,7 @@ object ScrapeIeeeExplore : DomainScraper {
         \{"format":"Print ISSN","value":" (${ISSN_REGEX}) "\},
         \{"format":"Electronic ISSN","value":" (${ISSN_REGEX}) "\}]
     """.trimIndent().r
-    body.find(issnsRegex)?.let {
-      entry[F.ISSN] = "${it.groupValues[1]} (Print) ${it.groupValues[2]} (Online)"
-    }
+    body.find(issnsRegex)?.let { entry[F.ISSN] = "${it.groupValues[1]} (Print) ${it.groupValues[2]} (Online)" }
 
     // // ISBN
     val isbnsRegex = """
@@ -381,9 +343,7 @@ object ScrapeIeeeExplore : DomainScraper {
         \{"format":"Print ISBN","value":" (${ISBN_REGEX}) ","isbnType":""\},
         \{"format":"CD","value":" (${ISBN_REGEX}) "\}] ","isbnType":""\}]
     """.trimIndent().r
-    body.find(isbnsRegex)?.let {
-      entry[F.ISBN] = "${it.groupValues[1]} (Print) ${it.groupValues[2]} (Online)"
-    }
+    body.find(isbnsRegex)?.let { entry[F.ISBN] = "${it.groupValues[1]} (Print) ${it.groupValues[2]} (Online)" }
 
     // // Publisher
     entry[F.PUBLISHER] =
@@ -405,9 +365,7 @@ object ScrapeIeeeExplore : DomainScraper {
     // }
 
     // // Conference date
-    body.find("\"conferenceDate\":\" ([^\"]+) \"".r)?.let {
-      entry[F.CONFERENCE_DATE] = it.groupValues[1]
-    }
+    entry[F.CONFERENCE_DATE] = body.find("\"conferenceDate\":\" ([^\"]+) \"".r)?.groupValues?.get(1)
 
     // // Abstract
     entry.update(F.ABSTRACT) { it.remove("&lt;&gt; $".r) }
@@ -424,26 +382,20 @@ object ScrapeIosPress : DomainScraper {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
     driver.awaitFindElement(By.className("btn-clear")).click()
-    val ris = driver.textPlain().split("\\R".r).toRisRecords().first()
+    val entry = Ris.bibtex(BibtexFile(), driver.textPlain().split("\\R".r).toRisRecords().single())
     driver.navigate().back()
-
-    // my BibScrape::Ris::Ris:D $ris = ris-parse($web-driver.read-downloads());
-    val entry = Ris.bibtex(BibtexFile(), ris)
-    // my BibScrape::BibTeX::Entry:D $entry = bibtex-of-ris($ris);
 
     // // HTML Meta
     val meta = HtmlMeta.parse(driver)
     HtmlMeta.bibtex(entry, meta)
 
     // // Title
-    entry[F.TITLE] = driver
-      .findElement(By.cssSelector("[data-p13n-title]"))
+    entry[F.TITLE] = driver.findElement(By.cssSelector("[data-p13n-title]"))
       .getDomAttribute("data-p13n-title")
       .remove("\\R".r)
 
     // // Abstract
-    entry[F.ABSTRACT] = driver
-      .findElement(By.cssSelector("[data-abstract]"))
+    entry[F.ABSTRACT] = driver.findElement(By.cssSelector("[data-abstract]"))
       .getDomAttribute("data-abstract")
       .replace("([.!?]) \\ \\ ".r, "$0\n\n") // Insert missing paragraphs.  This is a heuristic solution.
 
@@ -464,15 +416,15 @@ object ScrapeJstor : DomainScraper {
 
   override fun scrape(driver: Driver): BibtexEntry {
     // // Remove overlay
-    val overlays = driver.findElements(By.className("reveal-overlay"))
-    overlays.forEach { driver.executeScript("arguments[0].removeAttribute(\"style\")", it) }
+    driver.findElements(By.className("reveal-overlay"))
+      .forEach { driver.executeScript("arguments[0].removeAttribute(\"style\")", it) }
 
     // // BibTeX
     // Note that on-campus is different than off-campus
     // await({ $web-driver.find_elements_by_css_selector( '[data-qa="cite-this-item"]' )
     //         || $web-driver.find_elements_by_class_name( 'cite-this-item' ) }).head.click;
     // await({ $web-driver.find_element_by_css_selector( '[data-sc="text link: citation text"]' ) }).click;
-    val entry = Bibtex.parseEntries(driver.textPlain()).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).single()
     driver.navigate().back()
 
     // // HTML Meta
@@ -482,9 +434,9 @@ object ScrapeJstor : DomainScraper {
     // // Title
     // Note that on-campus is different than off-campus
     entry[F.TITLE] = (
-      driver.findElement(By.className("item-title"))
+      driver.findElements(By.className("item-title")).emptyOrSingle()
         ?: driver.findElement(By.className("title-font"))
-      )!!.innerHtml
+      ).innerHtml
 
     // // DOI
     entry[F.DOI] = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
@@ -493,18 +445,20 @@ object ScrapeJstor : DomainScraper {
     entry.update(F.ISSN) { it.replace("^ ([0-9Xx]+) ,\\ ([0-9Xx]+) $".r, "$1 (Print) $2 (Online)") }
 
     // // Month
-    val month = (
+    entry[F.MONTH] = (
       driver.findElements(By.cssSelector(".turn-away-content__article-summary-journal a")) +
         driver.findElements(By.className("src"))
-      ).first().innerHtml
-    month.find("\\( ([A-Za-z]+) ".r)?.let {
-      entry[F.MONTH] = it.groupValues[1]
-    }
+      )
+      .first()
+      .innerHtml
+      .find("\\( ([A-Za-z]+) ".r)
+      ?.groupValues
+      ?.get(1)
 
     // // Publisher
     // Note that on-campus is different than off-campus
     entry[F.PUBLISHER] =
-      driver.findElement(By.className("turn-away-content__article-summary-journal"))?.let {
+      driver.findElements(By.className("turn-away-content__article-summary-journal")).emptyOrSingle()?.let {
         it.innerHtml.find("Published\\ By:\\ ([^<]*)".r)!!.groupValues[1]
       } ?: driver.findElement(By.className("publisher-link")).innerHtml
     // my Str:D $publisher =
@@ -528,12 +482,14 @@ object ScrapeOxford : DomainScraper {
   override val domains = listOf("oup.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
+    // TODO: is this still the case
     println("WARNING: Oxford imposes rate limiting.  BibScrape might hang if you try multiple papers in a row.")
 
     // // BibTeX
     driver.awaitFindElement(By.className("js-cite-button")).click()
     val selectElement = Select(driver.awaitFindElement(By.id("selectFormat")))
     driver.awaitNonNull {
+      // TODO: rewrite
       selectElement.selectByVisibleText(".bibtex (BibTex)")
       val button = driver.findElement(By.className("citation-download-link"))
       if (!button.getAttribute("class").contains("\\b disabled \\b".r)) {
@@ -553,7 +509,7 @@ object ScrapeOxford : DomainScraper {
     //   $button.get_attribute( 'class' ) !~~ / « 'disabled' » /
     //     and $button }
     // ).click;
-    val entry = Bibtex.parseEntries(driver.textPlain()).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).single()
     driver.navigate().back()
 
     // // HTML Meta
@@ -590,7 +546,7 @@ object ScrapeScienceDirect : DomainScraper {
       driver.findElement(By.id("export-citation")).click()
       driver.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
     }
-    val entry = Bibtex.parseEntries(driver.textPlain()).first()
+    val entry = Bibtex.parseEntries(driver.textPlain()).single()
     driver.navigate().back()
 
     // // HTML Meta
@@ -601,17 +557,12 @@ object ScrapeScienceDirect : DomainScraper {
     entry[F.TITLE] = driver.findElement(By.className("title-text")).innerHtml
 
     // // Keywords
-    entry[F.KEYWORDS] = driver
-      .findElements(By.cssSelector(".keywords-section > .keyword > span"))
+    entry[F.KEYWORDS] = driver.findElements(By.cssSelector(".keywords-section > .keyword > span"))
       .map { it.innerHtml }
       .joinToString("; ")
 
     // // Abstract
-    driver
-      .findElements(By.cssSelector(".abstract > div"))
-      .map { it.innerHtml }
-      .firstOrNull()
-      ?.let { entry[F.ABSTRACT] = it }
+    entry[F.ABSTRACT] = driver.findElement(By.cssSelector("#abstracts > .abstract.author > div")).innerHtml
 
     // // Series
     entry.moveField(F.NOTE, F.SERIES)
@@ -660,30 +611,31 @@ object ScrapeSpringer : DomainScraper {
     // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
     // // ISBN
-    val pisbn = driver.findElements(By.id("print-isbn")).firstOrNull()?.innerHtml
-    val eisbn = driver.findElements(By.id("electronic-isbn")).firstOrNull()?.innerHtml
+    val pisbn = driver.findElements(By.id("print-isbn")).emptyOrSingle()?.innerHtml
+    val eisbn = driver.findElements(By.id("electronic-isbn")).emptyOrSingle()?.innerHtml
     if (pisbn != null && eisbn != null) { entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)" }
 
     // // ISSN
-    driver.findElement(By.tagName("head"))?.innerHtml
-      ?.find("""\{ "eissn" : " (${ISSN_REGEX}) " , "pissn" : " (${ISSN_REGEX}) " \\}""".r)
-      ?.let {
-        entry[F.ISSN] = "${it.groupValues[2]} (Print) ${it.groupValues[1]} (Online)"
-      }
+    driver.findElement(By.tagName("head"))
+      .innerHtml
+      .find("""\{ "eissn" : " (${ISSN_REGEX}) " , "pissn" : " (${ISSN_REGEX}) " \\}""".r)
+      ?.let { entry[F.ISSN] = "${it.groupValues[2]} (Print) ${it.groupValues[1]} (Online)" }
 
     // // Series, Volume and ISSN
     //
     // Ugh, Springer doesn't have a reliable way to get the series, volume,
     // or ISSN.  Fortunately, this only happens for LNCS, so we hard code
     // it.
-    driver.findElement(By.tagName("body")).innerHtml.find("\\(LNCS,\\ volume\\ (\\d*) \\)".r)?.let {
-      entry[F.VOLUME] = it.groupValues[1]
-      entry[F.SERIES] = "Lecture Notes in Computer Science"
-    }
+    driver.findElement(By.tagName("body"))
+      .innerHtml
+      .find("\\(LNCS,\\ volume\\ (\\d*) \\)".r)
+      ?.let {
+        entry[F.VOLUME] = it.groupValues[1]
+        entry[F.SERIES] = "Lecture Notes in Computer Science"
+      }
 
     // // Keywords
-    entry[F.KEYWORDS] = driver
-      .findElements(By.className("c-article-subject-list__subject"))
+    entry[F.KEYWORDS] = driver.findElements(By.className("c-article-subject-list__subject"))
       .map { it.innerHtml }
       .joinToString("; ")
 
@@ -699,10 +651,7 @@ object ScrapeSpringer : DomainScraper {
 
     // // Publisher
     // The publisher field should not include the address
-    entry.update("publisher") {
-      val address = entry[F.ADDRESS]?.string.orEmpty()
-      if (it == "Springer, ${address}") "Springer" else it
-    }
+    entry.update("publisher") { if (it == "Springer, ${entry[F.ADDRESS]?.string}") "Springer" else it }
 
     return entry
   }

@@ -30,12 +30,12 @@ inline fun <reified T : Enum<T>> RawOption.lowercaseEnum(
 // // Duration flags
 
 /** Converts the option values to a [Duration] in seconds. */
-fun RawOption.seconds(): OptionWithValues<Duration?, Duration, Duration> = convert({ localization.floatMetavar() }) {
-  it.toDoubleOrNull()?.seconds ?: throw BadParameterValue(context.localization.floatConversionError(it))
-}
+fun RawOption.seconds(): OptionWithValues<Duration?, Duration, Duration> =
+  convert({ localization.floatMetavar() }) {
+    it.toDoubleOrNull()?.seconds ?: throw BadParameterValue(context.localization.floatConversionError(it))
+  }
 
 // // Collection flags (e.g., Map, List and Set)
-
 typealias CollectionOption<C> = OptionWithValues<C, String, String>
 
 /** Implements the parsing for [collection].
@@ -52,28 +52,21 @@ private fun <C, F, L> parseBlocks(
 ): (C, String) -> C = { initial, string ->
   var acc = initial
   var first: F? = null
+
   fun go(dir: Path, string: String): Unit {
-    val lines = string
-      .split("\\R".r)
-      .map { it.remove("\\s* \\# .* $".r).remove("^ \\s+".r) }
+    val lines = string.split("\\R".r).map { it.remove("\\s* \\# .* $".r).remove("^ \\s+".r) }
     for (line in lines) {
       when {
-        line.isEmpty() ->
-          first = null
-        line.startsWith('@') ->
-          dir.resolve(line.substring(1)).let {
-            go(it.parent, String(Files.readAllBytes(it)))
-          }
-        line == "-" ->
-          acc = empty()
-        line == "--" ->
-          go(dir, default())
+        line.isEmpty() -> first = null
+        line.startsWith('@') -> dir.resolve(line.substring(1)).let { go(it.parent, String(Files.readAllBytes(it))) }
+        line == "-" -> acc = empty()
+        line == "--" -> go(dir, default())
         else -> {
-          val minus = line.startsWith("-")
-          val trimmedLine = if (minus) line.substring(1) else line
+          val isRemove = line.startsWith("-")
+          val trimmedLine = if (isRemove) line.substring(1) else line
           if (first == null) { first = parseFirst(trimmedLine) }
           val parsedLine = parseLine(trimmedLine)
-          acc = if (minus) remove(acc, parsedLine) else add(acc, parsedLine, first!!)
+          acc = if (isRemove) remove(acc, parsedLine) else add(acc, parsedLine, first!!)
         }
       }
     }
@@ -132,8 +125,8 @@ fun <C, F, L> NullableOption<String, String>.collection(
   remove: (C, L) -> C
 ): CollectionOption<C> =
   this.transformAll { strings ->
-    val run = parseBlocks(empty, default, parseFirst, parseLine, add, remove)
-    strings.map { it.replace(";", "\n") }.fold(run(empty(), default()), run)
+    val parser = parseBlocks(empty, default, parseFirst, parseLine, add, remove)
+    strings.map { it.replace(";", "\n") }.fold(parser(empty(), default()), parser)
   }
 
 /** Converts an option to one for [Map<K, V>] using "block" notation.
@@ -150,19 +143,13 @@ fun <C, F, L> NullableOption<String, String>.collection(
  * @return the result of converting the option
  * @see collection
  */
+@Suppress("TYPE_ALIAS")
 fun <K, V> NullableOption<String, String>.map(
   default: () -> String,
   parseFirst: (String) -> V,
   parseLine: (String) -> K
 ): CollectionOption<Map<K, V>> =
-  this.collection(
-    ::emptyMap,
-    default,
-    parseFirst,
-    parseLine,
-    { a, l, f -> a + (l to f) },
-    { a, l -> a - l }
-  )
+  this.collection(::emptyMap, default, parseFirst, parseLine, { a, l, f -> a + (l to f) }, { a, l -> a - l })
 
 /** Converts an option to one for [List<A>] using "block" notation.
  *
@@ -179,14 +166,7 @@ fun <A> NullableOption<String, String>.list(
   default: () -> String,
   parseLine: (String) -> A
 ): CollectionOption<List<A>> =
-  this.collection(
-    ::emptyList,
-    default,
-    parseLine,
-    parseLine,
-    { a, l, _ -> a + l },
-    { a, l -> a - l }
-  )
+  this.collection(::emptyList, default, parseLine, parseLine, { a, l, _ -> a + l }, { a, l -> a - l })
 
 /** Converts an option to one for [Set<A>] using "block" notation.
  *
@@ -202,11 +182,4 @@ fun <A> NullableOption<String, String>.set(
   default: () -> String,
   parseLine: (String) -> A
 ): CollectionOption<Set<A>> =
-  this.collection(
-    ::emptySet,
-    default,
-    parseLine,
-    parseLine,
-    { a, l, _ -> a + l },
-    { a, l -> a - l }
-  )
+  this.collection(::emptySet, default, parseLine, parseLine, { a, l, _ -> a + l }, { a, l -> a - l })

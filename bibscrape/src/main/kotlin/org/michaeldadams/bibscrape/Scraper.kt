@@ -52,9 +52,7 @@ object Scraper {
     )
     for (scraper in scrapers) {
       for (scraperDomain in scraper.domains) {
-        if (domain.contains("\\b ${Regex.escape(scraperDomain)} $".ri)) {
-          return scraper.scrape(driver)
-        }
+        if (domain.contains("\\b ${Regex.escape(scraperDomain)} $".ri)) { return scraper.scrape(driver) }
       }
     }
 

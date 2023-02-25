@@ -40,9 +40,7 @@ fun BibtexEntry.contains(field: String): Boolean = this.fields.containsKey(field
 inline fun BibtexEntry.check(field: String, msg: String, block: (String) -> Boolean): Unit? =
   this[field]?.let {
     val value = it.string
-    if (!block(value)) {
-      println("WARNING: ${msg}: ${value}")
-    }
+    if (!block(value)) { println("WARNING: ${msg}: ${value}") }
   }
 
 /** Casts the receiver to a [BibtexString] and gets its string contents.
@@ -58,26 +56,31 @@ val BibtexAbstractValue.string: String
  * @param field the field for which to get the value
  * @return the value for the given [field]
  */
-operator fun BibtexEntry.get(field: String): BibtexAbstractValue? =
-  this.getFieldValue(field)
+operator fun BibtexEntry.get(field: String): BibtexAbstractValue? = this.getFieldValue(field)
+
+/** Sets the value for [field] in the receiver to be [value] if [value] is not `null`.
+ *
+ * @param field the field for which to set the value
+ * @param value the value to which to set the field
+ */
+// TODO: is put used?
+fun BibtexEntry.put(field: String, value: String?): Unit? = value?.let { this[field] = it }
 
 /** Sets the value for [field] in the receiver to be [value].
  *
  * @param field the field for which to set the value
  * @param value the value to which to set the field
  */
-operator fun BibtexEntry.set(field: String, value: String?): Unit {
-  this[field] = value?.let { this.ownerFile.makeString(it) }
-}
+operator fun BibtexEntry.set(field: String, value: String?): Unit =
+  this.set(field, value?.let { this.ownerFile.makeString(it) })
 
 /** Sets the value for [field] in the receiver to be [value].
  *
  * @param field the field for which to set the value
  * @param value the value to which to set the field
  */
-operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue?): Unit {
+operator fun BibtexEntry.set(field: String, value: BibtexAbstractValue?): Unit =
   if (value != null) this.setField(field, value) else this.undefineField(field)
-}
 
 /** Calls [updateValue], but with the [BibtexAbstractValue] values converted to
  * and from [String] values.
@@ -100,9 +103,7 @@ inline fun BibtexEntry.update(field: String, block: (String) -> String?): Unit? 
  * @return [Unit] if [field] existed in the receiver, otherwise `null`
  */
 inline fun BibtexEntry.updateValue(field: String, block: (BibtexAbstractValue) -> BibtexAbstractValue?): Unit? =
-  this[field]?.let {
-    this[field] = block(it)
-  }
+  this[field]?.let { this[field] = block(it) }
 
 /** Moves the value from field [src] to field [dst] in the receiver if [block]
  * returns `true` on the value of field [src].  If there is no [src] field,
@@ -141,6 +142,18 @@ fun BibtexEntry.moveField(src: String, dst: String): Unit? = this.moveFieldIf(sr
  */
 inline fun BibtexEntry.removeIf(field: String, block: (String) -> Boolean): Unit? =
   this.update(field) { if (block(it)) null else it }
+
+/** Makes a copy of a BibtexEntry.
+ *
+ * @receiver the BibtexEntry to make a copy of
+ * @return the copy of the receiver
+ */
+fun BibtexEntry.clone(): BibtexEntry {
+  val entry = BibtexFile().makeEntry(this.entryType, this.entryKey)
+  entry.ownerFile.addEntry(entry)
+  this.fields.forEach { name, value -> entry[name] = value } // TODO: copy value to new type
+  return entry
+}
 
 /** BibTeX utility functions. */
 object Bibtex {
@@ -242,10 +255,9 @@ object Bibtex {
       entry[Fields.AUTHOR] = string
 
       PersonListExpander(true, true).expand(entry.ownerFile)
-      val personList = (entry[Fields.AUTHOR] as BibtexPersonList).list
 
       @Suppress("UNCHECKED_CAST")
-      return personList as List<BibtexPerson>
+      return (entry[Fields.AUTHOR] as BibtexPersonList).list as List<BibtexPerson>
     }
 
     /** Parses a [String] containing a single BibTeX name.
@@ -254,8 +266,7 @@ object Bibtex {
      * @param entryKey the BibTex key to use in parse errors
      * @return the person produced by parsing
      */
-    fun bibtexPerson(string: String, entryKey: String): BibtexPerson =
-      bibtexPersons(string, entryKey).single()
+    fun bibtexPerson(string: String, entryKey: String): BibtexPerson = bibtexPersons(string, entryKey).single()
 
     /** Returns a name of a [BibtexPerson] as a simple [String] in "First von
      * Last Jr." order.
@@ -267,25 +278,17 @@ object Bibtex {
       if (person.isOthers) {
         Bibtex.Names.OTHERS
       } else {
-        listOf(person.first, person.preLast, person.last, person.lineage)
-          .filterNotNull()
-          .joinToString(" ")
+        listOf(person.first, person.preLast, person.last, person.lineage).filterNotNull().joinToString(" ")
       }
   }
 
   /** Constants and functions for the BibTeX month field. */
   object Months {
+    private val macroNames = "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
     private val longNames =
       "january february march april may june july august september october november december".split(" ")
-
-    private val macroNames =
-      "jan feb mar apr may jun jul aug sep oct nov dec".split(" ")
-
-    private val monthMap = (
-      listOf("sept" to "sep") +
-        (macroNames zip macroNames) +
-        (longNames zip macroNames)
-      ).toMap()
+    private val monthMap: Map<String, String> =
+      ((macroNames zip macroNames) + (longNames zip macroNames) + listOf("sept" to "sep")).toMap()
 
     /** Converts a string containing a month number to the BibTeX macro for that month if it exists.
      *
@@ -318,9 +321,8 @@ object Bibtex {
      */
     fun print(stream: PrintStream, entry: BibtexAbstractEntry): Unit {
       when (entry) {
-        is BibtexToplevelComment ->
-          // BibtexToplevelComment.toString() puts an extra newline at the end, so we print the content manually
-          print(entry.content)
+        // BibtexToplevelComment.toString() puts an extra newline at the end, so we print the content manually
+        is BibtexToplevelComment -> print(entry.content)
         is BibtexEntry -> {
           // We want to print the fields in a particular order and with proper spacing
           stream.println("@${entry.entryType}{${entry.entryKey},")
@@ -333,8 +335,7 @@ object Bibtex {
           }
           stream.println("}")
         }
-        else ->
-          stream.print(entry)
+        else -> stream.print(entry)
       }
     }
   }
@@ -344,8 +345,7 @@ object Bibtex {
    * @param string the string to parse
    * @return the [BibtexEntry] values in the parse result
    */
-  fun parseEntries(string: String): List<BibtexEntry> =
-    parse(string).entries.filterIsInstance<BibtexEntry>()
+  fun parseEntries(string: String): List<BibtexEntry> = parse(string).entries.filterIsInstance<BibtexEntry>()
 
   /** Parses a [string] as a BibTeX file.
    *

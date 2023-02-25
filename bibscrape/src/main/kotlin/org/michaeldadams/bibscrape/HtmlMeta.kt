@@ -17,8 +17,7 @@ object HtmlMeta {
    * @return the meta values that were found
    */
   fun parse(driver: WebDriver): HtmlMetaTable =
-    driver
-      .findElements(By.cssSelector("meta[name]"))
+    driver.findElements(By.cssSelector("meta[name]"))
       .groupBy({ it.getAttribute("name") }, { it.getAttribute("content") })
 
   /** Converts HTML meta values into BibTeX fields.
@@ -28,11 +27,11 @@ object HtmlMeta {
    * @param fields TODO: document
    */
   fun bibtex(entry: BibtexEntry, meta: HtmlMetaTable, vararg fields: Pair<String, Boolean>): Unit {
-    val values: MutableMap<String, BibtexAbstractValue> = mutableMapOf()
     val fieldsMap = fields.toMap()
-    fun getFirst(vararg fields: String): String? =
-      fields.flatMap { meta.getOrDefault(it, emptyList()) }.firstOrNull()
+    fun getFirst(vararg fields: String): String? = fields.flatMap { meta.getOrDefault(it, emptyList()) }.firstOrNull()
 
+    // TODO: set -> put
+    val values: MutableMap<String, BibtexAbstractValue> = mutableMapOf()
     fun set(field: String, value: BibtexAbstractValue?): Unit { if (value != null) { values[field] = value } }
     fun set(field: String, value: String?): Unit { set(field, value?.let { entry.ownerFile.makeString(it) }) }
 
@@ -43,11 +42,8 @@ object HtmlMeta {
 
     // 'author', 'dc.contributor', 'dc.creator', 'rft_aufirst', 'rft_aulast', and 'rft_au'
     // also contain authorship information
-    val authorList = meta["citation_author"] ?: meta["citation_authors"]?.firstOrNull()?.split(";".r) ?: emptyList()
-    val authorString = authorList.map { it.trim() }.joinByAnd()
-    if (authorString.isNotEmpty()) {
-      set(F.AUTHOR, authorString)
-    }
+    val authorList = meta["citation_author"] ?: meta["citation_authors"]?.single()?.split(";".r).orEmpty()
+    set(F.AUTHOR, authorList.map { it.trim() }.joinByAnd().ifEmpty { null })
 
     // 'title', 'rft_title', 'dc.title', 'twitter:title' also contain title information
     set(F.TITLE, getFirst("citation_title"))
@@ -56,11 +52,11 @@ object HtmlMeta {
     // test/ieee-computer-1.t has 'pages' but empty 'citation_firstpage'
     set(
       F.PAGES,
-      meta["citation_firstpage"]?.firstOrNull()?.let { first ->
-        meta["citation_lastpage"]?.firstOrNull()?.let { last ->
+      meta["citation_firstpage"]?.single()?.let { first ->
+        meta["citation_lastpage"]?.single()?.let { last ->
           first + if (first == last) "" else "--${last}"
         }
-      } ?: meta["pages"]?.firstOrNull()
+      } ?: meta["pages"]?.single()
     )
 
     set(F.VOLUME, getFirst("citation_volume"))
@@ -99,17 +95,17 @@ object HtmlMeta {
     // }
     val (year, month) =
       meta["citation_publication_date"]
-        ?.firstOrNull()
+        ?.single()
         ?.find("^ (\\d{4}) [/-] (\\d{2}) ( [/-] (\\d{2}) )? $".r)
         ?.groupValues
         ?.let { Pair(it[1], M.intToMonth(entry.ownerFile, it[2])) }
         ?: meta["citation_date"]
-          ?.firstOrNull()
+          ?.single()
           ?.find("^ (\\d{2}) [/-] \\d{2} [/-] (\\d{4}) $".r)
           ?.groupValues
           ?.let { Pair(it[2], M.intToMonth(entry.ownerFile, it[1])) }
         ?: meta["citation_date"]
-          ?.firstOrNull()
+          ?.single()
           ?.find("^ [\\ 0-9]*? \b (\\w+) \b [\\ 0-9]*? \b (\\d{4}) \b".r)
           ?.groupValues
           ?.let { Pair(it[2], M.stringToMonth(entry.ownerFile, it[1])) }
@@ -120,7 +116,7 @@ object HtmlMeta {
     // 'dc.relation.ispartof', 'rft_jtitle', 'citation_journal_abbrev' also contain collection information
     @Suppress("ktlint:trailing-comma-on-call-site")
     val types = listOf(
-      // Note that the order of these matter
+      // Note that the order of these matters
       "citation_conference" to F.BOOKTITLE,
       "citation_journal_title" to F.JOURNAL,
       "citation_inbook_title" to F.BOOKTITLE,
@@ -136,14 +132,14 @@ object HtmlMeta {
     // 'rft_id' and 'doi' also contain doi information
     set(
       F.DOI,
-      meta["citation_doi"]?.firstOrNull()
-        ?: meta["st.discriminator"]?.firstOrNull()
-        ?: meta["dc.identifier"]?.firstOrNull()?.find("^ doi: (.+) $".r)?.let { it.groupValues.firstOrNull() }
+      meta["citation_doi"]?.single()
+        ?: meta["st.discriminator"]?.single()
+        ?: meta["dc.identifier"]?.single()?.find("^ doi: (.+) $".r)?.groupValues?.get(1)
     )
 
     // If we get two ISBNs then one is online and the other is print so
     // we don't know which one to use and we can't use either one
-    set(F.ISBN, meta["citation_isbn"]?.singleOrNull())
+    set(F.ISBN, meta["citation_isbn"]?.single())
     // if %meta<citation_isbn>:exists and 1 == %meta<citation_isbn>.elems {
     //   set( 'isbn', %meta<citation_isbn>.head);
     // }
@@ -156,11 +152,11 @@ object HtmlMeta {
     // }
     set(
       F.ISSN,
-      meta["st.printissn"]?.firstOrNull()?.let { printIssn ->
-        meta["st.onlineissn"]?.firstOrNull()?.let { onlineIssn ->
+      meta["st.printissn"]?.single()?.let { printIssn ->
+        meta["st.onlineissn"]?.single()?.let { onlineIssn ->
           "${printIssn} (Print) ${onlineIssn} (Online)"
         }
-      } ?: meta["citation_issn"]?.singleOrNull()
+      } ?: meta["citation_issn"]?.singleOrNull() // TODO: Cambridge puts two of these in, with no way to distinguish print from online
     )
 
     set(F.LANGUAGE, getFirst("citation_language", "dc.language"))
@@ -173,9 +169,9 @@ object HtmlMeta {
     set(
       F.ABSTRACT,
       listOf("Description", "description")
-        .flatMap { meta[it] ?: emptyList() }
+        .flatMap { meta[it].orEmpty() }
         .filterNot { it.contains("^ ( $ | \\*{4} | IEEE\\ Xplore | IEEE\\ Computer\\ Society )".r) }
-        .firstOrNull()
+        .emptyOrSingle()
     )
 
     set(F.AFFILIATION, meta["citation_author_institution"]?.joinByAnd())

@@ -41,11 +41,8 @@ object Ris {
    */
   fun bibtex(bibtexFile: BibtexFile, ris: RisRecord): BibtexEntry {
     // TY: ref type (INCOL|CHAPTER -> CHAP, REP -> RPRT)
-    val type = risTypes[ris.type] ?: run { println("Unknown RIS TY: ${ris.type}. Using misc."); T.MISC }
+    val type = risTypes[ris.type] ?: T.MISC.also { println("Unknown RIS TY: ${ris.type}. Using misc.") }
     val entry = bibtexFile.makeEntry(type, "")
-
-    // my Regex:D $doi = rx/^ (\s* 'doi:' \s* \w+ \s+)? (.*) $/;
-    val doi = "^ \\s* ( doi: \\s* \\S+ ) \\s+".r
 
     // # A1|AU: author primary
     entry[F.AUTHOR] = risAuthor(ris.firstAuthors.ifEmpty { ris.authors })
@@ -110,12 +107,11 @@ object Ris {
 
     // N1|AB: notes (skip leading doi)
     // N2: abstract (skip leading doi)
-    val abstract = (ris.notes ?: ris.abstr ?: ris.abstr2).orEmpty().remove(doi)
-    if (abstract.isNotEmpty()) {
-      entry[F.ABSTRACT] = abstract
-    }
+    // my Regex:D $doi = rx/^ (\s* 'doi:' \s* \w+ \s+)? (.*) $/;
+    val doi = "^ \\s* ( doi: \\s* \\S+ ) \\s+".r
+    entry[F.ABSTRACT] = (ris.notes ?: ris.abstr ?: ris.abstr2)?.remove(doi)?.ifEmpty { null }
     // KW: keyword. multiple
-    entry[F.KEYWORDS] = if (ris.keywords.isEmpty()) null else ris.keywords.joinToString("; ")
+    entry[F.KEYWORDS] = ris.keywords.orEmpty().joinToString("; ").ifEmpty { null }
 
     // RP: reprint status (too complex for what we need)
 
@@ -130,12 +126,8 @@ object Ris {
     // PB: publisher
     entry[F.PUBLISHER] = ris.publisher
     // SN: isbn or issn
-    if (ris.isbnIssn.orEmpty().contains("\\b ${ISBN_REGEX} \\b".ri)) {
-      entry[F.ISBN] = ris.isbnIssn
-    }
-    if (ris.isbnIssn.orEmpty().contains("\\b ${ISSN_REGEX} \\b".r)) {
-      entry[F.ISSN] = ris.isbnIssn
-    }
+    if (ris.isbnIssn.orEmpty().contains("\\b ${ISBN_REGEX} \\b".ri)) { entry[F.ISBN] = ris.isbnIssn }
+    if (ris.isbnIssn.orEmpty().contains("\\b ${ISSN_REGEX} \\b".r)) { entry[F.ISSN] = ris.isbnIssn }
     // AD: address
     // AV: (unneeded)
     // M[1-3]: misc
@@ -150,7 +142,7 @@ object Ris {
 
     // DO|DOI: doi
     // TODO: ris<DOI>
-    entry[F.DOI] = ris.doi ?: ris.typeOfWork ?: ris.notes?.find(doi)?.groupValues?.firstOrNull()
+    entry[F.DOI] = ris.doi ?: ris.typeOfWork ?: ris.notes?.find(doi)?.groupValues?.get(1)
 
     // ER: End of record
 

@@ -19,9 +19,7 @@ class GitVersionPlugin : Plugin<Project> {
     project.version = Git.open(project.rootDir).use { git ->
       val describe = git.describe().apply { setMatch("v*") }.call()
       val isClean = git.status().call().isClean
-      describe
-        .removePrefix("v")
-        .plus(if (isClean) { "" } else { "-dirty" })
+      describe.removePrefix("v").plus(if (isClean) { "" } else { "-dirty" })
     }
 
     // Create a "version" task for printing the project version

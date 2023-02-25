@@ -37,10 +37,7 @@ val WebElement.innerHtml: String
  * @property driver The [WebDriver] being wrapped.
  * @property proxy The proxy used to modify traffic to the [driver].
  */
-class Driver private constructor(
-  val driver: RemoteWebDriver,
-  val proxy: BrowserMobProxyServer
-) :
+class Driver private constructor(val driver: RemoteWebDriver, val proxy: BrowserMobProxyServer) :
   Object(), // Inherit from Object, not Any, so we get the benefits of override checking finalize()
   WebDriver by driver,
   JavascriptExecutor by driver,
@@ -60,6 +57,8 @@ class Driver private constructor(
   /** Calls [close] when this object is garbage collected in case the user did
    * not already do so. */
   protected override fun finalize(): Unit = this.close()
+
+  override fun findElement(locator: By): WebElement = this.findElements(locator).single()
 
   private fun <T> awaitFind(timeout: Duration = 30.0.seconds, block: (WebDriver) -> T): T {
     val oldWait = this.manage().timeouts().implicitWaitTimeout
@@ -101,9 +100,11 @@ class Driver private constructor(
     val end = Instant.now().plus(timeout.toJavaDuration())
     while (true) {
       runCatching { block()?.let { return it } }
-      if (Instant.now().isAfter(end)) {
-        throw TimeoutException()
-      }
+
+      // Thow an exception if we timed out
+      if (Instant.now().isAfter(end)) { throw TimeoutException() }
+
+      // Sleep for a bit before we try again
       Thread.sleep(sleep.inWholeMilliseconds)
     }
   }
@@ -156,8 +157,9 @@ class Driver private constructor(
       // NetworkInterceptor or devTools.createSession(), but all of those break
       // on Firefox
       val proxy = BrowserMobProxyServer()
-      proxy.addResponseFilter {
-          response, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
+      /* ktlint-disable experimental:comment-wrapping */
+      proxy.addResponseFilter { response, /*contents*/ _, /*messageInfo*/ _ ->
+        /* ktlint-enable experimental:comment-wrapping */
         val textPlainTypes = """
           ^ (
             application/atom\+xml |
@@ -171,8 +173,9 @@ class Driver private constructor(
         response.headers()["Content-Type"] =
           response.headers()["Content-Type"].replace(textPlainTypes, "text/plain")
       }
-      proxy.addRequestFilter {
-          request, /*contents*/ _, /*messageInfo*/ _ -> // ktlint-disable experimental:comment-wrapping
+      /* ktlint-disable experimental:comment-wrapping */
+      proxy.addRequestFilter { request, /*contents*/ _, /*messageInfo*/ _ ->
+        /* ktlint-enable experimental:comment-wrapping */
         val blockedDomains = """
           (^ | \.) (
             addthis\.com |
@@ -205,10 +208,8 @@ class Driver private constructor(
 
         // Use dummy values for domains that are slow and that we don't actually need
         val domain = request.headers()[HttpHeaderNames.HOST].remove(":443 $".r)
-        if (domain.contains(blockedDomains)) {
+        ifOrNull(domain.contains(blockedDomains)) {
           DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
-        } else {
-          null
         }
       }
       proxy.start()
@@ -227,11 +228,9 @@ class Driver private constructor(
       profile.setPreference("fission.webContentIsolationStrategy", 0)
       profile.setPreference("fission.bfcacheInParent", false)
 
-      options.profile = profile
+      options.profile = profile // If we don't do this assignment, our changes to profile don't take effect
 
-      if (headless) {
-        options.addArguments("--headless")
-      }
+      if (headless) { options.addArguments("--headless") }
 
       // // Service
       val serviceBuilder = GeckoDriverService.Builder()
