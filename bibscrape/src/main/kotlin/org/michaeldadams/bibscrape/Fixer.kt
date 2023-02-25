@@ -131,7 +131,7 @@ class Fixer(
       entry.update(field) { it.replace("\\s* (- | \\N{EN DASH} | \\N{EM DASH})+ \\s*".ri, dash) }
       entry.update(field) { it.remove("n/a -- n/a".ri) }
       entry.removeIf(field) { it.isEmpty() } // TODO: let omit-if-empty handle this?
-      entry.update(field) { it.replace("\\b (\\w+) -- \\1".ri, "$1") }
+      entry.update(field) { it.replace("\\b (\\w+) -- \\1 \\b".ri, "$1") }
       entry.update(field) { it.replace("(^|\\ ) (\\w+)--(\\w+)--(\\w+)--(\\w+) ($|,)".ri, "$1$2-$3--$4-$5$6") }
       entry.update(field) { it.replace("\\s+ , \\s+".ri, ", ") }
     }
