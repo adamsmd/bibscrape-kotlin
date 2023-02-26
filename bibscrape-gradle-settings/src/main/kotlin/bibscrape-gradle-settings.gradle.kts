@@ -40,6 +40,25 @@ dependencies {
 }
 
 // ////////////////////////////////////////////////////////////////
+// Checking
+// tasks.register("checkAll") { // TODO
+//   dependsOn(gradle.includedBuild("bibscrape-gradle-plugins").task(":clean"))
+//   dependsOn(gradle.includedBuild("bibscrape-gradle-plugins").task(":check"))
+//   dependsOn(task("clean"))
+//   dependsOn(task("check"))
+// }
+
+// ////////////////////////////////////////////////////////////////
+// Documentation
+tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
+  dokkaSourceSets {
+    named("main") {
+      includes.from("Module.md")
+    }
+  }
+}
+
+// ////////////////////////////////////////////////////////////////
 // Linting
 
 detekt {
@@ -84,4 +103,14 @@ sonarlint {
       "kotlin:S5867", // Unicode-aware versions of character classes should be preferred
     )
   )
+}
+
+// ////////////////////////////////////////////////////////////////
+// Testing
+tasks.withType<Test> {
+  useJUnitPlatform()
+
+  this.testLogging {
+    this.showStandardStreams = true
+  }
 }

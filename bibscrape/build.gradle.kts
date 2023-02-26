@@ -7,10 +7,6 @@ plugins {
   id("bibscrape-gradle-settings")
   id("git-version")
   application // Provides "./gradlew installDist" then "./build/install/bibscrape/bin/bibscrape"
-
-  // Documentation
-  // TODO: move dokka to bibscrape-gradle-settings
-  id("org.jetbrains.dokka") version "1.7.20" // Tasks: dokka{Gfm,Html,Javadoc,Jekyll}
 }
 
 repositories {
@@ -59,36 +55,7 @@ dependencies {
 }
 
 // ////////////////////////////////////////////////////////////////
-// Checking
-// tasks.register("checkAll") { // TODO
-//   dependsOn(gradle.includedBuild("bibscrape-gradle-plugins").task(":clean"))
-//   dependsOn(gradle.includedBuild("bibscrape-gradle-plugins").task(":check"))
-//   dependsOn(task("clean"))
-//   dependsOn(task("check"))
-// }
-
-// ////////////////////////////////////////////////////////////////
-// Documentation
-tasks.withType<org.jetbrains.dokka.gradle.DokkaTask>().configureEach {
-  dokkaSourceSets {
-    named("main") {
-      includes.from("Module.md")
-    }
-  }
-}
-
-// ////////////////////////////////////////////////////////////////
 // Main
 application {
   mainClass.set("org.michaeldadams.bibscrape.MainKt")
-}
-
-// ////////////////////////////////////////////////////////////////
-// Testing
-tasks.withType<Test> {
-  useJUnitPlatform()
-
-  this.testLogging {
-    this.showStandardStreams = true
-  }
 }
