@@ -559,10 +559,10 @@ class Fixer(
           "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes())}}"
           "mrow" -> "{${math(isTitle, node.childNodes())}}"
           "mspace" -> "\\hspace{${node.attributes()["width"]}}"
-          "msubsup", "msub", "msup" ->
-            "{${math(isTitle, node.childNodes()[0])}}" +
-              (if (node.tag().name == "msup") "" else "_{${math(isTitle, node.childNodes()[1])}}") +
-              (if (node.tag().name == "msub") "" else "^{${math(isTitle, node.childNodes()[2])}}")
+          "msubsup" ->
+            subsup(math(isTitle, node.childNodes()[0]), math(isTitle, node.childNodes()[1]), math(isTitle, node.childNodes()[2]))
+          "msub" -> subsup(math(isTitle, node.childNodes()[0]), math(isTitle, node.childNodes()[1]), null)
+          "msup" -> subsup(math(isTitle, node.childNodes()[0]), null, math(isTitle, node.childNodes()[1]))
           else -> {
             println("WARNING: Unknown MathML tag: ${node.tag().name}")
             "[${node.tag().name}]${math(isTitle, node.childNodes())}[/${node.tag().name}]"
@@ -570,6 +570,16 @@ class Fixer(
         }
       else -> error("Unknown MathML node type '${node.javaClass.name}': ${node}")
     }
+
+  /** Formats subscripts and superscripts for LaTeX.
+   *
+   * @param base the string to which the subscript and/or superscript is applied
+   * @param sub the subscript to apply or `null` if there should be no subscript
+   * @param sup the superscript to apply or `null` if there should be no superscript
+   * @return the LaTeX with the subscript and supper script applied to [base]
+   * */
+  fun subsup(base: String, sub: String?, sup: String?): String =
+    "{${base}}" + sub?.let { "_{${it}}" }.orEmpty() + sup?.let { "^{${it}}" }.orEmpty()
 
   /** Convert text containing Unicode to LaTeX.
    *

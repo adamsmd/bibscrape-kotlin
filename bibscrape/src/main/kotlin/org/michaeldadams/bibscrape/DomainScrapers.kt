@@ -128,7 +128,6 @@ object ScrapeArxiv : DomainScraper {
     // Use the arXiv API to download meta-data
     driver.get("https://export.arxiv.org/api/query?id_list=${id}")
     val xml = Parser.parseBodyFragment(driver.textPlain(), "").body()
-    println("<${xml}>")
     driver.navigate().back()
 
     // val doi = xml.select(E.Tag("arxiv:doi"))
