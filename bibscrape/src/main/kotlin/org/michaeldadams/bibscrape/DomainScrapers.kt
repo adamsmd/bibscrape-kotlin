@@ -23,7 +23,7 @@ object ScrapeAcm : DomainScraper {
       if (urls.isNotEmpty()) {
         return Scraper.dispatch(driver, urls.single())
       } else {
-        println("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher") // TODO
+        println("WARNING: Non-ACM paper at ACM link, and could not find link to actual publisher")
       }
     }
 

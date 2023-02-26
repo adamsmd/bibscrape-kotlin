@@ -134,7 +134,6 @@ object Ris {
     // L4: link to images
 
     // DO|DOI: doi
-    // TODO: ris<DOI>
     entry[F.DOI] = ris.doi ?: ris.typeOfWork ?: ris.notes?.find(doi)?.groupValues?.get(1)
 
     // ER: End of record
