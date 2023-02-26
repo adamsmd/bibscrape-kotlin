@@ -661,6 +661,14 @@ class Main : CliktCommand(
     }
   }
 
+  /** Runs a program with a timeout and capturing its output to a string.
+   *
+   * @param timeout time to wait for the program to end before calling `destroy()` on it
+   * @param hardTimeout time to wait for the program to end after calling
+   *   `destroy()` before calling `destroyForcibly()` on it
+   * @param command the command and its arguments
+   * @return a pair of the output from the program (including both stdout and stderr) and its [Process]
+   */
   fun runCommand(timeout: Duration, hardTimeout: Duration, command: List<String>): Pair<String, Process> {
     val process = ProcessBuilder(command)
       .redirectErrorStream(true)
@@ -695,9 +703,6 @@ class Main : CliktCommand(
 
     return Pair(output.get()!!, process)
   }
-
-  fun <A> retry(times: Int, test: (A) -> Boolean, block: () -> A): A =
-    block().let { if (times <= 1 || test(it)) it else retry(times - 1, test, block) }
 
   /** Run bibscrape in testing mode.
    *

@@ -11,7 +11,25 @@ package org.michaeldadams.bibscrape
  */
 inline fun <A> ifOrNull(test: Boolean, block: () -> A): A? = if (test) block() else null
 
+/** Returns null of the receiver is empty or the single element, or throws an
+ * exception if the list has more than one element.
+ *
+ * @receiver the list that is checked
+ * @param A the type of elements in the list
+ * @return null or the single element from the list
+ */
 fun <A> List<A>.emptyOrSingle(): A? = this.ifEmpty { null }?.single()
+
+/** Runs [block] until [test] returns true or [times] times have been tried.
+ *
+ * @param A the type of the result
+ * @param times maximum number of calls to [block]
+ * @param predicate whether to return a particular result from [block]
+ * @param block the code to repeatedly try running
+ * @returns the result of the last call to [block]
+ */
+fun <A> retry(times: Int, predicate: (A) -> Boolean, block: () -> A): A =
+  block().let { if (predicate(it) || times <= 1) it else retry(times - 1, predicate, block) }
 
 /** Repeatedly applies [block] to [init] until a fixed point is reached.
  *
