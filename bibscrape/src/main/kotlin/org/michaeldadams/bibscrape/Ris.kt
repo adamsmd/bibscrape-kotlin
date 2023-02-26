@@ -60,7 +60,6 @@ object Ris {
     // T1|TI|CT: title primary
     // BT: title primary (books and unpub), title secondary (otherwise)
     val isBook = ris.type in setOf(RisType.BOOK, RisType.UNPB)
-    // set( 'title', %self<T1> // %self<TI> // %self<CT> // ((%self<TY> // '') eq ( 'BOOK' | 'UNPB' )) && %self<BT>);
     entry[F.TITLE] = ris.primaryTitle ?: ris.title ?: ris.unpublishedReferenceTitle ?: ifOrNull(isBook) { ris.bt }
     entry[F.BOOKTITLE] = ifOrNull(!isBook) { ris.bt }
     // T2: title secondary
@@ -89,11 +88,6 @@ object Ris {
     entry[F.YEAR] = year
     entry[F.MONTH] = month?.let { Bibtex.Months.intToMonth(entry.ownerFile, it) }
     entry[F.DAY] = day
-    // if (%self<C1>:exists) {
-    //   %self<C1> ~~ / 'Full publication date: ' (\w+) '.'? ( ' ' \d+)? ', ' (\d+)/;
-    //   ($month, $day, $year) = ($0, $1, $2);
-    //   set( 'month', $month);
-    // }
     // TODO: is the RIS C1 code still needed
     ris.custom1?.find("Full\\ publication\\ date:\\ (\\w+) \\.? (\\ \\d+)? ,\\ (\\d+)".r)?.let { match ->
       val (c1Month, c1Day, /* c1Year */ _) = // ktlint-disable experimental:comment-wrapping
@@ -107,7 +101,6 @@ object Ris {
 
     // N1|AB: notes (skip leading doi)
     // N2: abstract (skip leading doi)
-    // my Regex:D $doi = rx/^ (\s* 'doi:' \s* \w+ \s+)? (.*) $/;
     val doi = "^ \\s* ( doi: \\s* \\S+ ) \\s+".r
     entry[F.ABSTRACT] = (ris.notes ?: ris.abstr ?: ris.abstr2)?.remove(doi)?.ifEmpty { null }
     // KW: keyword. multiple

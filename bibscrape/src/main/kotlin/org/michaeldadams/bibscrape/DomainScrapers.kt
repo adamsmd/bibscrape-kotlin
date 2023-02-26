@@ -242,16 +242,6 @@ object ScrapeCambridge : DomainScraper {
     entry[F.TITLE] = driver.awaitFindElement(By.cssSelector("#maincontent > h1")).innerHtml
 
     // // Abstract
-    // my #`(Inline::Python::PythonObject:D) @abstract = $web-driver.find_elements_by_class_name( 'abstract' );
-    // if @abstract {
-    //   my Str:D $abstract = @abstract.head.get_property( 'innerHTML' );
-    //   #my $abstract = meta( 'citation_abstract' );
-    //   $abstract ~~ s:g/ "\n      \n      " //;
-    //   $abstract ~~ s/^ '<div ' <-[>]>* '>'//;
-    //   $abstract ~~ s/ '</div>' $//;
-    //   $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract)
-    //     unless $abstract ~~ /^ '//static.cambridge.org/content/id/urn' /;
-    // }
     entry[F.ABSTRACT] = driver.findElements(By.className("abstract"))
       .emptyOrSingle()
       ?.innerHtml
@@ -284,9 +274,10 @@ object ScrapeIeeeComputer : DomainScraper {
     // // BibTeX
     driver.findElement(By.cssSelector(".article-action-toolbar button")).click()
     driver.findElement(By.partialLinkText("BIB TEX")).click()
-    var bibtexText =
-      driver.awaitFindElement(By.id("bibTextContent")).innerHtml.replace("<br>".r, "\n").replace("&amp;", "&")
-    // TODO: $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
+    var bibtexText = driver.awaitFindElement(By.id("bibTextContent"))
+      .innerHtml
+      .replace("<br>".r, "\n")
+      .replace("&amp;", "&")
     val entry = Bibtex.parseEntries(bibtexText).single()
     driver.navigate().back()
 
@@ -450,8 +441,7 @@ object ScrapeJstor : DomainScraper {
     entry[F.MONTH] = (
       driver.findElements(By.cssSelector(".turn-away-content__article-summary-journal a")) +
         driver.findElements(By.className("src"))
-      )
-      .first()
+      ).first()
       .innerHtml
       .find("\\( ([A-Za-z]+) ".r)
       ?.groupValues
@@ -463,17 +453,6 @@ object ScrapeJstor : DomainScraper {
       driver.findElements(By.className("turn-away-content__article-summary-journal")).emptyOrSingle()?.let {
         it.innerHtml.find("Published\\ By:\\ ([^<]*)".r)!!.groupValues[1]
       } ?: driver.findElement(By.className("publisher-link")).innerHtml
-    // my Str:D $publisher =
-    //   do if $web-driver.find_elements_by_class_name( 'turn-away-content__article-summary-journal' ) {
-    //     my Str:D $text =
-    //       $web-driver.find_element_by_class_name(
-    //          'turn-away-content__article-summary-journal' ).get_property( 'innerHTML' );
-    //     $text ~~ / 'Published By: ' (<-[<]>*) /;
-    //     $0.Str
-    //   } else {
-    //     $web-driver.find_element_by_class_name( 'publisher-link' ).get_property( 'innerHTML' )
-    //   };
-    // $entry.fields<publisher> = BibScrape::BibTeX::Value.new($publisher);
 
     return entry
   }
@@ -501,16 +480,6 @@ object ScrapeOxford : DomainScraper {
         null
       }
     }
-    // driver.findElement(By.className("citation-download-link")).click()
-    // my #`(Inline::Python::PythonObject:D) $select = $web-driver.select($select-element);
-    // await({
-    //   $select.select_by_visible_text( '.bibtex (BibTex)' );
-    //   my #`(Inline::Python::PythonObject:D) $button =
-    //     $web-driver.find_element_by_class_name( 'citation-download-link' );
-    //   # Make sure the drop-down was populated
-    //   $button.get_attribute( 'class' ) !~~ / « 'disabled' » /
-    //     and $button }
-    // ).click;
     val entry = Bibtex.parseEntries(driver.textPlain()).single()
     driver.navigate().back()
 

@@ -25,7 +25,8 @@ import kotlin.time.Duration.Companion.seconds
 inline fun <reified T : Enum<T>> RawOption.lowercaseEnum(
   ignoreCase: Boolean = true,
   key: (T) -> String = { it.name }
-): NullableOption<T, T> = this.enum<T>(ignoreCase = ignoreCase, key = { key(it).lowercase() })
+): NullableOption<T, T> =
+  this.enum<T>(ignoreCase = ignoreCase, key = { key(it).lowercase() })
 
 // // Duration flags
 

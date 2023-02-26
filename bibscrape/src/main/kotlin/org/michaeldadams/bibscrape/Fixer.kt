@@ -214,9 +214,7 @@ class Fixer(
 
         // Remove doubly-nested braces.
         // We used fixedpoint in case there are multiple levels of nested braces.
-        val newValue = fixedpoint(encodedValue) { it.replace("\\{\\{ ([^{}]*) \\}\\}".r, "{$1}") }
-
-        entry[field] = newValue
+        entry[field] = fixedpoint(encodedValue) { it.replace("\\{\\{ ([^{}]*) \\}\\}".r, "{$1}") }
       }
     }
 
@@ -253,8 +251,7 @@ class Fixer(
 
     // Use bibtex month macros.  After Unicode encoding because it uses macros.
     entry.updateValue(F.MONTH) { month ->
-      val parts = month
-        .string
+      month.string
         .replace("\\. ($ | -)".r, "$1") // Remove dots due to abbriviations
         .split("\\b".r)
         .filter(String::isNotEmpty)
@@ -270,7 +267,7 @@ class Fixer(
               }
           }
         }
-      parts.reduce(entry.ownerFile::makeConcatenatedValue)
+        .reduce(entry.ownerFile::makeConcatenatedValue)
     }
 
     // ///////////////////////////////
@@ -289,8 +286,7 @@ class Fixer(
       .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
       .remove("[^A-Za-z0-9]".r) // Remove non-alphanum
 
-    val title = entry[F.TITLE]
-      ?.string
+    val title = entry[F.TITLE]?.string
       .orEmpty()
       .replace("\\\\ [^{}\\\\]+ \\{".r, "{") // Remove codes that add accents
       .remove("[^\\ ^A-Za-z0-9-]".r) // Remove non-alphanum, space or hyphen
@@ -508,7 +504,6 @@ class Fixer(
             //                ".gif\"" .*? ">"/{chr($0)}/; # Fix for Springer Link
             // #when 'email' { '\{' ~ self.html($is-title, $node.nodes) ~ '}' }
             //   # $str ~~ s:i:g/"<email>" (.*?) "</email>"/$0/; # Fix for Cambridge
-            // when 'span' {
             "span" -> {
               val classAttr = node.attributes()["class"]
               when {

@@ -136,15 +136,6 @@ class OperatingModes : OptionGroup(name = "OPERATING MODES") {
       """
   ).flag("-/S", "--no-scrape", default = true)
 
-  // val examplez by this.option( // TODO: remove
-  //   "-x",
-  //   "--xx",
-  //   )
-  //   .flag("+x",
-  //   "++xx")
-  //   .boolean()
-  //   // override val parser: OptionParser = FFlagOptionParser
-
   val fix: Boolean by option(
     "-F",
     "--fix",
@@ -621,8 +612,7 @@ class Main : CliktCommand(
           if (entry !is BibtexEntry) {
             printer.print(System.out, entry)
           } else if (!operatingModes.scrape) {
-            //         my $key = @key.shift || $item.key;
-            // if !$scrape {
+            // TODO:
             // Undo any encoding that could get double encoded
             //   update($item, 'abstract', { s:g/ \s* "\{\\par}" \s* /\n\n/; }); # Must be before tex2unicode
             //   for $item.fields.keys -> Str:D $field {
@@ -687,19 +677,6 @@ class Main : CliktCommand(
     // println("EXITED ABNORMALLY: $i using a $type")
     if (process.exitValue() != 0) { println("EXITED ABNORMALLY ${process.exitValue()}") }
     // TODO: destroy process children
-
-    // var endMillis = System.currentTimeMillis() + 60_000
-    // while (process.isRunning && System.currentTimeMillis() < endMillis) {
-    //   Thread.sleep(10)
-    // }
-    // if (process.isRunning) { process.stop() }
-    // reader.join()
-    // if (reader.isAlive) { reader.interrupt() }
-    // val isAlive = reader.isAlive
-    // try {
-    //   reader.join(60_000)
-    // } catch {
-    // process.waitFor(60, TimeUnit.SECONDS)
 
     return Pair(output.get()!!, process)
   }

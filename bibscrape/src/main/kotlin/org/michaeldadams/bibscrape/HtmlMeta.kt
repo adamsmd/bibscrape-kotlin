@@ -64,52 +64,27 @@ object HtmlMeta {
 
     // 'keywords' also contains keyword information
     set(F.KEYWORDS, meta["citation_keywords"]?.map { it.trim().trim(';') }?.joinToString("; "))
-    // TODO: check and remove old code
-    // set( 'keywords',
-    //   %meta<citation_keywords>
-    //   .map({ s/^ \s* ';'* //; s/ ';'* \s* $//; $_ })
-    //   .join( '; ' ))
-    //   if %meta<citation_keywords>:exists;
 
     // 'rft_pub' also contains publisher information
     set(F.PUBLISHER, getFirst("citation_publisher", "dc.publisher", "st.publisher"))
 
     // 'dc.date', 'rft_date', 'citation_online_date' also contain date information
-    // TODO: check and remove old code
-    // if %meta<citation_publication_date>:exists {
-    //   if (%meta<citation_publication_date>.head ~~ /^ (\d\d\d\d) <[/-]> (\d\d) [ <[/-]> (\d\d) ]? $/) {
-    //     my Str:D ($year, $month) = ($0.Str, $1.Str);
-    //     set( 'year', $year);
-    //     set( 'month', num2month($month));
-    //   }
-    // } elsif %meta<citation_date>:exists {
-    //   if %meta<citation_date>.head ~~ /^ (\d\d) <[/-]> \d\d <[/-]> (\d\d\d\d) $/ {
-    //     my Str:D ($month, $year) = ($0.Str, $1.Str);
-    //     set( 'year', $year);
-    //     set( 'month', num2month($month));
-    //   } elsif %meta<citation_date>.head ~~ /^ <[\ 0..9-]>*? <wb> (\w+) <wb> <[\ .0..9-]>*? <wb> (\d\d\d\d) <wb> / {
-    //     my Str:D ($month, $year) = ($0.Str, $1.Str);
-    //     set( 'year', $year);
-    //     set( 'month', str2month($month));
-    //   }
-    // }
-    val (year, month) =
-      meta["citation_publication_date"]
+    val (year, month) = meta["citation_publication_date"]
+      ?.single()
+      ?.find("^ (\\d{4}) [/-] (\\d{2}) ( [/-] (\\d{2}) )? $".r)
+      ?.groupValues
+      ?.let { Pair(it[1], M.intToMonth(entry.ownerFile, it[2])) }
+      ?: meta["citation_date"]
         ?.single()
-        ?.find("^ (\\d{4}) [/-] (\\d{2}) ( [/-] (\\d{2}) )? $".r)
-        ?.groupValues
-        ?.let { Pair(it[1], M.intToMonth(entry.ownerFile, it[2])) }
-        ?: meta["citation_date"]
-          ?.single()
-          ?.find("^ (\\d{2}) [/-] \\d{2} [/-] (\\d{4}) $".r)
-          ?.groupValues
-          ?.let { Pair(it[2], M.intToMonth(entry.ownerFile, it[1])) }
-        ?: meta["citation_date"]
-          ?.single()
-          ?.find("^ [\\ 0-9]*? \b (\\w+) \b [\\ 0-9]*? \b (\\d{4}) \b".r)
-          ?.groupValues
-          ?.let { Pair(it[2], M.stringToMonth(entry.ownerFile, it[1])) }
-        ?: Pair(null, null)
+        ?.let { date ->
+          date.find("^ (\\d{2}) [/-] \\d{2} [/-] (\\d{4}) $".r)
+            ?.groupValues
+            ?.let { Pair(it[2], M.intToMonth(entry.ownerFile, it[1])) }
+            ?: date.find("^ [\\ 0-9]*? \b (\\w+) \b [\\ 0-9]*? \b (\\d{4}) \b".r)
+              ?.groupValues
+              ?.let { Pair(it[2], M.stringToMonth(entry.ownerFile, it[1])) }
+        }
+      ?: Pair(null, null)
     set(F.YEAR, year)
     set(F.MONTH, month)
 

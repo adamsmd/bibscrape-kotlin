@@ -171,8 +171,7 @@ class Driver private constructor(val driver: RemoteWebDriver, val proxy: Browser
         """.trimIndent().r
 
         response.headers().remove("Content-Disposition")
-        response.headers()["Content-Type"] =
-          response.headers()["Content-Type"].replace(textPlainTypes, "text/plain")
+        response.headers()["Content-Type"] = response.headers()["Content-Type"].replace(textPlainTypes, "text/plain")
       }
       /* ktlint-disable experimental:comment-wrapping */
       proxy.addRequestFilter { request, /*contents*/ _, /*messageInfo*/ _ ->
