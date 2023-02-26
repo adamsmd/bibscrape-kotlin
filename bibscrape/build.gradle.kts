@@ -9,6 +9,7 @@ plugins {
   application // Provides "./gradlew installDist" then "./build/install/bibscrape/bin/bibscrape"
 
   // Documentation
+  // TODO: move dokka to bibscrape-gradle-settings
   id("org.jetbrains.dokka") version "1.7.20" // Tasks: dokka{Gfm,Html,Javadoc,Jekyll}
 }
 
@@ -50,6 +51,11 @@ dependencies {
   // This line fixes a NoSuchMethodError that is due the version of io.netty depended on by browsermob-core
   implementation("org.seleniumhq.selenium:selenium-remote-driver:4.8.1")
   implementation("net.lightbody.bmp:browsermob-core:2.1.5")
+
+  // TODO: commons-lang3: SystemUtils.IS_WINDOWS
+  // TODO: commons-io: FileCleaningTracker
+  // TODO: commons-configuration?
+  // TODO: commons-exec
 }
 
 // ////////////////////////////////////////////////////////////////

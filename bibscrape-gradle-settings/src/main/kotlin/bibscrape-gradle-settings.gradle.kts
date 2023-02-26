@@ -4,17 +4,9 @@
 plugins {
   kotlin("jvm")
 
-  // Code Analysis
-  id("io.gitlab.arturbosch.detekt") // Tasks: detekt
-
   // Code Coverage
   id("jacoco") // Tasks: jacocoTestReport
   id("org.jetbrains.kotlinx.kover") // Tasks: koverMergedHtmlReport
-
-  // Code Style
-  // id("com.ncorti.ktfmt.gradle") // Tasks: ktfmtCheck (omitted because issues errors not warnings)
-  id("org.cqfn.diktat.diktat-gradle-plugin") // Tasks: diktatCheck
-  id("org.jlleitschuh.gradle.ktlint") // Tasks: ktlintCheck
 
   // Dependency Licenses
   id("com.github.jk1.dependency-license-report") // Tasks: generateLicenseReport
@@ -25,6 +17,13 @@ plugins {
   // Documentation
   id("org.jetbrains.dokka") // Tasks: dokka{Gfm,Html,Javadoc,Jekyll}
 
+  // Linting
+  id("io.gitlab.arturbosch.detekt") // Tasks: detekt
+  // id("com.ncorti.ktfmt.gradle") // Tasks: ktfmtCheck (omitted because issues errors not warnings)
+  id("org.cqfn.diktat.diktat-gradle-plugin") // Tasks: diktatCheck
+  id("org.jlleitschuh.gradle.ktlint") // Tasks: ktlintCheck
+  id("se.solrike.sonarlint") // Tasks: sonarlint{Main,Test}
+
   // TODO: Typesafe config
 }
 
@@ -33,20 +32,21 @@ repositories {
 }
 
 dependencies {
+  // Linting
+  sonarlintPlugins("org.sonarsource.kotlin:sonar-kotlin-plugin:2.12.0.1956")
+
   // Testing
   testImplementation(kotlin("test"))
 }
 
 // ////////////////////////////////////////////////////////////////
-// Code Analysis
+// Linting
+
 detekt {
   allRules = true
   buildUponDefaultConfig = true
   ignoreFailures = true
 }
-
-// ////////////////////////////////////////////////////////////////
-// Code Formatting
 
 diktat {
   ignoreFailures = true
@@ -62,6 +62,26 @@ ktlint {
     setOf(
       "no-unit-return",
       "string-template",
+    )
+  )
+}
+
+tasks.register<se.solrike.sonarlint.SonarlintListRules>("sonarlintListRules") {
+  description = "List sonarlint rules"
+  group = "verification"
+}
+
+sonarlint {
+  ignoreFailures.set(true)
+  excludeRules.set(
+    listOf(
+      "kotlin:S1135", // Track uses of "TODO" tags
+    )
+  )
+  includeRules.set(
+    listOf(
+      "kotlin:S105", // Tabulation characters should not be used
+      "kotlin:S5867", // Unicode-aware versions of character classes should be preferred
     )
   )
 }
