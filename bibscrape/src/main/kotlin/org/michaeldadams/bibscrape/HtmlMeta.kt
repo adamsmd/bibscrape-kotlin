@@ -156,7 +156,7 @@ object HtmlMeta {
         meta["st.onlineissn"]?.single()?.let { onlineIssn ->
           "${printIssn} (Print) ${onlineIssn} (Online)"
         }
-      } ?: meta["citation_issn"]?.singleOrNull() // TODO: Cambridge puts two of these in, with no way to distinguish print from online
+      } ?: meta["citation_issn"]?.singleOrNull() // TODO: Cambridge puts two with no way to distinguish print and online
     )
 
     set(F.LANGUAGE, getFirst("citation_language", "dc.language"))

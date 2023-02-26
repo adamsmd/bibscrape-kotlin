@@ -509,7 +509,7 @@ object Unicode {
     0x0384 to """\textgreek{'}""",
     0x0385 to """\textgreek{"'}""",
     0x0386 to """\textgreek{'A}""",
-    0x0387 to """\textperiodcentered""",
+    0x0387 to """\textgreek{.}""",
     0x0388 to """\textgreek{'E}""",
     0x0389 to """\textgreek{'H}""",
     0x038a to """\textgreek{'I}""",

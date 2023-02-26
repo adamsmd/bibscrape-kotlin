@@ -50,6 +50,7 @@ object ScrapeAcm : DomainScraper {
       ?.ifEmpty { null }
 
     // // Author
+    @Suppress("StringLiteralDuplication")
     entry[F.AUTHOR] = driver.findElements(By.cssSelector(".citation .author-name"))
       .map { it.getAttribute("title") }
       .joinByAnd()
@@ -283,7 +284,8 @@ object ScrapeIeeeComputer : DomainScraper {
     // // BibTeX
     driver.findElement(By.cssSelector(".article-action-toolbar button")).click()
     driver.findElement(By.partialLinkText("BIB TEX")).click()
-    var bibtexText = driver.awaitFindElement(By.id("bibTextContent")).innerHtml.replace("<br>".r, "\n").replace("&amp;", "&")
+    var bibtexText =
+      driver.awaitFindElement(By.id("bibTextContent")).innerHtml.replace("<br>".r, "\n").replace("&amp;", "&")
     // TODO: $bibtex-text = Blob.new($bibtex-text.ords).decode; # Fix UTF-8 encoding
     val entry = Bibtex.parseEntries(bibtexText).single()
     driver.navigate().back()

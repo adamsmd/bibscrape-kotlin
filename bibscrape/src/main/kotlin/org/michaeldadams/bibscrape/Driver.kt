@@ -38,6 +38,7 @@ val WebElement.innerHtml: String
  * @property proxy The proxy used to modify traffic to the [driver].
  */
 class Driver private constructor(val driver: RemoteWebDriver, val proxy: BrowserMobProxyServer) :
+  @Suppress("UnnecessaryInheritance")
   Object(), // Inherit from Object, not Any, so we get the benefits of override checking finalize()
   WebDriver by driver,
   JavascriptExecutor by driver,
