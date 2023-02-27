@@ -698,11 +698,14 @@ class Main : CliktCommand(
     for (a in arg) {
       println("****************************************************************")
       println("** Testing ${a}")
-      println("****************************************************************")
       val lines = File(a).readLines()
-
       val url = lines[0]
-      // We ignore lines[1] as it is a comment
+      val comment = lines[1]
+      println("**")
+      println("** URL: ${url}")
+      println("** Comment: ${comment}")
+      println("****************************************************************")
+
       val endOfFlags = 2 + lines.drop(2).indexOfFirst { it.contains("^ \\s* $".r) }
       val flags = lines.subList(2, endOfFlags)
       val expected = lines.subList(endOfFlags + 1, lines.size).joinToString("\n", postfix = "\n")
@@ -714,19 +717,19 @@ class Main : CliktCommand(
           flags +
           originalArgv
 
-      val retries = if (options.retry == 0) -1 else options.retry
       val exitOk = { result: Pair<String, Process> -> result.second.exitValue() == 0 }
-      val result = retry(retries, exitOk) { attempt ->
+      val result = retry(options.retry, exitOk) { attempt ->
         val result = runCommand(options.testTimeout, options.testHardTimeout, command)
         if (!exitOk(result)) {
-          val msg = if (attempt == retries) "All attempts failed." else "Retrying."
+          val attempts = if (options.retry == 0) "unlimited" else "${options.retry}"
+          val msg = if (attempt == options.retry) "All attempts failed." else "Retrying."
           // TODO: include the type of test in this message
-          println("** Attempt ${attempt} of ${retries} exited abnormally with code ${result.second.exitValue()}.  ${msg}")
+          println("** Attempt ${attempt} of ${attempts} exited abnormally with code ${result.second.exitValue()}.  ${msg}")
         }
         result
       }
 
-      if (result.second.exitValue() != 0) {
+      if (!exitOk(result)) {
         for (line in expected.lines()) {
           println("[~~${line}~~]")
         }
