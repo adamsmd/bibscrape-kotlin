@@ -550,9 +550,29 @@ object ScrapeSpringer : DomainScraper {
   override val domains = listOf("link.springer.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
+    // // Remove cookie prompt since it sometimes obscures the button we want to click
+    driver.remove(By.className("cc-banner"))
+
     // // BibTeX
-    val entry = BibtexFile().makeEntry("", "")
-    // Use the BibTeX download if it is available
+    // val entry = BibtexFile().makeEntry("", "")
+
+    // // Use the BibTeX download if it is available
+    // driver.findElements(By.linkText(".BIB")).emptyOrSingle()?.click()
+    // val entry = Bibtex.parseEntries(driver.textPlain()).single()
+    
+    // println("<${driver.findElements(By.linkText("Download citation"))}>")
+    // println("<${driver.findElements(By.linkText(".RIS"))}>")
+    (driver.findElements(By.linkText("Download citation")) +
+      driver.findElements(By.linkText(".RIS")))
+      .emptyOrSingle()?.click()
+    // println(driver.textPlain())
+    // println(driver.textPlain().toByteArray(Charsets.ISO_8859_1).decodeToString())
+    // val entry = Ris.bibtex(BibtexFile(), driver.textPlain().toByteArray(Charsets.ISO_8859_1).decodeToString().split("\\R".r).toRisRecords().single())
+    val entry = Ris.bibtex(BibtexFile(), driver.textPlain().split("\\R".r).toRisRecords().single())
+    // println(entry)
+    driver.navigate().back()
+
+
     // if $web-driver.find_elements_by_id( 'button-Dropdown-citations-dropdown' ) {
     //   await({
     //     # Close the cookie/GDPR overlay
@@ -565,67 +585,74 @@ object ScrapeSpringer : DomainScraper {
     //   $entry = bibtex-parse($web-driver.read-downloads).items.head;
     // }
 
-    // // HTML Meta
-    val meta = HtmlMeta.parse(driver)
-    HtmlMeta.bibtex(entry, meta, "publisher" to true)
+    // // // HTML Meta
+    // val meta = HtmlMeta.parse(driver)
+    // HtmlMeta.bibtex(entry, meta, "publisher" to true)
 
-    entry.update(F.EDITOR) { it.replace("\\ * \\R".r, " ") }
+    // entry.update(F.EDITOR) { it.replace("\\ * \\R".r, " ") }
 
-    // // Author
-    // my Any:D @authors =
-    //   $web-driver.find_elements_by_css_selector(
-    //     '.c-article-authors-search__title,
-    //       .c-article-author-institutional-author__name,
-    //       .authors-affiliations__name')
-    //   .map({
-    //     $_.get_attribute( 'class' ) ~~ / « 'c-article-author-institutional-author__name' » /
-    //       ?? '{' ~ $_.get_property( 'innerHTML' ) ~ '}'
-    //       !! $_.get_property( 'innerHTML' ) });
-    // @authors.map({ s:g/ '&nbsp;' / /; });
-    // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
+    // // // Author
+    // // my Any:D @authors =
+    // //   $web-driver.find_elements_by_css_selector(
+    // //     '.c-article-authors-search__title,
+    // //       .c-article-author-institutional-author__name,
+    // //       .authors-affiliations__name')
+    // //   .map({
+    // //     $_.get_attribute( 'class' ) ~~ / « 'c-article-author-institutional-author__name' » /
+    // //       ?? '{' ~ $_.get_property( 'innerHTML' ) ~ '}'
+    // //       !! $_.get_property( 'innerHTML' ) });
+    // // @authors.map({ s:g/ '&nbsp;' / /; });
+    // // $entry.fields<author> = BibScrape::BibTeX::Value.new(@authors.join( ' and ' ));
 
-    // // ISBN
-    val pisbn = driver.findElements(By.id("print-isbn")).emptyOrSingle()?.innerHtml
-    val eisbn = driver.findElements(By.id("electronic-isbn")).emptyOrSingle()?.innerHtml
-    if (pisbn != null && eisbn != null) { entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)" }
+    // // // ISBN
+    // val pisbn = driver.findElements(By.id("print-isbn")).emptyOrSingle()?.innerHtml
+    // val eisbn = driver.findElements(By.id("electronic-isbn")).emptyOrSingle()?.innerHtml
+    // if (pisbn != null && eisbn != null) { entry[F.ISBN] = "${pisbn} (Print) ${eisbn} (Online)" }
 
-    // // ISSN
-    driver.findElement(By.tagName("head"))
-      .innerHtml
-      .find("""\{ "eissn" : " (${ISSN_REGEX}) " , "pissn" : " (${ISSN_REGEX}) " \\}""".r)
-      ?.let { entry[F.ISSN] = "${it.groupValues[2]} (Print) ${it.groupValues[1]} (Online)" }
+    // // // ISSN
+    // driver.findElement(By.tagName("head"))
+    //   .innerHtml
+    //   .find("""\{ "eissn" : " (${ISSN_REGEX}) " , "pissn" : " (${ISSN_REGEX}) " \\}""".r)
+    //   ?.let { entry[F.ISSN] = "${it.groupValues[2]} (Print) ${it.groupValues[1]} (Online)" }
 
-    // // Series, Volume and ISSN
-    //
-    // Ugh, Springer doesn't have a reliable way to get the series, volume,
-    // or ISSN.  Fortunately, this only happens for LNCS, so we hard code
-    // it.
-    driver.findElement(By.tagName("body"))
-      .innerHtml
-      .find("\\(LNCS,\\ volume\\ (\\d*) \\)".r)
-      ?.let {
-        entry[F.VOLUME] = it.groupValues[1]
-        entry[F.SERIES] = "Lecture Notes in Computer Science"
-      }
+    // // // Series, Volume and ISSN
+    // //
+    // // Ugh, Springer doesn't have a reliable way to get the series, volume,
+    // // or ISSN.  Fortunately, this only happens for LNCS, so we hard code
+    // // it.
+    // driver.findElement(By.tagName("body"))
+    //   .innerHtml
+    //   .find("\\(LNCS,\\ volume\\ (\\d*) \\)".r)
+    //   ?.let {
+    //     entry[F.VOLUME] = it.groupValues[1]
+    //     entry[F.SERIES] = "Lecture Notes in Computer Science"
+    //   }
 
-    // // Keywords
-    entry[F.KEYWORDS] = driver.findElements(By.className("c-article-subject-list__subject"))
-      .map { it.innerHtml }
-      .joinToString("; ")
+    // // // Keywords
+    // entry[F.KEYWORDS] = driver.findElements(By.className("c-article-subject-list__subject"))
+    //   .map { it.innerHtml }
+    //   .joinToString("; ")
 
     // // Abstract
-    // my #`(Inline::Python::PythonObject:D) @abstract =
-    //   ($web-driver.find_elements_by_class_name( 'Abstract' ),
-    //     $web-driver.find_elements_by_id( 'Abs1-content' )).flat;
-    // if @abstract {
-    //   my Str:D $abstract = @abstract.head.get_property( 'innerHTML' );
-    //   $abstract ~~ s/^ '<h' <[23]> .*? '>Abstract</h' <[23]> '>' //;
-    //   $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
-    // }
+    driver.remove(By.cssSelector("#Abs1-content > h3 ~ *"))
+    driver.remove(By.cssSelector("#Abs1-content > h3"))
+    entry[F.ABSTRACT] = driver.findElements(By.id("Abs1-content")).emptyOrSingle()?.innerHtml
+    // entry[F.ABSTRACT] = driver.findElements(By.cssSelector("[data-title=\"Summary\"] .c-article-section__content")).emptyOrSingle()?.innerHtml
 
-    // // Publisher
-    // The publisher field should not include the address
-    entry.update("publisher") { if (it == "Springer, ${entry[F.ADDRESS]?.string}") "Springer" else it }
+
+    // // // Abstract
+    // // my #`(Inline::Python::PythonObject:D) @abstract =
+    // //   ($web-driver.find_elements_by_class_name( 'Abstract' ),
+    // //     $web-driver.find_elements_by_id( 'Abs1-content' )).flat;
+    // // if @abstract {
+    // //   my Str:D $abstract = @abstract.head.get_property( 'innerHTML' );
+    // //   $abstract ~~ s/^ '<h' <[23]> .*? '>Abstract</h' <[23]> '>' //;
+    // //   $entry.fields<abstract> = BibScrape::BibTeX::Value.new($abstract);
+    // // }
+
+    // // // Publisher
+    // // The publisher field should not include the address
+    // entry.update("publisher") { if (it == "Springer, ${entry[F.ADDRESS]?.string}") "Springer" else it }
 
     return entry
   }

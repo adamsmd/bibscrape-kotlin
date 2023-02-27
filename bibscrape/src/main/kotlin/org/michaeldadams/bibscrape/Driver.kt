@@ -116,6 +116,13 @@ class Driver private constructor(val driver: RemoteWebDriver, val proxy: Browser
    */
   fun textPlain(): String = Entities.unescape(this.findElement(By.tagName("pre")).innerHtml)
 
+  /** Removes elements from the current page.
+   *
+   * @param by the locating mechanism to find the elements to remove
+   */
+  fun remove(by: By): Unit = this.findElements(by).forEach { this.executeScript("arguments[0].remove()", it) }
+
+
   companion object {
     /** The process of launched drivers. */
     private val pids: ConcurrentSkipListSet<Int> = ConcurrentSkipListSet() // TODO: weak table of drivers
@@ -168,7 +175,7 @@ class Driver private constructor(val driver: RemoteWebDriver, val proxy: Browser
             application/x-research-info-systems |
             text/x-bibtex
             ) (?= $ | ; )
-        """.trimIndent().r
+        """.trimIndent().ri
 
         response.headers().remove("Content-Disposition")
         response.headers()["Content-Type"] = response.headers()["Content-Type"].replace(textPlainTypes, "text/plain")
