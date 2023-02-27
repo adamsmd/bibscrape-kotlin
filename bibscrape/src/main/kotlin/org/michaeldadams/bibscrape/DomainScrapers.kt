@@ -536,7 +536,7 @@ object ScrapeScienceDirect : DomainScraper {
       .joinToString("; ")
 
     // // Abstract
-    entry[F.ABSTRACT] = driver.findElement(By.cssSelector("#abstracts > .abstract.author > div")).innerHtml
+    entry[F.ABSTRACT] = driver.findElements(By.cssSelector("#abstracts > .abstract.author > div")).emptyOrSingle()?.innerHtml
 
     // // Series
     entry.moveField(F.NOTE, F.SERIES)
