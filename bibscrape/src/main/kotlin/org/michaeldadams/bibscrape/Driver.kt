@@ -122,7 +122,6 @@ class Driver private constructor(val driver: RemoteWebDriver, val proxy: Browser
    */
   fun remove(by: By): Unit = this.findElements(by).forEach { this.executeScript("arguments[0].remove()", it) }
 
-
   companion object {
     /** The process of launched drivers. */
     private val pids: ConcurrentSkipListSet<Int> = ConcurrentSkipListSet() // TODO: weak table of drivers

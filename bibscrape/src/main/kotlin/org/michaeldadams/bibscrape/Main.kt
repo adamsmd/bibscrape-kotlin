@@ -165,14 +165,13 @@ class GeneralOptions : OptionGroup(name = "GENERAL OPTIONS") {
       """
   ).flag("--no-verbose")
 
-  @Suppress("MAGIC_NUMBER")
   val timeout: Duration by option(
     "-t",
     "--timeout",
     help = """
       Browser timeout in seconds for individual page loads.
       """
-  ).seconds().restrictTo(min = 0.0.seconds).default(60.0.seconds)
+  ).seconds().restrictTo(min = 0.0.seconds).default(@Suppress("MAGIC_NUMBER") 60.0.seconds)
 
   val escapeAcronyms: Boolean by option(
     help = """
@@ -308,23 +307,21 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
     help = """
       How many times to retry a test. A value of zero retries infinite times.
       """
-  ).int().restrictTo(min = 0).default(3)
+  ).int().restrictTo(min = 0).default(@Suppress("MagicNumber") 3)
 
-  @Suppress("MAGIC_NUMBER")
   val testTimeout: Duration by option(
     help = """
       TODO: document --test-timeout
       TODO: 0 means infinite (dangerous)
       """
-  ).seconds().restrictTo(min = 0.0.seconds).default(60.0.seconds)
+  ).seconds().restrictTo(min = 0.0.seconds).default(@Suppress("MAGIC_NUMBER") 60.0.seconds)
 
-  @Suppress("MAGIC_NUMBER")
   val testHardTimeout: Duration by option(
     help = """
       TODO: document --test-timeout
       TODO: 0 means infinite (dangerous)
       """
-  ).seconds().restrictTo(min = 0.0.seconds).default(60.0.seconds)
+  ).seconds().restrictTo(min = 0.0.seconds).default(@Suppress("MAGIC_NUMBER") 60.0.seconds)
 
   val useTestArg: Boolean by option(
     hidden = true,
@@ -723,8 +720,9 @@ class Main : CliktCommand(
         if (!exitOk(result)) {
           val attempts = if (options.retry == 0) "unlimited" else "${options.retry}"
           val msg = if (attempt == options.retry) "All attempts failed." else "Retrying."
+          val code = result.second.exitValue()
           // TODO: include the type of test in this message
-          println("** Attempt ${attempt} of ${attempts} exited abnormally with code ${result.second.exitValue()}.  ${msg}")
+          println("** Attempt ${attempt} of ${attempts} exited abnormally with code ${code}.  ${msg}")
         }
         result
       }

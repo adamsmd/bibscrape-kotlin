@@ -25,6 +25,7 @@ fun <A> List<A>.emptyOrSingle(): A? = this.ifEmpty { null }?.single()
  * @param A the type of the result
  * @param times maximum number of calls to [block]
  * @param predicate whether to return a particular result from [block]
+ * @param start where to start counting the attempts from
  * @param block the code to repeatedly try running
  * @returns the result of the last call to [block]
  */

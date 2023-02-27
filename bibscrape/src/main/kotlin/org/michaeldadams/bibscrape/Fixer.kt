@@ -514,7 +514,8 @@ class Fixer(
                 classAttr.contains("${WBL} bold ${WBR}".r) -> tex("textbf")
                 classAttr.contains("${WBL} sup ${WBR}".r) -> tex("textsuperscript")
                 classAttr.contains("${WBL} sub ${WBR}".r) -> tex("textsubscript")
-                classAttr.contains("${WBL} ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) ${WBR}".r) -> tex("textsc")
+                classAttr.contains("${WBL} ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) ${WBR}".r) ->
+                  tex("textsc")
                 else -> html(isTitle, node.childNodes())
               }
             }
@@ -559,10 +560,21 @@ class Fixer(
           "msqrt" -> "\\sqrt{${math(isTitle, node.childNodes())}}"
           "mrow" -> "{${math(isTitle, node.childNodes())}}"
           "mspace" -> "\\hspace{${node.attributes()["width"]}}"
-          "msubsup" ->
-            subsup(math(isTitle, node.childNodes()[0]), math(isTitle, node.childNodes()[1]), math(isTitle, node.childNodes()[2]))
-          "msub" -> subsup(math(isTitle, node.childNodes()[0]), math(isTitle, node.childNodes()[1]), null)
-          "msup" -> subsup(math(isTitle, node.childNodes()[0]), null, math(isTitle, node.childNodes()[1]))
+          "msubsup" -> subsup(
+            math(isTitle, node.childNodes()[0]),
+            math(isTitle, node.childNodes()[1]),
+            math(isTitle, node.childNodes()[2])
+          )
+          "msub" -> subsup(
+            math(isTitle, node.childNodes()[0]),
+            math(isTitle, node.childNodes()[1]),
+            null
+          )
+          "msup" -> subsup(
+            math(isTitle, node.childNodes()[0]),
+            null,
+            math(isTitle, node.childNodes()[1])
+          )
           else -> {
             println("WARNING: Unknown MathML tag: ${node.tag().name}")
             "[${node.tag().name}]${math(isTitle, node.childNodes())}[/${node.tag().name}]"

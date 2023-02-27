@@ -40,11 +40,11 @@ fun String.split(regex: Regex): List<String> = regex.split(this)
  */
 fun String.remove(regex: Regex): String = this.replace(regex, "")
 
-/** Regex string for Unicode Alphabetic or Digit characters */
+/** Regex string for Unicode Alphabetic or Digit characters. */
 const val ALNUM = """(?: \p{IsAlphabetic} | \p{IsDigit} )"""
 
-/** Regex string for a Word-Break on the Left (WBL) */
+/** Regex string for a Word-Break on the Left (WBL). */
 const val WBL = """(?: ^ | (?<! ${ALNUM} ) ) (?= ${ALNUM} )"""
 
-/** Regex string for a Word-Break on the Reft (WBR) */
+/** Regex string for a Word-Break on the Reft (WBR). */
 const val WBR = """(?<= ${ALNUM} ) (?: $ | (?! ${ALNUM} ) )"""

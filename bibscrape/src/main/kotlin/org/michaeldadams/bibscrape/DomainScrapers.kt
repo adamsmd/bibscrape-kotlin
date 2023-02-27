@@ -222,7 +222,8 @@ object ScrapeCambridge : DomainScraper {
     driver.currentUrl.find("^ http s? ://www.cambridge.org/core/services/aop-cambridge-core/content/view/ (S \\d+) $".r)
       ?.let { driver.get("https://doi.org/10.1017/${it.groupValues[1]}") }
 
-    // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box // TODO: is this still the case?
+    // TODO: is the following still the case?
+    // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box
     val meta = HtmlMeta.parse(driver)
 
     // // BibTeX
@@ -236,13 +237,10 @@ object ScrapeCambridge : DomainScraper {
     // // HTML Meta
     HtmlMeta.bibtex(entry, meta, F.ABSTRACT to false)
 
-    // // Title
-    // There are multiple "h1"s, but the first one should be the title
+    // // Title and Subtitle
     entry[F.TITLE] =
-      // Title
       driver.awaitFindElement(By.cssSelector("#maincontent > h1")).innerHtml +
-        // Subtitle
-        driver.findElements(By.cssSelector("#maincontent > h2")).map { ": ${it.innerHtml}" }.joinToString("")
+      driver.findElements(By.cssSelector("#maincontent > h2")).map { ": ${it.innerHtml}" }.joinToString("")
 
     // // Abstract
     entry[F.ABSTRACT] = driver.findElements(By.className("abstract"))
@@ -535,7 +533,9 @@ object ScrapeScienceDirect : DomainScraper {
       .joinToString("; ")
 
     // // Abstract
-    entry[F.ABSTRACT] = driver.findElements(By.cssSelector("#abstracts > .abstract.author > div")).emptyOrSingle()?.innerHtml
+    entry[F.ABSTRACT] = driver.findElements(By.cssSelector("#abstracts > .abstract.author > div"))
+      .emptyOrSingle()
+      ?.innerHtml
 
     // // Series
     entry.moveField(F.NOTE, F.SERIES)
@@ -558,19 +558,20 @@ object ScrapeSpringer : DomainScraper {
     // // Use the BibTeX download if it is available
     // driver.findElements(By.linkText(".BIB")).emptyOrSingle()?.click()
     // val entry = Bibtex.parseEntries(driver.textPlain()).single()
-    
+
     // println("<${driver.findElements(By.linkText("Download citation"))}>")
     // println("<${driver.findElements(By.linkText(".RIS"))}>")
-    (driver.findElements(By.linkText("Download citation")) +
-      driver.findElements(By.linkText(".RIS")))
-      .emptyOrSingle()?.click()
+    (
+      driver.findElements(By.linkText("Download citation")) +
+        driver.findElements(By.linkText(".RIS"))
+      ).emptyOrSingle()?.click()
     // println(driver.textPlain())
     // println(driver.textPlain().toByteArray(Charsets.ISO_8859_1).decodeToString())
-    // val entry = Ris.bibtex(BibtexFile(), driver.textPlain().toByteArray(Charsets.ISO_8859_1).decodeToString().split("\\R".r).toRisRecords().single())
+    // val entry = Ris.bibtex(BibtexFile(), driver.textPlain().toByteArray(Charsets.ISO_8859_1)
+    //      .decodeToString().split("\\R".r).toRisRecords().single())
     val entry = Ris.bibtex(BibtexFile(), driver.textPlain().split("\\R".r).toRisRecords().single())
     // println(entry)
     driver.navigate().back()
-
 
     // if $web-driver.find_elements_by_id( 'button-Dropdown-citations-dropdown' ) {
     //   await({
@@ -636,8 +637,8 @@ object ScrapeSpringer : DomainScraper {
     driver.remove(By.cssSelector("#Abs1-content > h3 ~ *"))
     driver.remove(By.cssSelector("#Abs1-content > h3"))
     entry[F.ABSTRACT] = driver.findElements(By.id("Abs1-content")).emptyOrSingle()?.innerHtml
-    // entry[F.ABSTRACT] = driver.findElements(By.cssSelector("[data-title=\"Summary\"] .c-article-section__content")).emptyOrSingle()?.innerHtml
-
+    // entry[F.ABSTRACT] = driver.findElements(By.cssSelector("[data-title=\"Summary\"] .c-article-section__content"))
+    //    .emptyOrSingle()?.innerHtml
 
     // // // Abstract
     // // my #`(Inline::Python::PythonObject:D) @abstract =
