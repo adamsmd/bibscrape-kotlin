@@ -702,7 +702,7 @@ class Main : CliktCommand(
       val lines = File(a).readLines()
 
       val url = lines[0]
-      // val comment = lines[1]
+      // We ignore lines[1] as it is a comment
       val endOfFlags = 2 + lines.drop(2).indexOfFirst { it.contains("^ \\s* $".r) }
       val flags = lines.subList(2, endOfFlags)
       val expected = lines.subList(endOfFlags + 1, lines.size).joinToString("\n", postfix = "\n")
