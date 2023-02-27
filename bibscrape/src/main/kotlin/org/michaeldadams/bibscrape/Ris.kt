@@ -25,13 +25,14 @@ object Ris {
     RisType.UNPB to T.UNPUBLISHED,
   )
 
-  private fun risAuthor(names: List<String>?): String =
+  private fun risAuthor(names: List<String>?): String? =
     names
       .orEmpty()
       // Change "last, first, suffix" to "von Last, Jr, First"
       .map { it.replace("^ (.*) , (.*) , (.*) $".r, "$1, $3, $2") }
-      .filter { it.contains("[^,\\ ]") }
+      .filter { it.contains("[^,\\ ]".r) }
       .joinByAnd()
+      .ifEmpty { null }
 
   /** Generates a BibTeX entry from an RIS record.
    *
@@ -87,7 +88,7 @@ object Ris {
       (ris.date ?: ris.publicationYear ?: ris.primaryDate).orEmpty().split("/ | -".r) + listOf(null, null, null)
     entry[F.YEAR] = year
     entry[F.MONTH] = month?.let { Bibtex.Months.intToMonth(entry.ownerFile, it) }
-    entry[F.DAY] = day
+    entry[F.DAY] = day?.ifEmpty { null }
     // TODO: is the RIS C1 code still needed
     ris.custom1?.find("Full\\ publication\\ date:\\ (\\w+) \\.? (\\ \\d+)? ,\\ (\\d+)".r)?.let { match ->
       val (c1Month, c1Day, /* c1Year */ _) = // ktlint-disable experimental:comment-wrapping
