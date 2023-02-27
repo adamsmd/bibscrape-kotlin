@@ -119,8 +119,8 @@ object Ris {
     // PB: publisher
     entry[F.PUBLISHER] = ris.publisher
     // SN: isbn or issn
-    if (ris.isbnIssn.orEmpty().contains("\\b ${ISBN_REGEX} \\b".ri)) { entry[F.ISBN] = ris.isbnIssn }
-    if (ris.isbnIssn.orEmpty().contains("\\b ${ISSN_REGEX} \\b".r)) { entry[F.ISSN] = ris.isbnIssn }
+    if (ris.isbnIssn.orEmpty().contains("${WBL} ${ISBN_REGEX} ${WBR}".ri)) { entry[F.ISBN] = ris.isbnIssn }
+    if (ris.isbnIssn.orEmpty().contains("${WBL} ${ISSN_REGEX} ${WBR}".r)) { entry[F.ISSN] = ris.isbnIssn }
     // AD: address
     // AV: (unneeded)
     // M[1-3]: misc

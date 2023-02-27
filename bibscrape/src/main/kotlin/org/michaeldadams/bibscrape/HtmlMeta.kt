@@ -80,7 +80,7 @@ object HtmlMeta {
           date.find("^ (\\d{2}) [/-] \\d{2} [/-] (\\d{4}) $".r)
             ?.groupValues
             ?.let { Pair(it[2], M.intToMonth(entry.ownerFile, it[1])) }
-            ?: date.find("^ [\\ 0-9]*? \b (\\w+) \b [\\ 0-9]*? \b (\\d{4}) \b".r)
+            ?: date.find("^ [\\ 0-9]*? ${WBL} (\\w+) ${WBR} [\\ 0-9]*? ${WBL} (\\d{4}) ${WBR}".r)
               ?.groupValues
               ?.let { Pair(it[2], M.stringToMonth(entry.ownerFile, it[1])) }
         }

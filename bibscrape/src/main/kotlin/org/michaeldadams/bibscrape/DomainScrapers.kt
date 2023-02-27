@@ -472,7 +472,7 @@ object ScrapeOxford : DomainScraper {
       // TODO: rewrite
       selectElement.selectByVisibleText(".bibtex (BibTex)")
       val button = driver.findElement(By.className("citation-download-link"))
-      if (!button.getAttribute("class").contains("\\b disabled \\b".r)) {
+      if (!button.getAttribute("class").contains("${WBL} disabled ${WBR}".r)) {
         button.click()
       } else {
         selectElement.selectByVisibleText(".enw (EndNote)")

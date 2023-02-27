@@ -128,7 +128,7 @@ class Fixer(
       entry.update(field) { it.replace("\\s* (- | \\N{EN DASH} | \\N{EM DASH})+ \\s*".ri, dash) }
       entry.update(field) { it.remove("n/a -- n/a".ri) }
       entry.removeIf(field) { it.isEmpty() } // TODO: let omit-if-empty handle this?
-      entry.update(field) { it.replace("\\b (\\w+) -- \\1 \\b".ri, "$1") }
+      entry.update(field) { it.replace("${WBL} (\\w+) -- \\1 ${WBR}".ri, "$1") }
       entry.update(field) { it.replace("(^|\\ ) (\\w+)--(\\w+)--(\\w+)--(\\w+) ($|,)".ri, "$1$2-$3--$4-$5$6") }
       entry.update(field) { it.replace("\\s+ , \\s+".ri, ", ") }
     }
@@ -253,7 +253,7 @@ class Fixer(
     entry.updateValue(F.MONTH) { month ->
       month.string
         .replace("\\. ($ | -)".r, "$1") // Remove dots due to abbriviations
-        .split("\\b".r)
+        .split("${WBL} | ${WBR}".r)
         .filter(String::isNotEmpty)
         .map { part ->
           if (part in setOf("/", "-", "--")) {
@@ -484,7 +484,7 @@ class Fixer(
             "p", "par" -> html(isTitle, node.childNodes()) + "\n\n"
 
             "a" ->
-              if (node.attributes()["class"].contains("\\b xref-fn \\b".r)) {
+              if (node.attributes()["class"].contains("${WBL} xref-fn ${WBR}".r)) {
                 // TODO: check if this happens
                 "" // Omit footnotes added by Oxford when on-campus
               } else {
@@ -508,13 +508,13 @@ class Fixer(
               val classAttr = node.attributes()["class"]
               when {
                 // TODO: node.attributes()["aria-hidden"] == "true" -> ""
-                classAttr.contains("\\b monospace \\b".r) ||
-                  node.attributes()["style"].contains("\\b font-family:monospace \b") -> tex("texttt")
-                classAttr.contains("\\b italic \\b".r) -> tex("textit")
-                classAttr.contains("\\b bold \\b".r) -> tex("textbf")
-                classAttr.contains("\\b sup \\b".r) -> tex("textsuperscript")
-                classAttr.contains("\\b sub \\b".r) -> tex("textsubscript")
-                classAttr.contains("\\b ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) \\b".r) -> tex("textsc")
+                classAttr.contains("${WBL} monospace ${WBR}".r) ||
+                  node.attributes()["style"].contains("${WBL} font-family:monospace ${WBR}") -> tex("texttt")
+                classAttr.contains("${WBL} italic ${WBR}".r) -> tex("textit")
+                classAttr.contains("${WBL} bold ${WBR}".r) -> tex("textbf")
+                classAttr.contains("${WBL} sup ${WBR}".r) -> tex("textsuperscript")
+                classAttr.contains("${WBL} sub ${WBR}".r) -> tex("textsubscript")
+                classAttr.contains("${WBL} ( sc | (type)? small -? caps | EmphasisTypeSmallCaps ) ${WBR}".r) -> tex("textsc")
                 else -> html(isTitle, node.childNodes())
               }
             }
@@ -597,7 +597,7 @@ class Fixer(
       for ((key, value) in nouns) {
         val keyNoBrace = key.remove("[{}]".r)
         s = s.replace(
-          "\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".r,
+          "(?<! ${ALNUM}) ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) (?! ${ALNUM})".r,
           "${Regex.escapeReplacement(value)}"
         )
       }
@@ -605,7 +605,7 @@ class Fixer(
       // (We don't want to automatically convert case insensitively, since that might be too broad.)
       for ((key, value) in nouns) {
         val keyNoBrace = key.remove("[{}]".r)
-        s.find("\\b ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) \\b".ri)?.let {
+        s.find("(?<! ${ALNUM}) ( ${Regex.escape(key)} | ${Regex.escape(keyNoBrace)} ) (?! ${ALNUM})".ri)?.let {
           if (it.value != value) { println("WARNING: Possibly incorrectly capitalized noun '${it.value}' in title") }
         }
       }
@@ -615,13 +615,11 @@ class Fixer(
       // Anything other than "Aaaa" or "aaaa" triggers an acronym.
       // After eliminating Unicode in case a tag or attribute looks like an acronym
       if (escapeAcronyms) {
-        val alnum = """(?: \p{IsAlphabetic} | \p{IsDigit} )"""
         val notAfterBrace = """(?<! \{ )"""
-        // TODO: revise these regexes and position of ?!
         s = s
-          .replace("""${notAfterBrace} \b ( ${alnum}+ \p{IsUppercase} ${alnum}* )""".r, "{$1}")
-          .replace("""${notAfterBrace} \b ( (?! A) \p{IsUppercase} ) (?! ') \b""".r, "{$1}")
+          .replace("""${notAfterBrace} ${WBL} ( ${ALNUM}+ \p{IsUppercase} ${ALNUM}* )""".r, "{$1}")
           .replace("""${notAfterBrace} ${WBL} ( (?<! \ ) A (?! \ )     ) (?! ') ${WBR}""".r, "{$1}")
+          .replace("""${notAfterBrace} ${WBL} ( (?! A) \p{IsUppercase} ) (?! ') ${WBR}""".r, "{$1}")
       }
     }
 
