@@ -8,7 +8,6 @@ Issue is "4es"
   volume = {28},
   number = {4es},
   pages = {77--es},
-  numpages = {1},
   month = dec,
   year = {1996},
   issue_date = {Dec. 1996},
