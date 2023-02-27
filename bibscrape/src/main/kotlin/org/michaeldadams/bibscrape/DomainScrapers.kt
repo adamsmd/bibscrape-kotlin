@@ -222,7 +222,7 @@ object ScrapeCambridge : DomainScraper {
     driver.currentUrl.find("^ http s? ://www.cambridge.org/core/services/aop-cambridge-core/content/view/ (S \\d+) $".r)
       ?.let { driver.get("https://doi.org/10.1017/${it.groupValues[1]}") }
 
-    // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box
+    // This must be before BibTeX otherwise Cambridge sometimes hangs due to an alert box // TODO: is this still the case?
     val meta = HtmlMeta.parse(driver)
 
     // // BibTeX
@@ -238,7 +238,11 @@ object ScrapeCambridge : DomainScraper {
 
     // // Title
     // There are multiple "h1"s, but the first one should be the title
-    entry[F.TITLE] = driver.awaitFindElement(By.cssSelector("#maincontent > h1")).innerHtml
+    entry[F.TITLE] =
+      // Title
+      driver.awaitFindElement(By.cssSelector("#maincontent > h1")).innerHtml +
+        // Subtitle
+        driver.findElements(By.cssSelector("#maincontent > h2")).map { ": ${it.innerHtml}" }.joinToString("")
 
     // // Abstract
     entry[F.ABSTRACT] = driver.findElements(By.className("abstract"))
