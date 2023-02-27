@@ -270,9 +270,8 @@ object ScrapeIeeeComputer : DomainScraper {
   override val domains = listOf("computer.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    // // Cookie prompt since it sometimes obscures the button we want to click
-    driver.findElements(By.cssSelector("[aria-label=\"cookieconsent\"]"))
-      .forEach { driver.executeScript("arguments[0].remove()", it) }
+    // // Remove cookie prompt since it sometimes obscures the button we want to click
+    driver.remove(By.cssSelector("[aria-label=\"cookieconsent\"]"))
 
     // // BibTeX
     driver.findElement(By.cssSelector(".article-action-toolbar button")).click()
@@ -377,7 +376,7 @@ object ScrapeIosPress : DomainScraper {
   override fun scrape(driver: Driver): BibtexEntry {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
-    driver.awaitFindElement(By.className("btn-clear")).click()
+    driver.awaitFindElement(By.linkText("Reference manager (RIS)")).click()
     val entry = Ris.bibtex(BibtexFile(), driver.textPlain().split("\\R".r).toRisRecords().single())
     driver.navigate().back()
 
