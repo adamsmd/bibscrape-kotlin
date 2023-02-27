@@ -1,7 +1,7 @@
 https://www.computer.org/csdl/proceedings/sitis/2008/3493/00/3493a003-abs.html
 A simple test
 
-WARNING: 'A' may need to be wrapped in curly braces if it needs to stay capitalized
+WARNING: An 'A' in the title may need to be wrapped in curly braces if it needs to stay capitalized
 @inproceedings{chen:2008:core:10.1109/sitis.2008.31,
   author = {Chen, Yangjun and Chen, Yibin},
   title = {Core Labeling: A New Way to Compress Transitive Closure},
