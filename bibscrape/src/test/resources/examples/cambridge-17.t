@@ -3,7 +3,6 @@ Odd "or" in subtitle
 
 @article{hinze:2011:typed:10.1017/s0956796811000050,
   author = {Hinze, Ralf},
-  affiliation = {University of Oxford},
   title = {Typed quote/antiquote or: Compile-time parsing},
   journal = {Journal of Functional Programming},
   volume = {21},

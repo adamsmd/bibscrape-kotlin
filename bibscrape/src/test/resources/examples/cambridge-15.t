@@ -3,7 +3,6 @@ https://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=192403
 
 @article{mcbride:2004:view:10.1017/s0956796803004829,
   author = {McBride, Conor and McKinna, James},
-  affiliation = {University of Durham and University of Durham},
   title = {The view from the left},
   journal = {Journal of Functional Programming},
   volume = {14},

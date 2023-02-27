@@ -3,7 +3,6 @@ Extra paragraph breaks
 
 @article{huet:1997:zipper:10.1017/s0956796897002864,
   author = {Huet, G{\'e}rard},
-  affiliation = {INRIA Rocquencourt},
   title = {The Zipper},
   journal = {Journal of Functional Programming},
   volume = {7},

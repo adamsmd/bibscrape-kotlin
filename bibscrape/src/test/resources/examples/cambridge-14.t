@@ -3,7 +3,6 @@ https://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=579464
 
 @article{mcbride:2009:preface:10.1017/s0956796809007242,
   author = {McBride, Conor and Uustalu, Tarmo},
-  affiliation = {University of Strathclyde and Institute of Cybernetics at Tallinn University of Technology},
   title = {Preface},
   journal = {Journal of Functional Programming},
   volume = {19},

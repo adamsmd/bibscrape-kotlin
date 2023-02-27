@@ -3,7 +3,6 @@ A simple test
 
 @article{hinze:2001:weaving:10.1017/s0956796801004129,
   author = {Hinze, Ralf and Jeuring, Johan},
-  affiliation = {Universit{\"a}t Bonn and Utrecht University},
   title = {Weaving a web},
   journal = {Journal of Functional Programming},
   volume = {11},

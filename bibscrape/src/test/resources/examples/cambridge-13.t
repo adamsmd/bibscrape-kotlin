@@ -3,7 +3,6 @@ https://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=114969
 
 @article{mcbride:2002:faking:10.1017/s0956796802004355,
   author = {McBride, Conor},
-  affiliation = {University of Durham},
   title = {Faking it Simulating dependent types in {H}askell},
   journal = {Journal of Functional Programming},
   volume = {12},

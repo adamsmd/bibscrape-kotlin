@@ -3,7 +3,6 @@ https://journals.cambridge.org/action/displayAbstract?fromPage=online&aid=185139
 
 @article{mcbride:2003:first-order:10.1017/s0956796803004957,
   author = {McBride, Conor},
-  affiliation = {University of Durham},
   title = {First-order unification by structural recursion},
   journal = {Journal of Functional Programming},
   volume = {13},

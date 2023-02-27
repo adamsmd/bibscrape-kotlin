@@ -252,10 +252,6 @@ object ScrapeCambridge : DomainScraper {
       ?.remove("""^ //static.cambridge.org/content/id/urn .*""".r)
 
     // // ISSN
-    // val pissn = driver.findElement(E.name("productIssn")).getAttribute("value")
-    // val eissn = driver.findElement(E.name("productEissn")).getAttribute("value")
-    // entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
-    // println("<${meta["citation_issn"]}>")
     val (eissn, pissn) = meta["citation_issn"]!! + listOf(null, null)
     entry[F.ISSN] = "${pissn} (Print) ${eissn} (Online)"
 

@@ -3,7 +3,6 @@ Chinese name, unusual subtitle placement
 
 @article{kameyama:2011:shifting:10.1017/s0956796811000256,
   author = {Kameyama, Yukiyoshi and Kiselyov, Oleg and Shan, Chung-chieh},
-  affiliation = {University of Tsukuba and Cornell University},
   title = {Shifting the stage: Staging with delimited control},
   journal = {Journal of Functional Programming},
   volume = {21},

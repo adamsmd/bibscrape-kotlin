@@ -3,7 +3,6 @@ Unicode in title, author and abstract
 
 @article{arbiser:2009:l-calculus:10.1017/s0956796809007369,
   author = {Arbiser, Ariel and Miquel, Alexandre and R{\'{\i}}os, Alejandro},
-  affiliation = {Universidad de Buenos Aires and PPS {\&} Universit{\'e} Paris 7 {--} Case 7014 and Universidad de Buenos Aires},
   title = {The {\textgreek{l}}-calculus with constructors: Syntax, confluence and separation},
   journal = {Journal of Functional Programming},
   volume = {19},

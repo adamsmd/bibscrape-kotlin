@@ -3,7 +3,6 @@ Front matter
 
 @article{tolmach:2011:special:10.1017/s0956796811000190,
   author = {Tolmach, Andrew and Leroy, Xavier},
-  affiliation = {Portland State University and INRIA Paris-Rocquencourt},
   title = {Special Issue Dedicated to {ICFP} 2009 Editorial},
   journal = {Journal of Functional Programming},
   volume = {21},

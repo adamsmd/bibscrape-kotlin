@@ -3,7 +3,6 @@ Subscript and unicode in abstract
 
 @article{streicher:1998:classical:10.1017/s0956796898003141,
   author = {Streicher, Th[omas] and Reus, B[ernhard]},
-  affiliation = {Fachbereich 4 Mathematik, TU Darmstadt and Institut f{\"u}r Informatik, Ludwig-Maximilians-Universit{\"a}t},
   title = {Classical logic, continuation semantics and abstract machines},
   journal = {Journal of Functional Programming},
   volume = {8},

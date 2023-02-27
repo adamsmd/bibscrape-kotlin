@@ -3,7 +3,6 @@ Subtitle
 
 @article{oliveira:2010:scala:10.1017/s0956796810000171,
   author = {Oliveira, Bruno C. d. S. and Gibbons, Jeremy},
-  affiliation = {Seoul National University and Oxford University Computing Laboratory},
   title = {{S}cala for generic programmers: Comparing {H}askell and {S}cala support for generic programming},
   journal = {Journal of Functional Programming},
   volume = {20},

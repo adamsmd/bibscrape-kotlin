@@ -3,7 +3,6 @@ Strange volume/issue.  Italics in abstract
 
 @article{nykanen:2011:note:10.1017/s0956796811000128,
   author = {Nyk{\"a}nen, Matti},
-  affiliation = {University of Eastern Finland},
   title = {A note on the genuine Sieve of Eratosthenes},
   journal = {Journal of Functional Programming},
   volume = {21},

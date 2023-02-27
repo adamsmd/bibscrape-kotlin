@@ -3,7 +3,6 @@ Call for papers.  Italics in abstract.  Subtitle.
 
 @article{barthe:2001:special:10.1017/s0956796801004105,
   author = {Barthe, Gilles and Dybjer, Peter and Thiemann, Peter},
-  affiliation = {INRIA Sophia-Antipolis and Chalmers Tekniska H{\"o}gskola and Universit{\"a}t Freiburg},
   title = {Special issue on Dependent Type Theory Meets Programming Practice {CALL} {FOR} {PAPERS}},
   journal = {Journal of Functional Programming},
   volume = {11},
