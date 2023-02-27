@@ -620,8 +620,8 @@ class Fixer(
         // TODO: revise these regexes and position of ?!
         s = s
           .replace("""${notAfterBrace} \b ( ${alnum}+ \p{IsUppercase} ${alnum}* )""".r, "{$1}")
-          .replace("""${notAfterBrace} \b ( (?<! \\ ) A (?! \\ ) ) (?! ') \b""".r, "{$1}")
           .replace("""${notAfterBrace} \b ( (?! A) \p{IsUppercase} ) (?! ') \b""".r, "{$1}")
+          .replace("""${notAfterBrace} ${WBL} ( (?<! \ ) A (?! \ )     ) (?! ') ${WBR}""".r, "{$1}")
       }
     }
 
