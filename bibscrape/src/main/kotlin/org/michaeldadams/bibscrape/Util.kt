@@ -28,8 +28,8 @@ fun <A> List<A>.emptyOrSingle(): A? = this.ifEmpty { null }?.single()
  * @param block the code to repeatedly try running
  * @returns the result of the last call to [block]
  */
-fun <A> retry(times: Int, predicate: (A) -> Boolean, block: () -> A): A =
-  block().let { if (predicate(it) || times <= 1) it else retry(times - 1, predicate, block) }
+fun <A> retry(times: Int, predicate: (A) -> Boolean, start: Int = 1, block: (Int) -> A): A =
+  block(start).let { if (predicate(it) || start == times) it else retry(times, predicate, start + 1, block) }
 
 /** Repeatedly applies [block] to [init] until a fixed point is reached.
  *

@@ -304,11 +304,11 @@ class TestingOptions : OptionGroup(name = "TESTING OPTIONS") {
       """
   ).flag("--no-test-nonscraping", default = true)
 
-  val retries: Int by option(
+  val retry: Int by option(
     help = """
       How many times to retry a test. A value of zero retries infinite times.
       """
-  ).int().restrictTo(min = 0).default(1)
+  ).int().restrictTo(min = 0).default(3)
 
   @Suppress("MAGIC_NUMBER")
   val testTimeout: Duration by option(
@@ -674,8 +674,6 @@ class Main : CliktCommand(
     process.waitFor()
     reader.join()
 
-    // println("EXITED ABNORMALLY: $i using a $type")
-    if (process.exitValue() != 0) { println("EXITED ABNORMALLY ${process.exitValue()}") }
     // TODO: destroy process children
 
     return Pair(output.get()!!, process)
@@ -716,9 +714,16 @@ class Main : CliktCommand(
           flags +
           originalArgv
 
-      val retries = if (options.retries == 0) -1 else options.retries
-      val result = retry(retries, { it.second.exitValue() == 0 }) {
-        runCommand(options.testTimeout, options.testHardTimeout, command)
+      val retries = if (options.retry == 0) -1 else options.retry
+      val exitOk = { result: Pair<String, Process> -> result.second.exitValue() == 0 }
+      val result = retry(retries, exitOk) { attempt ->
+        val result = runCommand(options.testTimeout, options.testHardTimeout, command)
+        if (!exitOk(result)) {
+          val msg = if (attempt == retries) "All attempts failed." else "Retrying."
+          // TODO: include the type of test in this message
+          println("** Attempt ${attempt} of ${retries} exited abnormally with code ${result.second.exitValue()}.  ${msg}")
+        }
+        result
       }
 
       if (result.second.exitValue() != 0) {
