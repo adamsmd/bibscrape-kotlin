@@ -386,14 +386,12 @@ object ScrapeIosPress : DomainScraper {
     // // Abstract
     entry[F.ABSTRACT] = driver.findElement(By.cssSelector("[data-abstract]"))
       .getDomAttribute("data-abstract")
-      .replace("([.!?]) \\ \\ ".r, "$0\n\n") // Insert missing paragraphs.  This is a heuristic solution.
+      .replace("([.!?]) \\ \\ ".r, "$1\n\n") // Insert missing paragraphs.  This is a heuristic solution.
 
     // // ISSN
-    // if $ris.fields<SN>:exists {
-    //   my Str:D $eissn = $ris.fields<SN>.head;
-    //   my Str:D $pissn = $web-driver.meta( 'citation_issn' ).head;
-    //   $entry.fields<issn> = BibScrape::BibTeX::Value.new("$pissn (Print) $eissn (Online)");
-    // }
+    if (ris.isbnIssn != null) {
+      entry[F.ISSN] = "${meta["citation_issn"]!!.single()} (Print) ${ris.isbnIssn} (Online)"
+    }
 
     return entry
   }
