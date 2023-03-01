@@ -4,6 +4,7 @@ import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
 import ch.difty.kris.domain.RisRecord
 import ch.difty.kris.domain.RisType
+import ch.difty.kris.toRisRecords
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Types as T
 
@@ -24,6 +25,13 @@ object Ris {
     // RisType.REP to T.TECHREPORT, // TODO
     RisType.UNPB to T.UNPUBLISHED,
   )
+
+  /** Parses a string as an RIS record.
+   *
+   * @param string the string to parse
+   * @return the RIS record resulting from the parse
+   */
+  fun fromString(string: String): RisRecord = string.split("(?<=\\R)".r).toRisRecords().single()
 
   private fun risAuthor(names: List<String>?): String? =
     names

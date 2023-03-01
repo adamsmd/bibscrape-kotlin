@@ -4,7 +4,6 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
-import ch.difty.kris.toRisRecords
 import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
 import org.openqa.selenium.By
@@ -371,7 +370,8 @@ object ScrapeIosPress : DomainScraper {
     // // RIS
     driver.awaitFindElement(By.className("p13n-cite")).click()
     driver.awaitFindElement(By.linkText("Reference manager (RIS)")).click()
-    val entry = Ris.bibtex(BibtexFile(), driver.textPlain().split("\\R".r).toRisRecords().single())
+    val ris = Ris.fromString(driver.textPlain())
+    val entry = Ris.bibtex(BibtexFile(), ris)
     driver.navigate().back()
 
     // // HTML Meta
@@ -564,8 +564,8 @@ object ScrapeSpringer : DomainScraper {
     // println(driver.textPlain())
     // println(driver.textPlain().toByteArray(Charsets.ISO_8859_1).decodeToString())
     // val entry = Ris.bibtex(BibtexFile(), driver.textPlain().toByteArray(Charsets.ISO_8859_1)
-    //      .decodeToString().split("\\R".r).toRisRecords().single())
-    val entry = Ris.bibtex(BibtexFile(), driver.textPlain().split("\\R".r).toRisRecords().single())
+    //      .decodeToString().split("\\R".r).toRisRecords().single()) // TODO: toRisRecords -> Ris.fromString
+    val entry = Ris.bibtex(BibtexFile(), Ris.fromString(driver.textPlain()))
     // println(entry)
     driver.navigate().back()
 
