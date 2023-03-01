@@ -465,7 +465,7 @@ class Fixer(
   fun html(isTitle: Boolean, node: Node): String =
     when (node) {
       is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
-      is TextNode -> text(isTitle, false, node.text()) // TODO: wrap node.text in decodeEntities
+      is TextNode -> text(isTitle, false, node) // TODO: wrap node.text in decodeEntities
       is Element -> {
         /** Wrap the children of the current node ([node]) in a LaTeX command.
          *
@@ -547,7 +547,7 @@ class Fixer(
   fun math(isTitle: Boolean, node: Node): String =
     when (node) {
       is Comment, is DataNode, is DocumentType, is XmlDeclaration -> ""
-      is TextNode -> text(isTitle, true, node.text()) // TODO: wrap node.text in decodeEntities
+      is TextNode -> text(isTitle, true, node) // TODO: wrap node.text in decodeEntities
       is Element ->
         when (node.tag().name) {
           "mn", "mo", "mtext" -> math(isTitle, node.childNodes())
@@ -593,15 +593,15 @@ class Fixer(
   fun subsup(base: String, sub: String?, sup: String?): String =
     "{${base}}" + sub?.let { "_{${it}}" }.orEmpty() + sup?.let { "^{${it}}" }.orEmpty()
 
-  /** Convert text containing Unicode to LaTeX.
+  /** Convert a text node containing Unicode to LaTeX.
    *
    * @param isTitle whether in a BibTeX title field, which requires extra work so BibTeX preserves capitalization
    * @param math whether already in a MathML
-   * @param string the string to convert
-   * @return the LaTeX version of [string]
+   * @param textNode the text node to convert
+   * @return the LaTeX version of [textNode]
    */
-  fun text(isTitle: Boolean, math: Boolean, string: String): String {
-    var s = string
+  fun text(isTitle: Boolean, math: Boolean, textNode: TextNode): String {
+    var s = textNode.wholeText
     if (isTitle) {
       // TODO: combine these loops
       // Keep proper nouns capitalized
