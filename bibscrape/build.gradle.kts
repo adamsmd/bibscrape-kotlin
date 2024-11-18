@@ -34,7 +34,7 @@ dependencies {
   // implementation("io.github.microutils:kotlin-logging-jvm:3.0.4")
 
   // RIS
-  implementation("ch.difty.kris:kris-core:0.4.2")
+  implementation("ch.difty.kris:kris-core:0.4.3")
 
   // Test diffs
   implementation("io.github.java-diff-utils:java-diff-utils:4.12")

@@ -55,7 +55,7 @@ private fun <C, F, L> parseBlocks(
   var first: F? = null
 
   fun go(dir: Path, string: String): Unit {
-    val lines = string.split("\\R".r).map { it.remove("\\s* \\# .* $".r).remove("^ \\s+".r) }
+    val lines = string.lines().map { it.remove("\\s* \\# .* $".r).remove("^ \\s+".r) }
     for (line in lines) {
       when {
         line.isEmpty() -> first = null

@@ -210,7 +210,7 @@ class Fixer(
     // Eliminate Unicode but not for no-encode fields (e.g. doi, url, etc.)
     for ((field, value) in entry.fields) {
       if (field !in noEncode) {
-        val encodedValue = html(field == F.TITLE, Parser.parseBodyFragment(value.string, "").body())
+        val encodedValue = html(field == F.TITLE, Parser.parseBodyFragment(value.string, "").body()) // TODO: parseFragment
 
         // Remove doubly-nested braces.
         // We used fixedpoint in case there are multiple levels of nested braces.
@@ -269,6 +269,8 @@ class Fixer(
         }
         .reduce(entry.ownerFile::makeConcatenatedValue)
     }
+
+    // TODO: remove 0 at front of 'day'
 
     // ///////////////////////////////
     // Final fixes                  //

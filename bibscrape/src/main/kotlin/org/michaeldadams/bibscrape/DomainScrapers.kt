@@ -301,7 +301,7 @@ object ScrapeIeeeExplore : DomainScraper {
 
   override fun scrape(driver: Driver): BibtexEntry {
     // // BibTeX
-    driver.awaitFindElement(By.tagName("xpl-cite-this-modal")).click()
+    driver.awaitFindElement(By.className("cite-this-btn")).click()
     driver.awaitFindElement(By.linkText("BibTeX")).click()
     driver.awaitFindElement(By.cssSelector(".enable-abstract input")).click()
     val text = driver.awaitFindElement(By.className("ris-text")).innerHtml
@@ -334,8 +334,8 @@ object ScrapeIeeeExplore : DomainScraper {
     body.find(isbnsRegex)?.let { entry[F.ISBN] = "${it.groupValues[1]} (Print) ${it.groupValues[2]} (Online)" }
 
     // // Publisher
-    entry[F.PUBLISHER] =
-      driver.findElement(By.cssSelector(".publisher-info-container > span > span > span + span")).innerHtml
+    // entry[F.PUBLISHER] =
+    //   driver.findElement(By.cssSelector(".publisher-info-container > span > span > span + span")).innerHtml
 
     // // Affiliation
     // my Str:D $affiliation =
@@ -353,10 +353,10 @@ object ScrapeIeeeExplore : DomainScraper {
     // }
 
     // // Conference date
-    entry[F.CONFERENCE_DATE] = body.find("\"conferenceDate\":\" ([^\"]+) \"".r)?.groupValues?.get(1)
+    // entry[F.CONFERENCE_DATE] = body.find("\"conferenceDate\":\" ([^\"]+) \"".r)?.groupValues?.get(1)
 
     // // Abstract
-    entry.update(F.ABSTRACT) { it.remove("&lt;&gt; $".r) }
+    // entry.update(F.ABSTRACT) { it.remove("&lt;&gt; $".r) }
 
     return entry
   }
@@ -402,53 +402,59 @@ object ScrapeJstor : DomainScraper {
   override val domains = listOf("jstor.org")
 
   override fun scrape(driver: Driver): BibtexEntry {
+    // Thread.sleep(60_000)
+
     // // Remove overlay
-    driver.findElements(By.className("reveal-overlay"))
-      .forEach { driver.executeScript("arguments[0].removeAttribute(\"style\")", it) }
+    // driver.findElements(By.className("reveal-overlay"))
+    //   .forEach { driver.executeScript("arguments[0].removeAttribute(\"style\")", it) }
+    // TODO: detect when blocker is poped up
 
     // // BibTeX
-    // Note that on-campus is different than off-campus
+    // Note that on-campus is different than off-campus // TODO: is this still true?
+    driver.findElement(By.linkText("Cite")).click()
+    driver.findElement(By.linkText("Export a Text file")).click()
+    TODO()
     // await({ $web-driver.find_elements_by_css_selector( '[data-qa="cite-this-item"]' )
     //         || $web-driver.find_elements_by_class_name( 'cite-this-item' ) }).head.click;
     // await({ $web-driver.find_element_by_css_selector( '[data-sc="text link: citation text"]' ) }).click;
-    val entry = Bibtex.parseEntries(driver.textPlain()).single()
-    driver.navigate().back()
+    // val entry = Bibtex.parseEntries(driver.textPlain()).single()
+    // driver.navigate().back()
 
-    // // HTML Meta
-    val meta = HtmlMeta.parse(driver)
-    HtmlMeta.bibtex(entry, meta)
+    // // // HTML Meta
+    // val meta = HtmlMeta.parse(driver)
+    // HtmlMeta.bibtex(entry, meta)
 
-    // // Title
-    // Note that on-campus is different than off-campus
-    entry[F.TITLE] = (
-      driver.findElements(By.className("item-title")).emptyOrSingle()
-        ?: driver.findElement(By.className("title-font"))
-      ).innerHtml
+    // // // Title
+    // // Note that on-campus is different than off-campus
+    // entry[F.TITLE] = (
+    //   driver.findElements(By.className("item-title")).emptyOrSingle()
+    //     ?: driver.findElement(By.className("title-font"))
+    //   ).innerHtml
 
-    // // DOI
-    entry[F.DOI] = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
+    // // // DOI
+    // entry[F.DOI] = driver.findElement(By.cssSelector("[data-doi]")).getDomAttribute("data-doi")
 
-    // // ISSN
-    entry.update(F.ISSN) { it.replace("^ ([0-9Xx]+) ,\\ ([0-9Xx]+) $".r, "$1 (Print) $2 (Online)") }
+    // // // ISSN
+    // entry.update(F.ISSN) { it.replace("^ ([0-9Xx]+) ,\\ ([0-9Xx]+) $".r, "$1 (Print) $2 (Online)") }
 
-    // // Month
-    entry[F.MONTH] = (
-      driver.findElements(By.cssSelector(".turn-away-content__article-summary-journal a")) +
-        driver.findElements(By.className("src"))
-      ).first()
-      .innerHtml
-      .find("\\( ([A-Za-z]+) ".r)
-      ?.groupValues
-      ?.get(1)
+    // // // Month
+    // entry[F.MONTH] = (
+    //   driver.findElements(By.cssSelector(".turn-away-content__article-summary-journal a")) +
+    //     driver.findElements(By.className("src"))
+    //   ).first()
+    //   .innerHtml
+    //   .find("\\( ([A-Za-z]+) ".r)
+    //   ?.groupValues
+    //   ?.get(1)
 
-    // // Publisher
-    // Note that on-campus is different than off-campus
-    entry[F.PUBLISHER] =
-      driver.findElements(By.className("turn-away-content__article-summary-journal")).emptyOrSingle()?.let {
-        it.innerHtml.find("Published\\ By:\\ ([^<]*)".r)!!.groupValues[1]
-      } ?: driver.findElement(By.className("publisher-link")).innerHtml
+    // // // Publisher
+    // // Note that on-campus is different than off-campus
+    // entry[F.PUBLISHER] =
+    //   driver.findElements(By.className("turn-away-content__article-summary-journal")).emptyOrSingle()?.let {
+    //     it.innerHtml.find("Published\\ By:\\ ([^<]*)".r)!!.groupValues[1]
+    //   } ?: driver.findElement(By.className("publisher-link")).innerHtml
 
-    return entry
+    // return entry
   }
 }
 
@@ -505,13 +511,22 @@ object ScrapeScienceDirect : DomainScraper {
   override val domains = listOf("sciencedirect.com", "elsevier.com")
 
   override fun scrape(driver: Driver): BibtexEntry {
-    // // BibTeX
+    // // // BibTeX
+    // driver.awaitNonNull {
+    //   // TODO: why are these in the same await? This probably breaks the "driver.timeout" model
+    //   driver.findElement(By.id("export-citation")).click()
+    //   driver.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
+    // }
+    // val entry = Bibtex.parseEntries(driver.textPlain()).single()
+    // driver.navigate().back()
+
+    // // RIS
     driver.awaitNonNull {
       // TODO: why are these in the same await? This probably breaks the "driver.timeout" model
       driver.findElement(By.id("export-citation")).click()
-      driver.findElement(By.cssSelector("button[aria-label=\"bibtex\"]")).click()
+      driver.findElement(By.cssSelector("button[aria-label=\"ris\"]")).click()
     }
-    val entry = Bibtex.parseEntries(driver.textPlain()).single()
+    val entry = Ris.bibtex(BibtexFile(), Ris.fromString(driver.textPlain()))
     driver.navigate().back()
 
     // // HTML Meta
@@ -522,9 +537,9 @@ object ScrapeScienceDirect : DomainScraper {
     entry[F.TITLE] = driver.findElement(By.className("title-text")).innerHtml
 
     // // Keywords
-    entry[F.KEYWORDS] = driver.findElements(By.cssSelector(".keywords-section > .keyword > span"))
-      .map { it.innerHtml }
-      .joinToString("; ")
+    // entry[F.KEYWORDS] = driver.findElements(By.cssSelector(".keywords-section > .keyword > span"))
+    //   .map { it.innerHtml }
+    //   .joinToString("; ")
 
     // // Abstract
     entry[F.ABSTRACT] = driver.findElements(By.cssSelector("#abstracts > .abstract.author > div"))

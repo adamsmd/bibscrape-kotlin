@@ -31,7 +31,7 @@ object Ris {
    * @param string the string to parse
    * @return the RIS record resulting from the parse
    */
-  fun fromString(string: String): RisRecord = string.split("(?<=\\R)".r).toRisRecords().single()
+  fun fromString(string: String): RisRecord = string.lines().toRisRecords().single()
 
   private fun risAuthor(names: List<String>?): String? =
     names
@@ -72,7 +72,7 @@ object Ris {
     entry[F.TITLE] = ris.primaryTitle ?: ris.title ?: ris.unpublishedReferenceTitle ?: ifOrNull(isBook) { ris.bt }
     entry[F.BOOKTITLE] = ifOrNull(!isBook) { ris.bt }
     // T2: title secondary
-    entry[F.JOURNAL] = ris.secondaryTitle
+    // entry[F.SERIES] = ris.secondaryTitle
     // JF|JO: periodical name, full
     // JA: periodical name, abbriviated
     // J1: periodical name, user abbriv 1
@@ -85,7 +85,7 @@ object Ris {
         ?: ris.alternativeTitle
         ?: ris.secondaryTitle
     // T3: title series
-    entry[F.SERIES] = ris.tertiaryTitle
+    entry[F.SERIES] = ifOrNull(ris.secondaryTitle != entry[F.JOURNAL]?.string) { ris.secondaryTitle } ?: ris.tertiaryTitle
 
     // A3: author series
     // A[4-9]: author (undocumented)
