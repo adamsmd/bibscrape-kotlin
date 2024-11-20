@@ -8,6 +8,7 @@ Complex equation in abstract
   volume = {111},
   number = {17},
   pages = {825--830},
+  day = {15}, # TODO
   month = sep,
   year = {2011},
   publisher = {Elsevier},

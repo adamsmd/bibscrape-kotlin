@@ -8,6 +8,7 @@ More complex math in abstract
   volume = {111},
   number = {15},
   pages = {754--760},
+  day = {15}, # TODO
   month = aug,
   year = {2011},
   publisher = {Elsevier},

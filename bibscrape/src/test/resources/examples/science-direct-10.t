@@ -8,6 +8,7 @@ Subtitle
   volume = {22},
   number = {3},
   pages = {197--230},
+  day = {01}, # TODO
   month = jun,
   year = {1994},
   publisher = {Elsevier},

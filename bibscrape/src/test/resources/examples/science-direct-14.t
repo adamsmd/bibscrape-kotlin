@@ -9,6 +9,7 @@ https://www.sciencedirect.com/science/article/pii/S0304397500000499
   number = {1--2},
   series = {PEPM~'97},
   pages = {29--98},
+  day = {06}, # TODO
   month = oct,
   year = {2000},
   publisher = {Elsevier},

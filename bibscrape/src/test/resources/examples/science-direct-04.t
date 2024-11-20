@@ -8,6 +8,7 @@ Subscript and italic in title and abstract
   volume = {111},
   number = {14},
   pages = {683--686},
+  day = {31}, # TODO
   month = jul,
   year = {2011},
   publisher = {Elsevier},

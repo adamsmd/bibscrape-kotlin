@@ -8,6 +8,7 @@ Broken abstract
   volume = {17},
   number = {5},
   pages = {241--248},
+  day = {15}, # TODO
   month = dec,
   year = {1983},
   publisher = {Elsevier},

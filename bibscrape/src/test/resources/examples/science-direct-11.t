@@ -8,6 +8,7 @@ Undefined abstract
   volume = {40},
   number = {2},
   pages = {123--143},
+  day = {01}, # TODO
   month = feb,
   year = {1979},
   publisher = {Academic Press},

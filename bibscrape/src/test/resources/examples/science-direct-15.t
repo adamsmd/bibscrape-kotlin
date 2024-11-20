@@ -9,6 +9,7 @@ https://www.sciencedirect.com/science/article/pii/S157106611000143X?via%3Dihub
   number = {2},
   series = {Proceedings of the Tools for Automatic Program AnalysiS (TAPAS)},
   pages = {3--13},
+  day = {01}, # TODO
   month = oct,
   year = {2010},
   publisher = {Elsevier},
