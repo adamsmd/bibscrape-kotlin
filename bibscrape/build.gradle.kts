@@ -7,6 +7,7 @@ plugins {
   id("bibscrape-gradle-settings")
   id("git-version")
   application // Provides "./gradlew installDist" then "./build/install/bibscrape/bin/bibscrape"
+  id("io.gitlab.arturbosch.detekt") version "1.23.6" // Adds: ./gradlew detekt
 }
 
 repositories {

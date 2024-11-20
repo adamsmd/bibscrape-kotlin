@@ -3,8 +3,10 @@
 group = "org.michaeldadams.bibscrape"
 
 plugins {
+  kotlin("jvm") version "1.9.22"
   `kotlin-dsl`
   `java-gradle-plugin`
+  id("io.gitlab.arturbosch.detekt") version "1.23.6" // Adds: ./gradlew -p buildSrc detekt
 }
 
 repositories {
@@ -27,10 +29,11 @@ dependencies {
   implementation("org.jetbrains.dokka:dokka-gradle-plugin:1.7.20")
 
   // Kotlin Plugin
-  implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10")
+  implementation("org.jetbrains.kotlin:kotlin-gradle-plugin") // version matches kotlin("jvm")
+  // implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.10")
 
   // Linting
-  implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.22.0")
+  implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.6")
   // implementation("com.ncorti.ktfmt.gradle:0.11.0")
   implementation("org.cqfn.diktat.diktat-gradle-plugin:org.cqfn.diktat.diktat-gradle-plugin.gradle.plugin:1.2.4.1")
   implementation("org.jlleitschuh.gradle.ktlint:org.jlleitschuh.gradle.ktlint.gradle.plugin:11.1.0")
