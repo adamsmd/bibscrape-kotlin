@@ -1,8 +1,9 @@
+# From https://github.com/saveourtool/diktat/blob/v2.0.0/diktat-rules/src/main/resources/diktat-analysis.yml
 # Common configuration
 - name: DIKTAT_COMMON
   configuration:
     # put your package name here - it will be autofixed and checked
-    domainName: org.michaeldadams.bibscrape
+    domainName: your.name.here
     testDirs: test
     # expected values:  disabledChapters: "Naming, Comments, General, Variables, Functions, Classes"
     # or: "1, 2, 3, 4, 5, 6"
@@ -13,7 +14,7 @@
 - name: CLASS_NAME_INCORRECT
   enabled: true
   # all code blocks with MyAnnotation will be ignored and not checked
-  ignoreAnnotated: []
+  ignoreAnnotated: [ MyAnnotation ]
 # Checks that CONSTANT (treated as const val from companion object or class level) is in non UPPER_SNAKE_CASE
 - name: CONSTANT_UPPERCASE
   enabled: true
@@ -34,8 +35,7 @@
   enabled: true
 # Checks that functions/methods which return boolean have special prefix like "is/should/e.t.c"
 - name: FUNCTION_BOOLEAN_PREFIX
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
   configuration:
     allowedPrefixes: "" # A list of functions that return boolean and are allowed to use. Input is in a form "foo, bar".
 # Checks that function/method name is in lowerCamelCase
@@ -49,8 +49,7 @@
   enabled: true
 # Identifier length should be in range [2,64] except names that used in industry like {i, j} and 'e' for catching exceptions
 - name: IDENTIFIER_LENGTH
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks that the object matches PascalCase
 - name: OBJECT_NAME_INCORRECT
   enabled: true
@@ -59,13 +58,13 @@
   enabled: true
 # Checks that package name starts with the company's domain
 - name: PACKAGE_NAME_INCORRECT_PREFIX
-  enabled: true
+  enabled: false
 # Checks that package name does not have incorrect symbols like underscore or non-ASCII letters/digits
 - name: PACKAGE_NAME_INCORRECT_SYMBOLS
   enabled: true
 # Checks that the path for a file matches with a package name
 - name: PACKAGE_NAME_INCORRECT_PATH
-  enabled: true
+  enabled: false
 # Checks that package name is in the file
 - name: PACKAGE_NAME_MISSING
   enabled: true
@@ -74,8 +73,7 @@
   enabled: true
 # Checks that variable does not contain one single letter, only exceptions are fixed names that used in industry like {i, j}
 - name: VARIABLE_NAME_INCORRECT
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks that the name of variable is in lowerCamelCase and contains only ASCII letters
 - name: VARIABLE_NAME_INCORRECT_FORMAT
   enabled: true
@@ -90,10 +88,7 @@
   enabled: true
 # Checks that accessible method parameters are documented in KDoc
 - name: KDOC_WITHOUT_PARAM_TAG
-  # Does not allow type parameters of functions to be documented but Detekt requires it.
-  # This is unfortunate because Diktat says which parameter is wrong but Detekt does not.
-  # Re-enable once this bug is fixed: https://github.com/saveourtool/diktat/issues/1929
-  enabled: false
+  enabled: true
 # Checks that accessible method explicit return type is documented in KDoc
 - name: KDOC_WITHOUT_RETURN_TAG
   enabled: true
@@ -143,8 +138,7 @@
   enabled: true
 # Checks that file with zero or >1 classes has header KDoc
 - name: HEADER_MISSING_IN_NON_SINGLE_CLASS_FILE
-  # This rule requires a KDoc-style comment, even though file-header comments are not used by KDoc / Dokka
-  enabled: false
+  enabled: true
 # Checks that copyright exists on top of file and is properly formatted (as a block comment)
 - name: HEADER_MISSING_OR_WRONG_COPYRIGHT
   enabled: true
@@ -156,22 +150,19 @@
   enabled: true
 # Checks that file does not contain lines > maxSize
 - name: FILE_IS_TOO_LONG
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
   configuration:
     # number of lines
     maxSize: '2000'
 # Checks that file does not contain commented out code
 - name: COMMENTED_OUT_CODE
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks that file does not contain only comments, imports and package directive
 - name: FILE_CONTAINS_ONLY_COMMENTS
   enabled: true
 # Orders imports alphabetically
 - name: FILE_UNORDERED_IMPORTS
-  # Ktlint uses a different order
-  enabled: false
+  enabled: true
   configuration:
     # use logical imports grouping with sorting inside of a group
     useRecommendedImportsOrder: true
@@ -194,24 +185,19 @@
     deleteUnusedImport: true
 # Checks that braces are used in if, else, when, for, do, and while statements. Exception: single line ternary operator statement
 - name: NO_BRACES_IN_CONDITIONALS_AND_LOOPS
-  # Ktlint uses a different rule
-  enabled: false
+  enabled: true
 # Checks that the declaration part of a class-like code structures (class/interface/etc.) is in the proper order
 - name: WRONG_ORDER_IN_CLASS_LIKE_STRUCTURES
-  # This design choice belongs to the programmer, and there are often more logical orders
-  enabled: false
+  enabled: true
 # Checks that properties with comments are separated by a blank line
 - name: BLANK_LINE_BETWEEN_PROPERTIES
-  # This rule sometimes prohibits blank line between properties even when that doesn't make sense
-  enabled: false
+  enabled: true
 # Checks top level order
 - name: TOP_LEVEL_ORDER
-  # This design choice belongs to the programmer, and there are often more logical orders
-  enabled: false
+  enabled: true
 # Checks that non-empty code blocks with braces follow the K&R style (1TBS or OTBS style)
 - name: BRACES_BLOCK_STRUCTURE_ERROR
-  # This rule forbits comments on the same line as block openers such as `if`
-  enabled: false
+  enabled: true
   configuration:
     openBraceNewline: 'True'
     closeBraceNewline: 'True'
@@ -224,7 +210,7 @@
     # If true: in parameter list when parameters are split by newline they are indented with two indentations instead of one
     extendedIndentOfParameters: false
     # If true: if first parameter in parameter list is on the same line as opening parenthesis, then other parameters can be aligned with it
-    alignedParameters: false
+    alignedParameters: true
     # If true, expression bodies which begin on a separate line are indented
     # using a continuation indent. The default is false.
     #
@@ -232,27 +218,25 @@
     # ij_kotlin_continuation_indent_for_expression_bodies in .editorconfig.
     extendedIndentForExpressionBodies: false
     # If true: if expression is split by newline after operator like +/-/`*`, then the next line is indented with two indentations instead of one
-    extendedIndentAfterOperators: false
+    extendedIndentAfterOperators: true
     # If true: when dot qualified expression starts on a new line, this line will be indented with two indentations instead of one
     extendedIndentBeforeDot: false
     # The indentation size for each file
-    indentationSize: 2
+    indentationSize: 4
 # Checks that there is no empty blocks in a file.
 # If allowEmptyBlocks is true, checks that it follows correct style (have a newline)
 - name: EMPTY_BLOCK_STRUCTURE_ERROR
   enabled: true
   configuration:
     # Whether a newline after `{` is required in an empty block
-    styleEmptyBlockWithNewline: 'False'
-    allowEmptyBlocks: 'True'
+    styleEmptyBlockWithNewline: 'True'
+    allowEmptyBlocks: 'False'
 # Checks that there is no more than one statement per line
 - name: MORE_THAN_ONE_STATEMENT_PER_LINE
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks that the line length is < lineLength parameter
 - name: LONG_LINE
-  # Since @Suppress("LONG_LINE") in Diktat is per class, not per expression, use other linters for this
-  enabled: false
+  enabled: true
   configuration:
     lineLength: '120'
 # Checks that semicolons are not used at the end of a line
@@ -263,32 +247,29 @@
   enabled: true
   configuration:
     # If the number of parameters on one line is more than this threshold, all parameters will be placed on separate lines.
-    # Large value so it has no effect
-    maxParametersInOneLine: 1000
-    # 3 by default
-    # Large value so it has no effect
-    maxCallsInOneLine: 1000
+    maxParametersInOneLine: 2
+    # 3 by default.
+    maxCallsInOneLine: 3
 # Checks trailing comma
 - name: TRAILING_COMMA
   enabled: true
   configuration:
     # VALUE_ARGUMENT
-    valueArgument: true
+    valueArgument: false
     # VALUE_PARAMETER
-    valueParameter: true
+    valueParameter: false
     # REFERENCE_EXPRESSION
-    indices: true
+    indices: false
     # WHEN_CONDITION_WITH_EXPRESSION
-    # TODO
     whenConditions: false
     # STRING_TEMPLATE
-    collectionLiteral: true
+    collectionLiteral: false
     # TYPE_PROJECTION
-    typeArgument: true
+    typeArgument: false
     # TYPE_PARAMETER
-    typeParameter: true
+    typeParameter: false
     # DESTRUCTURING_DECLARATION_ENTRY
-    destructuringDeclaration: true
+    destructuringDeclaration: false
 # Checks that there are not too many consecutive spaces in line
 - name: TOO_MANY_CONSECUTIVE_SPACES
   enabled: true
@@ -299,8 +280,7 @@
     saveInitialFormattingForEnums: false
 # Inspection that checks if a long dot qualified expression is used in condition or as an argument
 - name: COMPLEX_EXPRESSION
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks that blank lines are used correctly.
 # For example: triggers when there are too many blank lines between function declaration
 - name: TOO_MANY_BLANK_LINES
@@ -316,12 +296,10 @@
   enabled: true
 # Checks that each when statement have else in the end
 - name: WHEN_WITHOUT_ELSE
-  # This rule failes to account for exhaustive `when`, and the compiler already contains (some) checks for this
-  enabled: false
+  enabled: true
 # Checks that annotation is on a single line
 - name: ANNOTATION_NEW_LINE
-  # This rule wants one annotation per line, which is excessive
-  enabled: false
+  enabled: true
 # Checks that method annotated with `Preview` annotation is private and has Preview suffix
 - name: PREVIEW_ANNOTATION
   enabled: true
@@ -353,7 +331,7 @@
     # Is ignore constant
     ignoreConstantDeclaration: "true"
     # Is ignore property in companion object
-    ignoreCompanionObjectPropertyDeclaration: "false"
+    ignoreCompanionObjectPropertyDeclaration: "true"
     # Is ignore numbers in enum
     ignoreEnums: "false"
     # Is ignore number in ranges
@@ -365,16 +343,15 @@
   enabled: true
   configuration:
     # Whether enum members should be sorted alphabetically
-    sortEnum: false
+    sortEnum: true
     # Whether class properties should be sorted alphabetically
-    sortProperty: false
+    sortProperty: true
 # Checks that multiple modifiers sequence is in the correct order
 - name: WRONG_MULTIPLE_MODIFIERS_ORDER
   enabled: true
 # Checks that identifier has appropriate name (See table of rule 1.2 part 6)
 - name: CONFUSING_IDENTIFIER_NAMING
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks year in the copyright
 - name: WRONG_COPYRIGHT_YEAR
   enabled: true
@@ -389,12 +366,10 @@
   enabled: true
 # Inspection that checks if there is no blank lines before first comment
 - name: FIRST_COMMENT_NO_BLANK_LINE
-  # This rule forbits comments on the same line as block openers such as `if`
-  enabled: false
+  enabled: true
 # Inspection that checks if there are blank lines between code and comment and between code start token and comment's text
 - name: COMMENT_WHITE_SPACE
-  # This rule does not allow indentation in comments
-  enabled: false
+  enabled: true
   configuration:
     maxSpacesBeforeComment: 2
     maxSpacesInComment: 1
@@ -403,8 +378,7 @@
   enabled: true
 # Type aliases provide alternative names for existing types when type's reference text is longer 25 chars
 - name: TYPE_ALIAS
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
   configuration:
     typeReferenceLength: '25' # max length of type reference
 # Checks if casting can be omitted
@@ -412,18 +386,15 @@
   enabled: true
 # Checks that variables of generic types have explicit type declaration
 - name: GENERIC_VARIABLE_WRONG_DECLARATION
-  # This rule does not allow local variables without type annotation if the type is generic
-  enabled: false
+  enabled: true
 # Inspection that checks if string template has redundant curly braces
 - name: STRING_TEMPLATE_CURLY_BRACES
-  # String templates should always have curly braces
-  enabled: false
+  enabled: true
 # Variables with `val` modifier - are immutable (read-only). Usage of such variables instead of `var` variables increases
 # robustness and readability of code, because `var` variables can be reassigned several times in the business logic.
 # This rule prohibits usage of `var`s as local variables - the only exception is accumulators and counters
 - name: SAY_NO_TO_VAR
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Inspection that checks if string template has redundant quotes
 - name: STRING_TEMPLATE_QUOTES
   enabled: true
@@ -431,35 +402,30 @@
 - name: COLLAPSE_IF_STATEMENTS
   enabled: true
   configuration:
-    startCollapseFromNestedLevel: 1
+    startCollapseFromNestedLevel: 2
 # Checks that floating-point values are not used in arithmetic expressions
 - name: FLOAT_IN_ACCURATE_CALCULATIONS
-  # This rule flags floats or doubles in any arithmetic operation, which is overly sensitive
-  enabled: false
+  enabled: true
 # Checks that function length isn't too long
 - name: TOO_LONG_FUNCTION
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
   configuration:
     maxFunctionLength: '30' # max length of function
     isIncludeHeader: 'false' # count function's header
 # Warns if there are nested functions
 - name: AVOID_NESTED_FUNCTIONS
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks that lambda inside function parameters is in the end
 - name: LAMBDA_IS_NOT_LAST_PARAMETER
   enabled: true
 # Checks that function doesn't contains too many parameters
 - name: TOO_MANY_PARAMETERS
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
   configuration:
     maxParameterListSize: '5' # max parameters size
 # Checks that function doesn't have too many nested blocks
 - name: NESTED_BLOCK
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
   configuration:
     maxNestedBlockQuantity: '4'
 # Checks that function use default values, instead overloading
@@ -477,8 +443,7 @@
     isParamTagsForGenericTypes: true # create param tags for generic types
 # Checks that the long lambda has parameters
 - name: TOO_MANY_LINES_IN_LAMBDA
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
   configuration:
     maxLambdaLength: 10 # max length of lambda without parameters
 # Checks that using unnecessary, custom label
@@ -507,7 +472,6 @@
   enabled: true
 # Checks that classes have only one init block
 - name: MULTIPLE_INIT_BLOCKS
-  # TODO
   enabled: true
 # Checks that there are abstract functions in abstract class
 - name: CLASS_SHOULD_NOT_BE_ABSTRACT
@@ -521,16 +485,14 @@
 # Developer expects to get the value of the property, but receives some unknown value and some extra side effect hidden by the custom getter/setter.
 # Use extra functions for it instead.
 - name: CUSTOM_GETTERS_SETTERS
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks if null-check was used explicitly (for example: if (a == null))
 # Try to avoid explicit null checks (explicit comparison with `null`)
 # Kotlin is declared as [Null-safe](https://kotlinlang.org/docs/reference/null-safety.html) language.
 # But Kotlin architects wanted Kotlin to be fully compatible with Java, that's why `null` keyword was also introduced in Kotlin.
 # There are several code-structures that can be used in Kotlin to avoid null-checks. For example: `?:`,  `.let {}`, `.also {}`, e.t.c
 - name: AVOID_NULL_CHECKS
-  # This design choice belongs to the programmer
-  enabled: false
+  enabled: true
 # Checks if class instantiation can be wrapped in `apply` for better readability
 - name: COMPACT_OBJECT_INITIALIZATION
   enabled: true
