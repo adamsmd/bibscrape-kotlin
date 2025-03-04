@@ -4,6 +4,7 @@ package org.michaeldadams.bibscrape
 
 import bibtex.dom.BibtexEntry
 import bibtex.dom.BibtexFile
+import bibtex.dom.BibtexString
 import org.jsoup.nodes.Element
 import org.jsoup.parser.Parser
 import org.openqa.selenium.By
@@ -11,6 +12,7 @@ import org.openqa.selenium.support.ui.Select
 import org.jsoup.select.Evaluator as E
 import org.michaeldadams.bibscrape.Bibtex.Fields as F
 import org.michaeldadams.bibscrape.Bibtex.Types as T
+
 
 /** Scrapes the ACM Digital Library. */
 object ScrapeAcm : DomainScraper {
@@ -26,9 +28,18 @@ object ScrapeAcm : DomainScraper {
       }
     }
 
-    // // BibTeX
-    driver.findElement(By.cssSelector("""a[data-title="Export Citation"]""")).click()
-    val entry = driver.awaitFindElements(By.cssSelector("#exportCitation .csl-right-inline"))
+    // Accept necessary cookies
+    Thread.sleep(2000)
+    val cookieDeclineButton = driver.findElement(By.id("CybotCookiebotDialogBodyLevelButtonLevelOptinDeclineAll"))
+    cookieDeclineButton.click()
+
+    // // BibTex
+    val button = driver.findElement(By.cssSelector("""button[data-title="Export Citation"]"""))
+    Thread.sleep(2000)
+    button.click()
+    Thread.sleep(2000)
+
+    val entry = driver.awaitFindElements(By.className("csl-right-inline"))
       .flatMap { Bibtex.parseEntries(it.text) }
       // Avoid SIGPLAN Notices, SIGSOFT Software Eng Note, etc. by prefering non-journal over journal
       .sortedBy { it.contains(F.JOURNAL) }
@@ -39,23 +50,22 @@ object ScrapeAcm : DomainScraper {
     HtmlMeta.bibtex(entry, meta, F.JOURNAL to false)
 
     // // Abstract
-    entry[F.ABSTRACT] = (
-      // Sometimes ACM puts two .abstractInFull div tags around the abstract, and sometimes it doesn't.
-      // Also, sometimes, it doesn't even have an abstract.
-      driver.findElements(By.cssSelector(".article__abstract > .abstractInFull > .abstractInFull")).emptyOrSingle()
-        ?: driver.findElements(By.cssSelector(".article__abstract > .abstractInFull")).emptyOrSingle()
-      )?.innerHtml
-      ?.remove("^ <p>No\\ abstract\\ available.</p> $".r)
+    entry[F.ABSTRACT] = driver.findElement(By.cssSelector("section#abstract"))
+      .findElements(By.cssSelector("div[role='paragraph']"))
+      .joinToString(" ") { it.text }
+      .takeIf { it.isNotEmpty() }
+      ?.remove("^<p>No\\ abstract\\ available.<\\/p> $".r)
       ?.ifEmpty { null }
 
     // // Author
     @Suppress("StringLiteralDuplication")
-    entry[F.AUTHOR] = driver.findElements(By.cssSelector(".citation .author-name"))
+    entry[F.AUTHOR] = driver.findElements(By.cssSelector("span[property='author'] a"))
       .map { it.getAttribute("title") }
+      .filterNot { it.isEmpty() }
       .joinByAnd()
 
     // // Title
-    entry[F.TITLE] = driver.findElement(By.cssSelector(".citation__title")).innerHtml
+    entry[F.TITLE] = driver.findElement(By.cssSelector("h1[property='name']")).innerHtml
 
     // // Month
     //
@@ -63,21 +73,26 @@ object ScrapeAcm : DomainScraper {
     // This is a best effort at picking the right month among these inconsistent results.
     // TODO: simplify month calculation in ACM
     entry[F.MONTH] =
-      entry[F.MONTH]?.string
-        ?: driver.findElements(By.cssSelector(".book-meta + .cover-date")).first().innerHtml.split("\\s+".r).first()
+      (entry[F.MONTH] as? BibtexString)?.string // Ensure it's a BibtexString before accessing `.string`
+        ?: driver.findElement(By.cssSelector(".core-date-published")).text.split("\\s+".r).getOrNull(1)
+
     entry[F.ISSUE_DATE]?.let {
-      val month = it.string.split("\\s+".r).first()
-      if (Bibtex.Months.stringToMonth(entry.ownerFile, month) != null) { entry[F.MONTH] = month }
+      val month = (it as? BibtexString)?.string?.split("\\s+".r)?.firstOrNull()
+      if (month != null && Bibtex.Months.stringToMonth(entry.ownerFile, month) != null) {
+        entry[F.MONTH] = month
+      }
     }
 
     // // Keywords
-    entry[F.KEYWORDS] = driver.findElements(By.cssSelector(".tags-widget__content a"))
-      .map { it.innerHtml }
+    // TODO use section property="keywords" instead
+    val keywords = driver.findElements(By.cssSelector("meta[name='keywords']")).firstOrNull()
+    entry[F.KEYWORDS] = keywords?.getAttribute("content")
+      ?.split(",")
       // ACM is inconsistent about the order in which these are returned.
       // We sort them so that we are deterministic.
       // TODO: do we still need to sort keywords?
-      .sorted()
-      .joinToString(";")
+      ?.sorted()
+      ?.joinToString(";") ?: ""
 
     // // Journal
     if (entry.entryType == T.ARTICLE) {
